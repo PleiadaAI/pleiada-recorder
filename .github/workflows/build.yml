@@ -1,0 +1,137 @@
+name: Build Pleiada Recorder Installer
+
+on:
+  push:
+    tags:
+      - 'v*'          # triggers on: git tag v0.17 && git push --tags
+  workflow_dispatch:  # allows manual trigger from the GitHub UI
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write   # required to create GitHub Releases
+
+    steps:
+      # ── 1. Checkout source ────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Create deps directory ──────────────────────────────────
+      - name: Create deps directory
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path "pleiada_installer\deps" | Out-Null
+
+      # ── 3. Download Python 3.12.8 installer ───────────────────────
+      - name: Download Python 3.12.8
+        shell: pwsh
+        run: |
+          $dest = "pleiada_installer\deps\python-3.12.8-amd64.exe"
+          Write-Host "Downloading Python 3.12.8..."
+          Invoke-WebRequest `
+            -Uri "https://www.python.org/ftp/python/3.12.8/python-3.12.8-amd64.exe" `
+            -OutFile $dest `
+            -UseBasicParsing
+          $mb = [math]::Round((Get-Item $dest).Length / 1MB, 1)
+          Write-Host "Python installer: $mb MB"
+
+      # ── 4. Download AutoHotkey v2 installer ───────────────────────
+      - name: Download AutoHotkey v2
+        shell: pwsh
+        run: |
+          $dest = "pleiada_installer\deps\AutoHotkey_2.0.24_setup.exe"
+          Write-Host "Downloading AutoHotkey v2..."
+          Invoke-WebRequest `
+            -Uri "https://www.autohotkey.com/download/ahk-v2.exe" `
+            -OutFile $dest `
+            -UseBasicParsing
+          $mb = [math]::Round((Get-Item $dest).Length / 1MB, 1)
+          Write-Host "AHK installer: $mb MB"
+
+      # ── 5. Download OBS Studio 32.1.2 installer ───────────────────
+      - name: Download OBS Studio 32.1.2
+        shell: pwsh
+        run: |
+          $dest = "pleiada_installer\deps\OBS-Studio-32.1.2-Windows-x64-Installer.exe"
+          Write-Host "Downloading OBS Studio 32.1.2..."
+          Invoke-WebRequest `
+            -Uri "https://github.com/obsproject/obs-studio/releases/download/32.1.2/OBS-Studio-32.1.2-Windows-x64-Installer.exe" `
+            -OutFile $dest `
+            -UseBasicParsing
+          $mb = [math]::Round((Get-Item $dest).Length / 1MB, 1)
+          Write-Host "OBS installer: $mb MB"
+
+      # ── 6. Install Inno Setup 6 ───────────────────────────────────
+      - name: Install Inno Setup 6
+        shell: pwsh
+        run: |
+          $tmp = "$env:TEMP\innosetup-installer.exe"
+          Write-Host "Downloading Inno Setup..."
+          Invoke-WebRequest `
+            -Uri "https://jrsoftware.org/download.php/is.exe" `
+            -OutFile $tmp `
+            -UseBasicParsing
+          Write-Host "Installing Inno Setup silently..."
+          Start-Process -FilePath $tmp `
+            -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" `
+            -Wait
+          Remove-Item $tmp -Force
+          Write-Host "Inno Setup installed."
+
+      # ── 7. Compile the installer ──────────────────────────────────
+      - name: Compile installer with ISCC
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
+          }
+          Write-Host "Using ISCC: $iscc"
+          & $iscc "pleiada_installer\setup.iss"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "ISCC exited with code $LASTEXITCODE"
+            exit 1
+          }
+
+      # ── 8. Locate compiled .exe ───────────────────────────────────
+      - name: Verify output
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem "pleiada_installer\Output\*.exe" | Select-Object -First 1
+          if (-not $exe) { Write-Error "No .exe found in Output\"; exit 1 }
+          $mb = [math]::Round($exe.Length / 1MB, 1)
+          Write-Host "Built: $($exe.Name) ($mb MB)"
+          echo "EXE_PATH=$($exe.FullName)" >> $env:GITHUB_ENV
+          echo "EXE_NAME=$($exe.Name)" >> $env:GITHUB_ENV
+
+      # ── 9. Upload as workflow artifact (available on every build) ─
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.EXE_NAME }}
+          path: ${{ env.EXE_PATH }}
+          retention-days: 30
+
+      # ── 10. Publish GitHub Release (only on tag push) ─────────────
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Pleiada Recorder ${{ github.ref_name }}
+          body: |
+            ## Pleiada Recorder ${{ github.ref_name }}
+
+            ### Installation
+            Download `${{ env.EXE_NAME }}` and run it as Administrator.
+
+            ### What's included
+            - AutoHotkey v2.0.24
+            - OBS Studio 32.1.2
+            - Python 3.12.8
+
+            ### Build provenance
+            This release was compiled automatically from the source code in this repository
+            by GitHub Actions. The workflow file is at `.github/workflows/build.yml`.
+          files: ${{ env.EXE_PATH }}
+          draft: false
+          prerelease: false

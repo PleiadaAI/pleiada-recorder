@@ -1,0 +1,29 @@
+# ── Build outputs ─────────────────────────────────────────────────
+pleiada_installer/Output/
+pleiada_installer/deps/
+
+# ── Python ────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+
+# ── Inno Setup compiler temp files ────────────────────────────────
+*.~is
+
+# ── Windows ───────────────────────────────────────────────────────
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ── VS Code / editors ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── OS debug / temp logs ──────────────────────────────────────────
+*.log
+pleiada_obs_debug.txt
+pleiada_obs_error.txt
