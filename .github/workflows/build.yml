@@ -35,17 +35,30 @@ jobs:
           $mb = [math]::Round((Get-Item $dest).Length / 1MB, 1)
           Write-Host "Python installer: $mb MB"
 
-      # ── 4. Download AutoHotkey v2 installer ───────────────────────
-      - name: Download AutoHotkey v2
+      # ── 4. Download AutoHotkey v2.0.24 installer ──────────────────
+      #    autohotkey.com is protected by Cloudflare bot challenge.
+      #    GitHub Releases also redirects there, so we use the GitHub CLI
+      #    (gh) which ships on all runners and downloads release assets
+      #    via the authenticated API, bypassing Cloudflare entirely.
+      - name: Download AutoHotkey v2.0.24
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          $dest = "pleiada_installer\deps\AutoHotkey_2.0.24_setup.exe"
-          Write-Host "Downloading AutoHotkey v2..."
-          Invoke-WebRequest `
-            -Uri "https://www.autohotkey.com/download/ahk-v2.exe" `
-            -OutFile $dest `
-            -UseBasicParsing
-          $mb = [math]::Round((Get-Item $dest).Length / 1MB, 1)
+          Write-Host "Downloading AutoHotkey v2.0.24 via GitHub CLI..."
+          gh release download v2.0.24 `
+            --repo AutoHotkey/AutoHotkey `
+            --pattern "*setup*" `
+            --dir "pleiada_installer\deps" `
+            --clobber
+          # Normalize filename to what setup.iss expects
+          $found = Get-ChildItem "pleiada_installer\deps\*setup*" | Select-Object -First 1
+          if (-not $found) { Write-Error "AHK installer not found after download"; exit 1 }
+          $target = "pleiada_installer\deps\AutoHotkey_2.0.24_setup.exe"
+          if ($found.FullName -ne (Resolve-Path $target -ErrorAction SilentlyContinue)) {
+            Move-Item $found.FullName $target -Force
+          }
+          $mb = [math]::Round((Get-Item $target).Length / 1MB, 1)
           Write-Host "AHK installer: $mb MB"
 
       # ── 5. Download OBS Studio 32.1.2 installer ───────────────────
@@ -61,21 +74,13 @@ jobs:
           $mb = [math]::Round((Get-Item $dest).Length / 1MB, 1)
           Write-Host "OBS installer: $mb MB"
 
-      # ── 6. Install Inno Setup 6 ───────────────────────────────────
+      # ── 6. Install Inno Setup 6 via Chocolatey ────────────────────
+      #    choco is pre-installed on all GitHub Actions Windows runners.
       - name: Install Inno Setup 6
         shell: pwsh
         run: |
-          $tmp = "$env:TEMP\innosetup-installer.exe"
-          Write-Host "Downloading Inno Setup..."
-          Invoke-WebRequest `
-            -Uri "https://jrsoftware.org/download.php/is.exe" `
-            -OutFile $tmp `
-            -UseBasicParsing
-          Write-Host "Installing Inno Setup silently..."
-          Start-Process -FilePath $tmp `
-            -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" `
-            -Wait
-          Remove-Item $tmp -Force
+          Write-Host "Installing Inno Setup via Chocolatey..."
+          choco install innosetup --yes --no-progress
           Write-Host "Inno Setup installed."
 
       # ── 7. Compile the installer ──────────────────────────────────
