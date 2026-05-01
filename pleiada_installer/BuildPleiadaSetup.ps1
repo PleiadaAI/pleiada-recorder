@@ -1,4 +1,4 @@
-# =================================================================
+﻿# =================================================================
 #  BuildPleiadaSetup.ps1
 #  Descarga los 3 instaladores y compila PleiadaRecorder_Setup.exe
 #  Ejecutar desde PowerShell como Administrador
@@ -108,18 +108,18 @@ if (-not $iscc) {
 Write-OK "ISCC encontrado: $iscc"
 
 # -- 4. Compilar
-Write-Step "Compilando PleiadaRecorder_Setup_V17.exe"
+Write-Step "Compilando PleiadaRecorder_Setup_V18.exe"
 Write-Host "  $iscc `"$ScriptDir\setup.iss`""
 
 & $iscc "$ScriptDir\setup.iss"
 $exitCode = $LASTEXITCODE
 
 if ($exitCode -eq 0) {
-    $exePath = "$ScriptDir\Output\PleiadaRecorder_Setup_V17.exe"
+    $exePath = "$ScriptDir\Output\PleiadaRecorder_Setup_V18.exe"
     $mb = [math]::Round((Get-Item $exePath).Length / 1048576, 1)
     Write-Host ""
     Write-Host "=================================================" -ForegroundColor Green
-    Write-Host "  PleiadaRecorder_Setup_V17.exe generado con exito!" -ForegroundColor Green
+    Write-Host "  PleiadaRecorder_Setup_V18.exe generado con exito!" -ForegroundColor Green
     Write-Host "  Tamano: $mb MB" -ForegroundColor Green
     Write-Host "  Ruta:   $exePath" -ForegroundColor Green
     Write-Host "=================================================" -ForegroundColor Green
