@@ -1,53 +1,130 @@
-# Pleiada Recorder
+﻿# Pleiada Recorder
 
-**Pleiada Recorder** is an open-source Windows utility developed by [Pleiada](https://pleiada.ai) for the **Gameplay Alliance** program. It automates gameplay recording via OBS Studio while simultaneously capturing anonymized, time-synchronized keyboard and mouse activity logs — enabling behavioral research on gaming sessions without collecting any personally identifiable information.
-
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Components](#components)
-  - [gameplay\_logger.ahk](#gameplay_loggerahk)
-  - [obs\_control.py](#obs_controlpy)
-  - [configure\_obs.py](#configure_obspy)
-  - [pleiada\_setup\_wizard.pyw](#pleiada_setup_wizardpyw)
-  - [pleiada\_check.pyw](#pleiada_checkpyw)
-- [Installer](#installer)
-- [Building from Source](#building-from-source)
-- [Privacy & Data Collection](#privacy--data-collection)
-- [Dependencies](#dependencies)
-- [License](#license)
+**Pleiada Recorder** es una herramienta gratuita desarrollada por [Pleiada](https://pleiada.ai) para el programa **Gameplay Alliance**. Graba tu pantalla con OBS y registra tus movimientos de teclado y mouse — todo sincronizado — para que tu forma de jugar sirva para entrenar agentes de Inteligencia Artificial.
 
 ---
 
-## Overview
+## Primeros pasos
 
-Participants in the Gameplay Alliance program install Pleiada Recorder on their gaming PC. When they start a gameplay session, a small floating window appears on screen. Pressing **Iniciar grabación** simultaneously:
+### Paso 1 — Configuración inicial con OBS
 
-1. Starts an OBS Studio screen capture
-2. Begins logging every keyboard and mouse event with millisecond timestamps
+Antes de tu primera grabación tenés que configurar OBS una sola vez (si ya lo tenías instalado, igualmente tenés que realizar estos ajustes).
 
-When the session ends, pressing **Detener grabación** stops both the video recording and the input log, and moves both files into a timestamped session folder. The Synch Checker tool (`pleiada_check.pyw`) can then be used to verify that the video and log files are properly time-aligned before upload.
+1. Iniciá el juego que quieras grabar y dejalo en pausa donde quieras iniciar la grabación.
 
----
+2. Si lo acabás de instalar por primera vez, abrí OBS y seleccioná **"Optimizar solo para grabación..."** y dale Siguiente. Luego asegurate que la resolución sea al menos 1080 y los FPS sean **"60 o 30 pero en alta resolución"**.
 
-## Features
+3. Sin importar si lo tenías instalado o no, en la sección **Fuentes** (abajo a la izquierda) hacé clic en el **+**, seleccioná **"Captura de Juego"** y dejá el nombre que aparece. Luego en **Modo** seleccioná **"Capturar Ventana específica"** y en **Ventana** seleccioná la que esté mostrando tu juego ya iniciado.
 
-- One-click start/stop for synchronized video + input recording
-- Floating, always-on-top GUI positioned below the game window (does not appear in recordings)
-- Automatic OBS launch and WebSocket connection with self-healing on bad state
-- Desktop audio captured; microphone always muted
-- Anonymized input logs (key names and mouse positions only — no content, no screenshots)
-- Post-install configuration wizard for first-time OBS setup
-- Sync verification tool with automatic session folder detection
-- Fully automated installer: installs Python, AutoHotkey, OBS, Python packages, and configures OBS in one pass
+4. En la sección **Mezclador de audio** (abajo al centro), si aparece una sección llamada **"Mic/Aux"**, silenciala haciendo clic en el 🔊 hasta que quede rojo (muteado).
+
+✔ Solo tenés que hacer esto una vez.
 
 ---
 
-## Architecture
+### Paso 2 — Prueba inicial
+
+Ahora vamos a hacer una grabación corta para verificar que todo funciona bien.
+
+1. Si no iniciaste el juego en los pasos anteriores, hacelo ahora y dejalo en pausa.
+
+2. Hacé doble clic en el ícono **Pleiada Recorder** del escritorio. Aparece una pequeña ventana flotante — podés moverla arrastrando el encabezado.
+
+3. Hacé clic en el botón **⏺** para iniciar la grabación. El botón cambia a **⏹** y el contador empieza a correr.
+
+4. Jugá unos 60 segundos y luego hacé clic en **⏹** para detener.
+
+5. Los archivos quedan guardados automáticamente en:
+   `Documentos › Pleiada Recordings`
+
+6. Aprovechá para verificar en los 4 archivos que no se haya grabado en la pantalla o en el registro del teclado nada privado ni personal. De ser así, ese contenido será eliminado permanentemente.
+
+---
+
+### Paso 3 — Verificar sincronización (Synch Checker)
+
+Después de cada sesión, verificá que el video y los logs quedaron bien sincronizados.
+
+1. Hacé doble clic en el ícono **Synch Checker** del escritorio.
+
+2. Hacé clic en **Seleccionar carpeta** y elegí la carpeta de la sesión (por ejemplo: `2026-04-25 13-09-07 recording`).
+
+3. Hacé clic en **Verificar Sync**.
+
+**Resultados posibles:**
+- ✅ **SINCRONIZADOS** → la sesión está bien, podés entregarla.
+- ⚠ **OFFSET LEVE** → desfase menor a 2 seg, generalmente aceptable.
+- ✖ **OFFSET CRÍTICO** → desfase grande, la sesión puede no ser usable.
+
+¿Dudas? Visitá [pleiada.ai/faqs](https://www.pleiada.ai/faqs)
+
+---
+
+## Uso cotidiano
+
+Una vez configurado OBS, el flujo de cada sesión es:
+
+1. Iniciá el juego.
+2. Abrí **Pleiada Recorder** desde el escritorio.
+3. Presioná **⏺** para empezar a grabar.
+4. Jugá tu sesión. La grabación se detiene automáticamente al llegar a **1 hora 5 minutos**. Para evitar subidas de archivos muy pesados.
+5. Cuando termines (o cuando se detenga sola), presioná **⏹**.
+6. Abrí **Synch Checker** y verificá la sesión antes de entregarla.
+
+> Si necesitás grabar más de 1h 5min, podés iniciar una nueva grabación — quedará guardada en una carpeta separada como una sesión nueva.
+
+---
+
+## ¿Dónde se guardan los archivos?
+
+Cada sesión genera una carpeta en:
+
+```
+Documentos\Pleiada Recordings\
+  └── 2026-04-26 15-13-40 recording\
+        ├── 2026-04-26 15-13-42.mp4    ← video
+        ├── mouse_log.csv              ← movimientos del mouse
+        ├── key_log.csv                ← teclas presionadas
+        └── video_timeline.csv         ← línea de tiempo
+```
+
+---
+
+## Privacidad
+
+Lo que graba Pleiada Recorder es **información anónima**: no captura tu nombre, cuenta, datos personales ni nada que te identifique. Sin embargo, **es responsabilidad del usuario** asegurarse de:
+
+- No grabar pantallas que contengan información privada o personal (contraseñas, chats, datos bancarios, etc.).
+- No utilizar el teclado durante la grabación para escribir contenido que pertenezca al ámbito privado.
+
+En caso de que cualquier información privada llegue a nuestros servidores — ya sea a través de la captura de video o del registro del teclado — procederemos a eliminarla de forma permanente. Dicho contenido quedará automáticamente fuera de cualquier oportunidad comercial futura.
+
+**Qué se registra:**
+
+| Qué | Cómo |
+|-----|------|
+| Video de pantalla | Archivo local; se sube manualmente |
+| Nombres de teclas | Ej: `a`, `Space`, `LShift` — sin texto ni contenido |
+| Posición del mouse | Coordenadas en píxeles |
+| Clics y scroll | Solo identificador del botón y delta de scroll |
+
+No se accede al micrófono, cámara, portapapeles, historial de navegación ni ningún otro dato personal. Todo queda en tu computadora hasta que lo subís vos.
+
+---
+
+## Contacto y soporte
+
+- Información del programa: [pleiada.ai](https://pleiada.ai)
+- Preguntas frecuentes: [pleiada.ai/faqs](https://pleiada.ai/faqs)
+- Términos: [pleiada.ai/terms](https://pleiada.ai/terms)
+
+---
+
+---
+
+## Para devs
+
+### Arquitectura
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -64,257 +141,117 @@ When the session ends, pressing **Detener grabación** stops both the video reco
           │ ws://localhost:4455
           ▼
   ┌───────────────┐
-  │  OBS Studio   │  ← configured by configure_obs.py at install time
+  │  OBS Studio   │  ← configurado por configure_obs.py al instalar
   │  (recording)  │
   └───────────────┘
-
-Session output folder:
-  %OneDrive%\Documents\Pleiada Recordings\
-    └── 2026-04-26 15-13-40 recording\
-          ├── 2026-04-26 15-13-42.mp4   ← video (moved from OBS output)
-          └── gameplay_log_....txt       ← input event log
 ```
 
----
+### Componentes
 
-## Components
+#### `gameplay_logger.ahk`
+**Runtime:** AutoHotkey v2.0+
 
-### `gameplay_logger.ahk`
+GUI frameless (`-Caption +ToolWindow +AlwaysOnTop`), posicionada en el centro inferior del área de trabajo del monitor primario. Draggable via `WM_NCHITTEST` en el header (primeros 28 px). Al iniciar una sesión crea una carpeta con timestamp, lanza `obs_control.py start` (bloqueante), y activa timers de tracking (mouse: 8 ms, timeline: 50 ms, UI clock: 1 s). La grabación se detiene automáticamente a los **3900 segundos (1h 5min)**. Al detener, escribe el anchor final en los CSVs y lanza `obs_control.py stop` en background.
 
-**Runtime:** AutoHotkey v2.0+  
-**Role:** Main user-facing process. Handles the GUI, input logging, and orchestration.
+#### `obs_control.py`
+**Runtime:** Python 3.12+ / **Deps:** `websocket-client`
 
-#### GUI
-- Frameless floating window (`-Caption +ToolWindow +AlwaysOnTop`)
-- Positioned at the bottom center of the primary monitor's work area using `MonitorGetWorkArea`, 8 px above the taskbar
-- Draggable via a header strip that returns `HTCAPTION (2)` on `WM_NCHITTEST` for the top 28 px
-- Does not appear in OBS recordings because it sits outside the game window bounds and the OBS scene captures the full monitor
-
-#### Recording flow
-1. User clicks **Iniciar grabación**
-2. A timestamped session folder is created under `%OneDrive%\Documents\Pleiada Recordings\`
-3. `obs_control.py start` is launched via `Run` (hidden window)
-4. A live timer starts updating in the GUI every second
-5. Input hooks (`InputHook`, `OnMessage WM_INPUT`) begin capturing raw keyboard and mouse events
-6. User clicks **Detener grabación**
-7. Input hooks are released and the log file is flushed
-8. `obs_control.py stop <session_folder>` is launched — OBS stops recording and moves the video into the session folder
-
-#### Input log format
-Plain text, one event per line:
-
-```
-[HH:MM:SS.mmm] KEY_DOWN  a
-[HH:MM:SS.mmm] KEY_UP    a
-[HH:MM:SS.mmm] MOUSE_MOVE  x=1024 y=768
-[HH:MM:SS.mmm] MOUSE_DOWN  LEFT
-[HH:MM:SS.mmm] MOUSE_UP    LEFT
-[HH:MM:SS.mmm] MOUSE_WHEEL delta=120
-```
-
-All coordinates are in screen pixels. Key names follow AutoHotkey's key name conventions. No text content, clipboard data, or application context is logged.
-
----
-
-### `obs_control.py`
-
-**Runtime:** Python 3.12+  
-**Dependencies:** `websocket-client`  
-**Role:** CLI wrapper around the OBS WebSocket v5 API. Called by `gameplay_logger.ahk` as a subprocess.
-
-#### Usage
+CLI wrapper del OBS WebSocket v5 API.
 
 ```
 python obs_control.py start
 python obs_control.py stop [session_folder]
 ```
 
-#### Start sequence
+**Start:** detecta `obs64.exe` via tasklist → busca el ejecutable (paths conocidos → registro → glob) → conecta WS con auth SHA-256 → si falla, mata y relanza OBS (1 reintento) → desmutea `wasapi_output_capture`, mutea todos los `wasapi_input_capture` → llama `StartRecord` → confirma `outputActive=True` (hasta 50 polls × 100 ms).
 
-1. **OBS detection** — checks `tasklist` for `obs64.exe`
-2. **Launch if needed** — locates `obs64.exe` via a priority list of known paths, then Windows Registry, then glob fallback; launches with `subprocess.Popen`
-3. **WebSocket connect** — polls `ws://localhost:4455` for up to 30 seconds; authenticates via OBS WebSocket v5 protocol (SHA-256 + base64 challenge/response)
-4. **Self-healing** — if the WebSocket connect raises any exception (connection refused, timeout, protocol error), on the first attempt the script kills `obs64.exe` via `taskkill /F` and re-launches from scratch; the second attempt is final
-5. **Audio setup** — calls `GetInputList`; unmutes `wasapi_output_capture` (desktop/game audio); mutes all `wasapi_input_capture` sources (microphone); creates the desktop audio source if absent using the active scene name from `GetCurrentProgramScene`
-6. **Start recording** — calls `StartRecord`; polls `GetRecordStatus.outputActive` up to 50 times (100 ms intervals) to confirm the recording is live
+**Stop:** llama `StopRecord` → lee `outputPath` de la respuesta → fallback a escaneo de `~/Videos` si el path está vacío → mueve el video a `session_folder` con hasta 20 reintentos.
 
-#### Stop sequence
+**Debug log:** `%TEMP%\pleiada_obs_debug.txt`
 
-1. Connects and authenticates to OBS WebSocket
-2. Calls `StopRecord`; reads `outputPath` from the response
-3. Falls back to scanning `~/Videos` for the most recently modified video file if `outputPath` is empty or the file is missing
-4. Moves the video file into `session_folder` with up to 20 retries and 500 ms intervals (handles the case where OBS has not yet finished flushing the file)
+#### `configure_obs.py`
+**Runtime:** Python 3.12+
 
-#### Debug log
+Corre una sola vez durante la instalación (vía Inno Setup, hidden). Configura:
 
-All operations are appended to `%TEMP%\pleiada_obs_debug.txt` with `[HH:MM:SS]` timestamps.
+| Target | Archivo | Acción |
+|--------|---------|--------|
+| WebSocket plugin | `%APPDATA%\obs-studio\plugin_config\obs-websocket\config.json` | Puerto 4455, sin auth, suprime first-run alert |
+| Perfil de grabación | `%APPDATA%\obs-studio\basic\profiles\Pleiada\basic.ini` | MP4, 1920×1080, 60 fps, 2500 kbps video, 160 kbps audio |
+| Scene collection | `%APPDATA%\obs-studio\basic\scenes\Pleiada.json` | Escena con `monitor_capture` + `wasapi_output_capture`, sin micrófono |
+| Perfil/escena activa | `%APPDATA%\obs-studio\global.ini` | Apunta a perfil `Pleiada` y escena `Pleiada`; `FirstRun=false` |
 
----
+#### `pleiada_setup_wizard.pyw`
+**Runtime:** Python 3.12+ (Tkinter)
 
-### `configure_obs.py`
+Wizard de 3 pasos post-instalación. Ventana 580×560 px centrada en pantalla. El footer se packea antes que el contenido para garantizar visibilidad de los botones independientemente de la altura del contenido.
 
-**Runtime:** Python 3.12+  
-**Role:** Runs once during installation (via Inno Setup `[Run]` section, hidden). Configures OBS for Pleiada without requiring user interaction.
+#### `pleiada_check.pyw`
+**Runtime:** Python 3.12+ (Tkinter + OpenCV + Pillow)
 
-#### What it configures
-
-| Target | File | Action |
-|--------|------|--------|
-| WebSocket plugin | `%APPDATA%\obs-studio\plugin_config\obs-websocket\config.json` | Enables server on port 4455, no authentication, suppresses first-run alert |
-| Recording profile | `%APPDATA%\obs-studio\basic\profiles\Pleiada\basic.ini` | MP4, 1920×1080, 60 fps, 2500 kbps video, 160 kbps audio |
-| Scene collection | `%APPDATA%\obs-studio\basic\scenes\Pleiada.json` | Scene "Escena" with `monitor_capture` (primary monitor) + `wasapi_output_capture` (default desktop audio), no microphone source |
-| Active profile/scene | `%APPDATA%\obs-studio\global.ini` | Points `[Basic]` to profile `Pleiada` and scene collection `Pleiada`; sets `FirstRun=false` to suppress the auto-configure wizard |
-
-The profile and scene collection files are only created if they do not already exist, preserving any prior user customization.
+Herramienta standalone de verificación de sync entre el video y los logs de una sesión.
 
 ---
 
-### `pleiada_setup_wizard.pyw`
+### Installer
 
-**Runtime:** Python 3.12+ (Tkinter)  
-**Role:** 3-page post-install wizard that guides the user through the first OBS configuration. Launched automatically at the end of the Inno Setup installer.
+Construido con [Inno Setup 6](https://jrsoftware.org/isinfo.php) desde `pleiada_installer/setup.iss`.
 
-#### Pages
+**Secuencia:**
+1. Página de consentimiento (checkbox requerido)
+2. Python 3.12.8 silencioso (user-scope) si no existe `HKCU\Software\Python\PythonCore\3.12`
+3. AutoHotkey v2.0.24
+4. OBS Studio 32.1.2 (cierra OBS si está corriendo antes y después)
+5. Paquetes pip: `websocket-client`, `Pillow`, `opencv-python`
+6. `configure_obs.py` (hidden)
+7. `pleiada_setup_wizard.pyw`
 
-| Page | Content |
-|------|---------|
-| 1 — OBS Setup | Instructions to open OBS, run the auto-configuration wizard (select "Optimize for recording only", 1080p, 60 or 30 fps), and confirm completion with a checkbox |
-| 2 — Recorder | Instructions for using the floating recorder window: how to start and stop a session, where files are saved |
-| 3 — Sync Checker | Instructions for using `pleiada_check.pyw` to verify session files; link to `pleiada.ai/faqs` |
+**Shortcuts creados:**
 
-The window is 580×560 px, centered on screen. The footer (navigation buttons) is packed before the content frame to guarantee button visibility regardless of content height. The application icon is loaded from the same directory as `__file__` rather than `sys.argv[0]` to ensure reliability when launched via shell file association.
-
----
-
-### `pleiada_check.pyw`
-
-**Runtime:** Python 3.12+ (Tkinter + OpenCV + Pillow)  
-**Role:** Standalone sync verification tool. Allows the participant or researcher to confirm that the video recording and the input log file in a session folder are properly time-aligned.
+| Acceso directo | Target |
+|----------------|--------|
+| Pleiada Recorder | `gameplay_logger.ahk` |
+| Synch Checker | `pleiada_check.pyw` |
 
 ---
 
-## Installer
+### Building from Source
 
-The installer is built with [Inno Setup 6](https://jrsoftware.org/isinfo.php) from `pleiada_installer/setup.iss`.
-
-### What the installer does
-
-1. Presents a consent and information page (required checkbox before proceeding)
-2. Installs Python 3.12.8 silently (user-scope, `PrependPath=1`) if `HKCU\Software\Python\PythonCore\3.12` does not exist
-3. Installs AutoHotkey v2.0.24 (interactive, standard wizard)
-4. Closes OBS if running, then installs OBS Studio 32.1.2 (interactive)
-5. Closes OBS if the OBS installer re-launched it
-6. Installs Python packages: `websocket-client`, `Pillow`, `opencv-python` via pip
-7. Runs `configure_obs.py` to configure OBS automatically
-8. Launches `pleiada_setup_wizard.pyw` to guide first-time setup
-
-### Installer output
-
-`pleiada_installer/Output/PleiadaRecorder_Setup_V<N>.exe`
-
-### Desktop shortcuts created
-
-| Shortcut | Target | Purpose |
-|----------|--------|---------|
-| Pleiada Recorder | `gameplay_logger.ahk` | Start a recording session |
-| Synch Checker | `pleiada_check.pyw` | Verify session sync |
-
----
-
-## Building from Source
-
-### Prerequisites
-
-| Tool | Version | Notes |
-|------|---------|-------|
-| Windows | 10 / 11 x64 | Build and target platform |
-| [Inno Setup 6](https://jrsoftware.org/isdl.php) | 6.x | Installer compiler |
-| PowerShell | 5.1+ | Bundled with Windows |
-| Internet access | — | To download deps during build |
-
-The build script (`BuildPleiadaSetup.ps1`) downloads all three dependency installers automatically if they are not already present in `pleiada_installer/deps/`.
-
-### Steps
+**Requisitos:** Windows 10/11 x64, [Inno Setup 6](https://jrsoftware.org/isdl.php), PowerShell 5.1+, acceso a internet.
 
 ```powershell
-# 1. Clone the repository
-git clone https://github.com/<org>/pleiada-recorder.git
+git clone https://github.com/PleiadaAI/pleiada-recorder.git
 cd pleiada-recorder
-
-# 2. Allow script execution for this session
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-
-# 3. Run the build script (downloads deps + compiles)
 cd pleiada_installer
 .\BuildPleiadaSetup.ps1
 ```
 
-The compiled installer is written to `pleiada_installer/Output/`.
+El instalador compilado queda en `pleiada_installer/Output/`.
 
-### CI/CD (GitHub Actions)
-
-Pushing a tag triggers an automated build on a `windows-latest` GitHub Actions runner:
+**CI/CD (GitHub Actions):** un push de tag dispara el build en `windows-latest`, compila el `.exe` y publica un GitHub Release.
 
 ```bash
-git tag v0.17
-git push origin v0.17
+git tag v0.17.2
+git push origin v0.17.2
 ```
 
-The workflow (`.github/workflows/build.yml`):
-- Downloads all three dependency installers
-- Installs Inno Setup 6 silently
-- Compiles `setup.iss`
-- Uploads the `.exe` as a workflow artifact (available on every build)
-- Publishes a GitHub Release with the `.exe` as a downloadable asset (tag builds only)
+---
+
+### Dependencias
+
+| Paquete | Versión | Licencia | Uso |
+|---------|---------|----------|-----|
+| [AutoHotkey v2](https://www.autohotkey.com/) | 2.0.24 | GPL-2.0 | GUI, input hooks, orquestación |
+| [OBS Studio](https://obsproject.com/) | 32.1.2 | GPL-2.0 | Grabación de pantalla y audio |
+| [Python](https://www.python.org/) | 3.12.8 | PSF-2.0 | Runtime de scripts de control |
+| [websocket-client](https://github.com/websocket-client/websocket-client) | latest | Apache-2.0 | OBS WebSocket v5 |
+| [Pillow](https://python-pillow.org/) | latest | HPND | Procesamiento de imágenes (sync checker) |
+| [opencv-python](https://github.com/opencv/opencv-python) | latest | MIT | Análisis de frames (sync checker) |
+| [Inno Setup](https://jrsoftware.org/isinfo.php) | 6.x | ISL | Compilador del instalador (solo build) |
 
 ---
 
-## Privacy & Data Collection
+### Licencia
 
-Pleiada Recorder is designed with privacy as a hard constraint.
-
-| Data type | Collected | Notes |
-|-----------|-----------|-------|
-| Screen video | Yes | Local file only; uploaded manually by participant |
-| Key names | Yes | e.g. `a`, `Space`, `LShift` — no key sequences or text content |
-| Mouse position | Yes | Pixel coordinates relative to screen |
-| Mouse buttons / wheel | Yes | Button identifier and wheel delta only |
-| Application names | No | — |
-| Clipboard content | No | — |
-| Network traffic | No | — |
-| Personal identifiers | No | — |
-| Microphone / camera | No | Mic source is always muted |
-
-All data remains local until the participant uploads it manually via the process defined by the Gameplay Alliance program. No telemetry, no automatic upload, no remote connections.
-
----
-
-## Dependencies
-
-| Package | Version | License | Purpose |
-|---------|---------|---------|---------|
-| [AutoHotkey v2](https://www.autohotkey.com/) | 2.0.24 | GPL-2.0 | GUI, input hooks, subprocess orchestration |
-| [OBS Studio](https://obsproject.com/) | 32.1.2 | GPL-2.0 | Screen and audio recording |
-| [Python](https://www.python.org/) | 3.12.8 | PSF-2.0 | Runtime for control and verification scripts |
-| [websocket-client](https://github.com/websocket-client/websocket-client) | latest | Apache-2.0 | OBS WebSocket v5 communication |
-| [Pillow](https://python-pillow.org/) | latest | HPND | Image processing in sync checker |
-| [opencv-python](https://github.com/opencv/opencv-python) | latest | MIT | Video frame analysis in sync checker |
-| [Inno Setup](https://jrsoftware.org/isinfo.php) | 6.x | ISL (custom) | Installer compiler (build-time only) |
-
-All runtime dependencies are open source. Inno Setup is used only at build time and is not redistributed.
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
-Copyright © 2026 Pleiada
-
----
-
-## Contact
-
-Program information: [pleiada.ai](https://pleiada.ai)  
-FAQ: [pleiada.ai/faqs](https://pleiada.ai/faqs)  
-Terms: [pleiada.ai/terms](https://pleiada.ai/terms)
+MIT License — Copyright © 2026 Pleiada

@@ -1,4 +1,4 @@
-#Requires AutoHotkey v2.0
+﻿#Requires AutoHotkey v2.0
 #SingleInstance Force
 
 ; ══════════════════════════════════════════════════════
@@ -22,10 +22,11 @@ global keyFH   := 0
 global videoFH := 0
 
 ; ── Estado ────────────────────────────────────────────
-global recording  := false
-global lastX      := 0
-global lastY      := 0
-global recSeconds := 0
+global recording       := false
+global lastX          := 0
+global lastY          := 0
+global recSeconds     := 0
+global MAX_REC_SECONDS := 3900   ; 1 h 5 min
 
 ; ── Timer de alta precision ───────────────────────────
 global freqQPC   := 0
@@ -118,6 +119,16 @@ TickTimer() {
     m := (recSeconds - h * 3600) // 60
     s := Mod(recSeconds, 60)
     lblTimer.Value := Format("{:02d}:{:02d}:{:02d}", h, m, s)
+    if recSeconds >= MAX_REC_SECONDS
+        AutoStopRecording()
+}
+
+AutoStopRecording() {
+    StopRecording()
+    MsgBox(
+        "La grabación se detuvo automáticamente al alcanzar el límite de 1h 5min.`n`nPodés iniciar una nueva grabación cuando quieras.",
+        "Pleiada Recorder", "Icon! T10"
+    )
 }
 
 ; ════════════════════════════════════════════════════════

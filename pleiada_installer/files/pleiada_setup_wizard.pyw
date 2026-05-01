@@ -1,4 +1,4 @@
-"""
+﻿"""
 pleiada_setup_wizard.pyw  V12
 Wizard de configuracion inicial — se lanza al finalizar la instalacion.
 3 paginas: OBS setup / Prueba de grabacion / Synch Checker.
@@ -30,17 +30,20 @@ PAGES = [
         "step": "1 / 3",
         "title": "Configuración inicial con OBS",
         "body": (
-            "Antes de tu primera grabación tenés que configurar OBS una sola vez.\n\n"
-            "1.  Abrí OBS y seleccioná \"Optimizar solo para grabación...\" y dale\n"
-            "     Siguiente. Luego asegurate que la resolución sea al menos 1080\n"
-            "     y los FPS sean \"60 o 30 pero en alta resolución\".\n\n"
-            "2.  En la sección Fuentes (abajo a la izquierda) hacé clic en el  +  ,\n"
-            "     seleccioná  Captura de Pantalla  y dejá el nombre que aparece.\n"
-            "     En el último pop-up, en Pantalla elegí la opción donde se ve\n"
-            "     el videojuego (podés verlo dentro de OBS) y hacé clic en Aceptar.\n\n"
-            "3.  En la sección Mezclador de audio (abajo al centro), si aparece\n"
-            "     un micrófono, silencialo haciendo clic en el 🔊 hasta que\n"
-            "     quede con una 🚫."
+            "Antes de tu primera grabación tenés que configurar OBS una sola vez\n"
+            "(si ya lo tenías instalado, igualmente tenés que realizar estos ajustes).\n\n"
+            "1.  Iniciá el juego que quieras grabar y dejalo en pausa donde\n"
+            "     quieras iniciar la grabación.\n\n"
+            "2.  Si lo acabás de instalar por primera vez, abrí OBS y seleccioná\n"
+            "     \"Optimizar solo para grabación...\" y dale Siguiente. Luego\n"
+            "     asegurate que la resolución sea al menos 1080 y los FPS sean\n"
+            "     \"60 o 30 pero en alta resolución\".\n\n"
+            "3.  Sin importar si lo tenías instalado o no, en la sección Fuentes\n"
+            "     (abajo a la izquierda) hacé clic en el  +  , seleccioná\n"
+            "     \"Captura de Juego\"  y dejá el nombre que aparece.\n\n"
+            "4.  En la sección Mezclador de audio (abajo al centro), si aparece\n"
+            "     una sección de nombre \"Mic/Aux\", silenciala haciendo clic en\n"
+            "     el 🔊 hasta que quede rojo (muteado)."
         ),
         "listo": "Solo tenés que hacer esto una vez.",
     },
@@ -48,8 +51,9 @@ PAGES = [
         "step": "2 / 3",
         "title": "Prueba inicial",
         "body": (
-            "Hacé una grabación corta para verificar que todo funciona bien.\n\n"
-            "1.  Iniciá el videojuego y dejalo en pausa.\n\n"
+            "Ahora vamos a hacer una grabación corta para verificar que todo funciona bien.\n\n"
+            "1.  Si no iniciaste el juego en los pasos anteriores, hacelo ahora\n"
+            "     y dejalo en pausa.\n\n"
             "2.  Hacé doble clic en el ícono  Pleiada Recorder  del escritorio.\n"
             "     Aparece una pequeña ventana flotante — podés moverla\n"
             "     arrastrando el encabezado.\n\n"
