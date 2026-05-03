@@ -12,7 +12,7 @@ AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
 DefaultDirName={#AppDir}
 DefaultGroupName={#AppName}
-OutputBaseFilename=PleiadaRecorder_Setup_V19
+OutputBaseFilename=PleiadaRecorder_Setup_V20
 OutputDir=Output
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -80,22 +80,23 @@ Filename: "{tmp}\AutoHotkey_2.0.24_setup.exe"; \
     StatusMsg: "{cm:InstallingAHK}"; \
     Flags: waituntilterminated
 
-; 3. Cerrar OBS si esta abierto
+; 3. Cerrar OBS si esta abierto y necesita ser actualizado
 Filename: "taskkill"; \
     Parameters: "/F /IM obs64.exe"; \
     Flags: runhidden; \
-    Check: OBSRunning
+    Check: OBSRunning and OBSNeedsInstall
 
-; 4. Instalar OBS (siempre corre — el propio instalador de OBS maneja reinstalaciones)
+; 4. Instalar OBS solo si no esta instalado o version es menor a la requerida
 Filename: "{tmp}\OBS-Studio-32.1.2-Windows-x64-Installer.exe"; \
-    Parameters: "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART"; \
     StatusMsg: "{cm:InstallingOBS}"; \
-    Flags: waituntilterminated runhidden
+    Flags: waituntilterminated; \
+    Check: OBSNeedsInstall
 
 ; 4.5. Cerrar OBS si fue lanzado por su propio instalador
 Filename: "{sys}\taskkill.exe"; \
     Parameters: "/F /IM obs64.exe"; \
-    Flags: runhidden
+    Flags: runhidden; \
+    Check: OBSNeedsInstall
 
 ; 5. Instalar dependencias Python via pip
 Filename: "python"; \
@@ -239,6 +240,28 @@ end;
 function OBSInstalled: Boolean;
 begin
   Result := FileExists(ExpandConstant('{autopf}\obs-studio\bin\64bit\obs64.exe'));
+end;
+
+{ Devuelve True si OBS no esta instalado o si la version instalada es menor a 32.1.2 }
+function OBSNeedsInstall: Boolean;
+var
+  ExePath: String;
+  MS, LS: Cardinal;
+  Major, Minor, Patch: Cardinal;
+begin
+  Result := True; { instalar por defecto }
+  ExePath := ExpandConstant('{autopf}\obs-studio\bin\64bit\obs64.exe');
+  if not FileExists(ExePath) then Exit; { no instalado → instalar }
+  if not GetVersionNumbers(ExePath, MS, LS) then Exit; { no se pudo leer version → instalar }
+
+  Major := MS shr 16;
+  Minor := MS and $FFFF;
+  Patch := LS shr 16;
+
+  { Requerido: 32.1.2 — si instalado >= 32.1.2, no instalar }
+  if Major > 32 then Result := False
+  else if (Major = 32) and (Minor > 1) then Result := False
+  else if (Major = 32) and (Minor = 1) and (Patch >= 2) then Result := False;
 end;
 
 function OBSRunning: Boolean;
