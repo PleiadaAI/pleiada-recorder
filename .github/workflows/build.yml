@@ -155,13 +155,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $currentTag = "${{ github.ref_name }}"
-          $releases = gh release list --repo ${{ github.repository }} --json tagName,assets | ConvertFrom-Json
-          foreach ($release in $releases) {
-            if ($release.tagName -ne $currentTag) {
-              foreach ($asset in $release.assets) {
+          $tags = gh release list --repo ${{ github.repository }} --json tagName | ConvertFrom-Json | Select-Object -ExpandProperty tagName
+          foreach ($tag in $tags) {
+            if ($tag -ne $currentTag) {
+              $assets = gh release view $tag --repo ${{ github.repository }} --json assets | ConvertFrom-Json | Select-Object -ExpandProperty assets
+              foreach ($asset in $assets) {
                 if ($asset.name -like "*.exe") {
-                  Write-Host "Eliminando $($asset.name) de release $($release.tagName)..."
-                  gh release delete-asset $release.tagName $asset.name --yes --repo ${{ github.repository }}
+                  Write-Host "Eliminando $($asset.name) de release $tag..."
+                  gh release delete-asset $tag $asset.name --yes --repo ${{ github.repository }}
                 }
               }
             }
