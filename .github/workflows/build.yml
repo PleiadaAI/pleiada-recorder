@@ -109,38 +109,34 @@ jobs:
           echo "EXE_PATH=$($exe.FullName)" >> $env:GITHUB_ENV
           echo "EXE_NAME=$($exe.Name)" >> $env:GITHUB_ENV
 
-      # ── 9. Upload as workflow artifact (available on every build) ─
+      # ── 9. Upload as workflow artifact (versioned, for internal use) ─
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.EXE_NAME }}
+          name: PleiadaRecorder_Setup_${{ github.ref_name }}
           path: ${{ env.EXE_PATH }}
           retention-days: 30
 
       # ── 10. Extraer notas de la version desde CHANGELOG.md ──────────
       - name: Extract release notes from CHANGELOG
+        if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         run: |
           $tag = "${{ github.ref_name }}"
-          # Convertir tag (ej. v0.20) a version del changelog (ej. V20)
           $version = "V" + ($tag -replace "v0\.", "")
           $lines = Get-Content "CHANGELOG.md"
           $notes = @()
           $capturing = $false
           foreach ($line in $lines) {
-            if ($line -match "^## $version\b") {
-              $capturing = $true
-              continue
-            }
+            if ($line -match "^## $version\b") { $capturing = $true; continue }
             if ($capturing -and $line -match "^## ") { break }
             if ($capturing) { $notes += $line }
           }
           $body = ($notes | Out-String).Trim()
           if (-not $body) { $body = "Ver CHANGELOG.md para detalles." }
-          # Escribir a archivo para evitar problemas de encoding en GITHUB_ENV
           $body | Out-File "release_notes.txt" -Encoding utf8
 
-      # ── 11. Publish GitHub Release (only on tag push) ─────────────
+      # ── 11. Publish GitHub Release con nombre de archivo fijo ────────
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
@@ -150,3 +146,23 @@ jobs:
           files: ${{ env.EXE_PATH }}
           draft: false
           prerelease: false
+
+      # ── 12. Borrar .exe de releases anteriores ────────────────────────
+      - name: Remove exe from previous releases
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $currentTag = "${{ github.ref_name }}"
+          $releases = gh release list --repo ${{ github.repository }} --json tagName,assets | ConvertFrom-Json
+          foreach ($release in $releases) {
+            if ($release.tagName -ne $currentTag) {
+              foreach ($asset in $release.assets) {
+                if ($asset.name -like "*.exe") {
+                  Write-Host "Eliminando $($asset.name) de release $($release.tagName)..."
+                  gh release delete-asset $release.tagName $asset.name --yes --repo ${{ github.repository }}
+                }
+              }
+            }
+          }
