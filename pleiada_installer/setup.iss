@@ -88,8 +88,9 @@ Filename: "taskkill"; \
 
 ; 4. Instalar OBS (siempre corre — el propio instalador de OBS maneja reinstalaciones)
 Filename: "{tmp}\OBS-Studio-32.1.2-Windows-x64-Installer.exe"; \
+    Parameters: "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART"; \
     StatusMsg: "{cm:InstallingOBS}"; \
-    Flags: waituntilterminated
+    Flags: waituntilterminated runhidden
 
 ; 4.5. Cerrar OBS si fue lanzado por su propio instalador
 Filename: "{sys}\taskkill.exe"; \
