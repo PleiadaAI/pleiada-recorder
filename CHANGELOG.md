@@ -1,0 +1,26 @@
+# Changelog — Pleiada Recorder
+
+## V20 — 03/05/2026
+- **OBS inteligente:** si OBS ya está instalado en la versión requerida (32.1.2) o superior, la instalación lo saltea completamente.
+- **OBS visible:** el instalador de OBS se muestra en primer plano para mayor transparencia con el usuario.
+
+## V19 — 03/05/2026
+- **Nuevos íconos:** íconos oficiales de Pleiada Recorder y Synch Checker en alta definición (16, 32, 48 y 256 px).
+- **UI floater rediseñada:** tipografía Segoe UI unificada, timer más grande, botón redondeado con color púrpura, esquinas redondeadas en toda la ventana, puntos estilo macOS.
+- **UI Synch Checker rediseñada:** logo oficial cargado desde PNG, botón "Verificar Sync" redondeado, tipografía unificada, etiquetas en minúscula.
+- **Nombre de sesión dinámico:** durante la grabación muestra el nombre de la carpeta donde se guardan los archivos; al finalizar se convierte en un hipervínculo que abre esa carpeta.
+- **Fix shortcut Synch Checker:** el acceso directo del escritorio ahora abre la aplicación correctamente (ruta con espacios corregida).
+
+## V18 — 01/05/2026
+- **Auto-stop de sesión:** la grabación se detiene automáticamente al alcanzar el límite de sesión (1 hora 5 minutos).
+- **Textos del wizard actualizados:** mensajes de bienvenida e instrucciones revisados.
+
+## V17.2 — 27/04/2026
+- **Fix descarga de AutoHotkey:** se resolvió un bloqueo de Cloudflare durante la instalación automática de AutoHotkey.
+
+## V17 — 27/04/2026
+- Versión inicial de Pleiada Recorder.
+- Instalación automática de Python 3.12, AutoHotkey v2, OBS Studio 32.1.2 y dependencias.
+- Floater de grabación con timer, control de sesión y límite configurable.
+- Synch Checker para verificar sincronización entre video y logs.
+- Configuración automática de OBS WebSocket al instalar.
