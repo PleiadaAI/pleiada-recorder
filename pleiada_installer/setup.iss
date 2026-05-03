@@ -64,7 +64,7 @@ Name: "{commondesktop}\Pleiada Recorder"; \
 Name: "{commondesktop}\Synch Checker"; \
     Filename: "{code:FindPythonW}"; \
     Parameters: """{app}\pleiada_check.pyw"""; \
-    WorkingDirectory: "{app}"; \
+    WorkingDir: "{app}"; \
     IconFilename: "{app}\synch_checker.ico"; \
     Comment: "Verificar sincronizacion de grabacion"
 
