@@ -1,5 +1,8 @@
 # Changelog — Pleiada Recorder
 
+## V21.1 — 03/05/2026
+- **Fix íconos:** los íconos de Pleiada Recorder y Synch Checker en el escritorio ahora se ven en alta definición (se incluyen tamaños 16, 32, 48 y 256 px en el instalador).
+
 ## V20 — 03/05/2026
 - **OBS inteligente:** si OBS ya está instalado en la versión requerida (32.1.2) o superior, la instalación lo saltea completamente.
 - **OBS visible:** el instalador de OBS se muestra en primer plano para mayor transparencia con el usuario.
