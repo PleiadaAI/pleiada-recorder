@@ -53,6 +53,8 @@ Source: "files\configure_obs.py"; DestDir: "{tmp}"; Flags: deleteafterinstall
 ; Iconos
 Source: "assets\pleiada.ico";        DestDir: "{app}"; Flags: ignoreversion
 Source: "assets\synch_checker.ico";  DestDir: "{app}"; Flags: ignoreversion
+; Logo Pleiada (usado por el Synch Checker)
+Source: "assets\pleiada_icon.png";   DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{commondesktop}\Pleiada Recorder"; \
@@ -60,7 +62,9 @@ Name: "{commondesktop}\Pleiada Recorder"; \
     IconFilename: "{app}\pleiada.ico"; \
     Comment: "Iniciar grabacion de gameplay"
 Name: "{commondesktop}\Synch Checker"; \
-    Filename: "{app}\pleiada_check.pyw"; \
+    Filename: "{code:FindPythonW}"; \
+    Parameters: """{app}\pleiada_check.pyw"""; \
+    WorkingDirectory: "{app}"; \
     IconFilename: "{app}\synch_checker.ico"; \
     Comment: "Verificar sincronizacion de grabacion"
 
@@ -200,6 +204,37 @@ begin
     Result := RegKeyExists(HKLM, 'Software\Python\PythonCore\3.12');
 end;
 
+{ Devuelve la ruta completa a pythonw.exe para el shortcut del Synch Checker }
+function FindPythonW(Param: String): String;
+var
+  PythonDir: String;
+begin
+  Result := 'pythonw.exe'; { fallback si no se encuentra por registro }
+
+  { Python instalado per-user (InstallAllUsers=0 — nuestro caso) }
+  if RegQueryStringValue(HKCU,
+      'Software\Python\PythonCore\3.12\InstallPath', '', PythonDir) then
+  begin
+    if (Length(PythonDir) > 0) and (PythonDir[Length(PythonDir)] <> '\') then
+      PythonDir := PythonDir + '\';
+    if FileExists(PythonDir + 'pythonw.exe') then
+    begin
+      Result := PythonDir + 'pythonw.exe';
+      Exit;
+    end;
+  end;
+
+  { Python instalado para todos los usuarios }
+  if RegQueryStringValue(HKLM,
+      'SOFTWARE\Python\PythonCore\3.12\InstallPath', '', PythonDir) then
+  begin
+    if (Length(PythonDir) > 0) and (PythonDir[Length(PythonDir)] <> '\') then
+      PythonDir := PythonDir + '\';
+    if FileExists(PythonDir + 'pythonw.exe') then
+      Result := PythonDir + 'pythonw.exe';
+  end;
+end;
+
 function OBSInstalled: Boolean;
 begin
   Result := FileExists(ExpandConstant('{autopf}\obs-studio\bin\64bit\obs64.exe'));
@@ -213,6 +248,7 @@ begin
        ewWaitUntilTerminated, RC);
   Result := (RC = 0);
 end;
+
 
 
 

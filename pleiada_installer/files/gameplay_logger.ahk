@@ -1,9 +1,9 @@
-﻿#Requires AutoHotkey v2.0
+#Requires AutoHotkey v2.0
 #SingleInstance Force
 
 ; ══════════════════════════════════════════════════════
-;  PLEIADA — Gameplay Logger V11
-;  Ventana floating draggable — grabar / detener
+;  PLEIADA — Gameplay Logger V12
+;  Ventana floating — UI v2.1
 ;
 ;  REQUISITO: obs_control.py debe estar en la misma
 ;  carpeta que este script.
@@ -23,9 +23,9 @@ global videoFH := 0
 
 ; ── Estado ────────────────────────────────────────────
 global recording       := false
-global lastX          := 0
-global lastY          := 0
-global recSeconds     := 0
+global lastX           := 0
+global lastY           := 0
+global recSeconds      := 0
 global MAX_REC_SECONDS := 3900   ; 1 h 5 min
 
 ; ── Timer de alta precision ───────────────────────────
@@ -34,10 +34,20 @@ global startQPC  := 0
 global startUnix := 0
 
 ; ── GUI handles ───────────────────────────────────────
-global gMain     := 0
-global btnRecord := 0
-global lblAction := 0
-global lblTimer  := 0
+global gMain             := 0
+global btnIdle           := 0   ; boton estado idle (purple)
+global btnRec            := 0   ; boton estado grabando (red)
+global lblStatusDot      := 0
+global lblStatus         := 0
+global lblTimer          := 0
+global lblCountdown      := 0
+global lblCountdownLabel := 0
+global lblSession        := 0
+
+; ── Estado de sesion (para hipervínculo post-grabacion) ──
+global sessionName      := ""
+global lastLogDir       := ""
+global sessionCompleted := false
 
 ; ════════════════════════════════════════════════════════
 ;  TIMER DE ALTA PRECISION
@@ -58,6 +68,15 @@ NowMs() {
     local count := 0
     DllCall("QueryPerformanceCounter", "Int64*", &count)
     return Round(startUnix + (count - startQPC) / freqQPC * 1000)
+}
+
+FormatCountdown(remaining) {
+    if remaining < 0
+        remaining := 0
+    h := remaining // 3600
+    m := (remaining - h * 3600) // 60
+    s := Mod(remaining, 60)
+    return Format("{:02d}:{:02d}:{:02d}", h, m, s)
 }
 
 ; ════════════════════════════════════════════════════════
@@ -111,7 +130,7 @@ LogKey(vk) {
 ; ════════════════════════════════════════════════════════
 
 TickTimer() {
-    global recording, recSeconds, lblTimer
+    global recording, recSeconds, lblTimer, lblCountdown
     if !recording
         return
     recSeconds++
@@ -119,6 +138,12 @@ TickTimer() {
     m := (recSeconds - h * 3600) // 60
     s := Mod(recSeconds, 60)
     lblTimer.Value := Format("{:02d}:{:02d}:{:02d}", h, m, s)
+    remaining := MAX_REC_SECONDS - recSeconds
+    lblCountdown.Value := FormatCountdown(remaining)
+    if remaining <= 300
+        lblCountdown.SetFont("s11 cFEBC2E bold", "Segoe UI")
+    else
+        lblCountdown.SetFont("s11 cE0E0E0", "Segoe UI Light")
     if recSeconds >= MAX_REC_SECONDS
         AutoStopRecording()
 }
@@ -146,7 +171,9 @@ OnRecordBtn(*) {
 StartRecording() {
     global recording, mouseFH, keyFH, videoFH
     global mouseFile, keyFile, videoFile, logDir, baseDir
-    global recSeconds, btnRecord, lblAction, lblTimer
+    global recSeconds, btnIdle, btnRec
+    global lblStatusDot, lblStatus, lblTimer, lblCountdown, lblCountdownLabel, lblSession
+    global sessionName, lastLogDir, sessionCompleted
 
     if recording
         return
@@ -154,6 +181,7 @@ StartRecording() {
     ; Crear carpeta de sesion con timestamp
     sessionName := FormatTime(, "yyyy-MM-dd HH-mm-ss")
     logDir      := baseDir . "\" . sessionName . " recording"
+    sessionCompleted := false
     if !DirExist(baseDir)
         DirCreate(baseDir)
     DirCreate(logDir)
@@ -162,14 +190,14 @@ StartRecording() {
     videoFile := logDir . "\video_timeline.csv"
 
     ; UI: estado "iniciando"
-    lblAction.Value := "Iniciando..."
-    btnRecord.Enabled := false
+    lblStatus.Value := "Iniciando..."
+    btnIdle.Enabled := false
 
     ; Lanzar OBS y esperar confirmacion (RunWait bloquea hasta que Python termina)
     exitCode := OBSStart()
     if exitCode != 0 {
-        lblAction.Value := "Iniciar grabación"
-        btnRecord.Enabled := true
+        lblStatus.Value := "Listo para grabar"
+        btnIdle.Enabled := true
         MsgBox(
             "Error: OBS no pudo iniciar la grabación.`n`n"
             . "Revisá el log en:`n" . A_Temp . "\pleiada_obs_debug.txt",
@@ -195,12 +223,26 @@ StartRecording() {
     recording  := true
     recSeconds := 0
 
-    ; UI: cambiar a icono/etiqueta de detener
-    btnRecord.Enabled := true
-    btnRecord.SetFont("s18 cFFFFFF", "Segoe UI Symbol")
-    btnRecord.Text := "⏹"
-    lblAction.Value := "Detener grabación"
-    lblTimer.Value  := "00:00:00"
+    ; UI: estado grabando
+    btnIdle.Visible := false
+    btnRec.Visible  := true
+    btnIdle.Enabled := true
+
+    lblStatusDot.SetFont("s9 cE05555 bold", "Segoe UI")
+    lblStatus.Value := "Grabando..."
+    lblStatus.SetFont("s9 cE07575 norm", "Segoe UI")
+
+    lblTimer.Value := "00:00:00"
+    lblTimer.SetFont("s15 cE07575", "Segoe UI Light")
+
+    lblCountdown.Value := FormatCountdown(MAX_REC_SECONDS)
+    lblCountdown.SetFont("s11 cE0E0E0", "Segoe UI Light")
+    lblCountdownLabel.Value := "Límite de sesión"
+    lblCountdownLabel.SetFont("s7 cE05555 w700", "Segoe UI")
+
+    lblSession.Value := sessionName . " recording"
+    lblSession.SetFont("s8 cE05555 norm", "Segoe UI")
+    sessionCompleted := false
 
     ; Iniciar timers
     SetTimer(TrackMouse,    8)
@@ -210,7 +252,9 @@ StartRecording() {
 
 StopRecording() {
     global recording, mouseFH, keyFH, videoFH, logDir
-    global recSeconds, btnRecord, lblAction, lblTimer
+    global recSeconds, btnIdle, btnRec
+    global lblStatusDot, lblStatus, lblTimer, lblCountdown, lblCountdownLabel, lblSession
+    global sessionName, lastLogDir, sessionCompleted
 
     if !recording
         return
@@ -234,10 +278,26 @@ StopRecording() {
     OBSStop(logDir)
 
     ; UI: volver al estado idle
-    btnRecord.SetFont("s18 cE53935", "Segoe UI Symbol")
-    btnRecord.Text := "⏺"
-    lblAction.Value := "Iniciar grabación"
-    ; Timer se queda mostrando el tiempo final hasta nueva sesion
+    btnRec.Visible  := false
+    btnIdle.Visible := true
+
+    lblStatusDot.SetFont("s9 c6B68C4 bold", "Segoe UI")
+    lblStatus.Value := "Listo para grabar"
+    lblStatus.SetFont("s9 c7b78a8 norm", "Segoe UI")
+
+    lblTimer.Value := "00:00:00"
+    lblTimer.SetFont("s15 cE0E0E0", "Segoe UI Light")
+
+    lblCountdown.Value := "01:05:00"
+    lblCountdown.SetFont("s11 cE0E0E0", "Segoe UI Light")
+    lblCountdownLabel.Value := "Límite de sesión"
+    lblCountdownLabel.SetFont("s7 c6B68C4 w700", "Segoe UI")
+
+    ; Guardar carpeta y activar hipervínculo
+    lastLogDir := logDir
+    sessionCompleted := true
+    lblSession.Value := sessionName . " recording"
+    lblSession.SetFont("s8 c8888ee norm", "Segoe UI")
 }
 
 ; ════════════════════════════════════════════════════════
@@ -268,6 +328,16 @@ CloseAll(*) {
 }
 
 ; ════════════════════════════════════════════════════════
+;  HIPERVÍNCULO DE SESION
+; ════════════════════════════════════════════════════════
+
+OpenSessionFolder(*) {
+    global sessionCompleted, lastLogDir
+    if sessionCompleted && lastLogDir != ""
+        Run('explorer "' . lastLogDir . '"')
+}
+
+; ════════════════════════════════════════════════════════
 ;  WM_NCHITTEST — arrastre por la zona del header
 ; ════════════════════════════════════════════════════════
 
@@ -275,21 +345,18 @@ WM_NCHITTEST_Handler(wParam, lParam, msg, hwnd) {
     global gMain
     if hwnd != gMain.Hwnd
         return
-    ; Coordenadas de pantalla con signo (soporte multi-monitor)
     sx := lParam & 0xFFFF
     if sx >= 0x8000
         sx -= 0x10000
     sy := (lParam >> 16) & 0xFFFF
     if sy >= 0x8000
         sy -= 0x10000
-    ; Convertir a coordenadas de cliente
     pt := Buffer(8)
     NumPut("Int", sx, pt, 0)
     NumPut("Int", sy, pt, 4)
     DllCall("ScreenToClient", "Ptr", hwnd, "Ptr", pt)
     localY := NumGet(pt, 4, "Int")
-    ; Header hasta y=27: HTCAPTION (2) permite arrastrar la ventana
-    if localY < 28
+    if localY < 34
         return 2
 }
 
@@ -298,59 +365,137 @@ WM_NCHITTEST_Handler(wParam, lParam, msg, hwnd) {
 ; ════════════════════════════════════════════════════════
 
 CreateFloater() {
-    global gMain, btnRecord, lblAction, lblTimer
+    global gMain, btnIdle, btnRec
+    global lblStatusDot, lblStatus, lblTimer
+    global lblCountdown, lblCountdownLabel, lblSession
+
+    WIN_W := 300
+    WIN_H := 182
 
     gMain := Gui("-Caption +ToolWindow +AlwaysOnTop")
-    gMain.BackColor := "1a1a2e"
+    gMain.BackColor := "0d0d18"
     gMain.MarginX   := 0
     gMain.MarginY   := 0
 
-    ; Barra de acento superior (3px violeta)
+    ; ════════════════════════════════════════
+    ;  TITLE BAR (fondo oscuro 0a0a12)
+    ; ════════════════════════════════════════
+
+    ; Fondo de la barra de titulo
+    gMain.Add("Text", "x0 y0 w300 h33 Background0a0a12", "")
+
+    ; Acento superior (3px purple)
     gMain.Add("Text", "x0 y0 w300 h3 Background7c6fcd", "")
 
-    ; Icono de punto (decorativo) + nombre en header
-    gMain.SetFont("s9 c7c6fcd bold", "Segoe UI")
-    gMain.Add("Text", "x10 y7 w14 h18 BackgroundTrans", "●")
-    gMain.SetFont("s9 cE0E0E0 bold", "Segoe UI")
-    gMain.Add("Text", "x26 y7 w190 h18 BackgroundTrans", "Pleiada Recorder")
+    ; Icono constelacion
+    gMain.SetFont("s10 c6B68C4 bold", "Segoe UI")
+    gMain.Add("Text", "x12 y10 w16 h14 Background0a0a12 Center", "✦")
 
-    ; Boton cerrar (✕)
-    gMain.SetFont("s8 c888888 norm", "Segoe UI")
-    btnClose := gMain.Add("Button", "x268 y5 w24 h18", "✕")
-    btnClose.OnEvent("Click", (*) => CloseFloater())
+    ; Nombre
+    gMain.SetFont("s9 cDDDDDD w500", "Segoe UI")
+    gMain.Add("Text", "x31 y12 w182 h12 Background0a0a12", "Pleiada Recorder")
 
-    ; Linea separadora header / cuerpo
-    gMain.Add("Text", "x0 y27 w300 h1 Background2a2a4e", "")
+    ; Dot rojo con X (cerrar) — alineado a la derecha
+    gMain.SetFont("s6 cFFFFFF w700", "Segoe UI")
+    btnDotClose := gMain.Add("Text", "x277 y11 w11 h11 BackgroundFF5F57 Center +0x200", "x")
+    btnDotClose.OnEvent("Click", (*) => CloseFloater())
 
-    ; Boton grabar (icono grande — rojo en estado idle)
-    gMain.SetFont("s18 cE53935", "Segoe UI Symbol")
-    btnRecord := gMain.Add("Button", "x10 y33 w36 h36", "⏺")
-    btnRecord.OnEvent("Click", OnRecordBtn)
+    ; Separador cabecera / cuerpo
+    gMain.Add("Text", "x0 y33 w300 h1 Background2a2850", "")
 
-    ; Etiqueta de accion
-    gMain.SetFont("s9 cE0E0E0 norm", "Segoe UI")
-    lblAction := gMain.Add("Text", "x54 y43 w140 h20 BackgroundTrans", "Iniciar grabación")
+    ; ════════════════════════════════════════
+    ;  FILA DE ESTADO (y ≈ 40-62)
+    ; ════════════════════════════════════════
 
-    ; Contador hh:mm:ss
-    gMain.SetFont("s11 cE0E0E0 bold", "Consolas")
-    lblTimer := gMain.Add("Text", "x194 y39 w96 h26 Right BackgroundTrans", "00:00:00")
+    ; Dot de estado
+    gMain.SetFont("s9 c6B68C4 bold", "Segoe UI")
+    lblStatusDot := gMain.Add("Text", "x16 y43 w12 h12 BackgroundTrans", "●")
 
-    ; Registrar handler de arrastre por header
+    ; Texto de estado
+    gMain.SetFont("s9 c7b78a8 norm", "Segoe UI")
+    lblStatus := gMain.Add("Text", "x32 y43 w130 h13 BackgroundTrans", "Listo para grabar")
+
+    ; Timer (grande, ligero — Segoe UI Light = weight 300)
+    gMain.SetFont("s15 cE0E0E0", "Segoe UI Light")
+    lblTimer := gMain.Add("Text", "x160 y37 w128 h24 Right BackgroundTrans", "00:00:00")
+
+    ; ════════════════════════════════════════
+    ;  PILL DE COUNTDOWN (y=65-89)
+    ; ════════════════════════════════════════
+
+    ; Fondo de la pill (color ligeramente distinto al bg)
+    ctrlPillBg := gMain.Add("Text", "x10 y75 w280 h26 Background141426", "")
+
+    ; Etiqueta "Límite de sesión"
+    gMain.SetFont("s7 c6B68C4 w700", "Segoe UI")
+    lblCountdownLabel := gMain.Add("Text", "x18 y80 w148 h13 Background141426", "Límite de sesión")
+
+    ; Valor del countdown — Segoe UI Light para consistencia tipografica
+    gMain.SetFont("s11 cE0E0E0", "Segoe UI Light")
+    lblCountdown := gMain.Add("Text", "x178 y76 w104 h18 Right Background141426", "01:05:00")
+
+    ; Rounded corners en la pill (radio 8px)
+    hRgnPill := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", 280, "Int", 26, "Int", 16, "Int", 16, "Ptr")
+    DllCall("SetWindowRgn", "Ptr", ctrlPillBg.Hwnd, "Ptr", hRgnPill, "Int", true)
+
+    ; ════════════════════════════════════════
+    ;  SEPARADOR
+    ; ════════════════════════════════════════
+
+    gMain.Add("Text", "x0 y106 w300 h1 Background2a2850", "")
+
+    ; ════════════════════════════════════════
+    ;  BOTON PRINCIPAL (Text control coloreado)
+    ; ════════════════════════════════════════
+
+    ; Estado idle — fondo morado
+    gMain.SetFont("s10 cFFFFFF w500", "Segoe UI")
+    btnIdle := gMain.Add("Text", "x10 y112 w280 h35 Background7d7ad0 Center +0x200", "Iniciar grabación")
+    btnIdle.OnEvent("Click", OnRecordBtn)
+
+    ; Estado grabando — fondo rojo oscuro (oculto al inicio)
+    gMain.SetFont("s10 cE07575 w500", "Segoe UI")
+    btnRec := gMain.Add("Text", "x10 y112 w280 h35 Background2a1010 Center +0x200 Hidden", "Detener grabación")
+    btnRec.OnEvent("Click", OnRecordBtn)
+
+    ; Rounded corners en ambos botones (radio 14px — mismo nivel que la ventana)
+    hRgnIdle := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", 280, "Int", 35, "Int", 28, "Int", 28, "Ptr")
+    DllCall("SetWindowRgn", "Ptr", btnIdle.Hwnd, "Ptr", hRgnIdle, "Int", true)
+    hRgnRec  := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", 280, "Int", 35, "Int", 28, "Int", 28, "Ptr")
+    DllCall("SetWindowRgn", "Ptr", btnRec.Hwnd,  "Ptr", hRgnRec,  "Int", true)
+
+    ; ════════════════════════════════════════
+    ;  FILA DE METADATOS DE SESION
+    ; ════════════════════════════════════════
+
+    gMain.SetFont("s7 c6B68C4 w700", "Segoe UI")
+    gMain.Add("Text", "x16 y157 w50 h13 BackgroundTrans", "Sesión")
+
+    gMain.SetFont("s8 ca0a0c0 norm", "Segoe UI")
+    lblSession := gMain.Add("Text", "x75 y157 w214 h13 Right BackgroundTrans", "No iniciada")
+    lblSession.OnEvent("Click", OpenSessionFolder)
+
+    ; ════════════════════════════════════════
+    ;  EVENTOS Y POSICION
+    ; ════════════════════════════════════════
+
     OnMessage(0x84, WM_NCHITTEST_Handler)
-
-    ; Evento de cierre (X del sistema operativo — aunque la ventana no tiene caption)
     gMain.OnEvent("Close", CloseFloater)
 
-    ; Posicion: centrado horizontalmente, pegado al borde inferior del area de trabajo
-    ; (por debajo del juego, para no aparecer en la grabacion)
+    ; Centrado horizontalmente, pegado al borde inferior
     MonitorGetWorkArea(1, &waLeft, &waTop, &waRight, &waBottom)
-    winW := 300
-    winH := 78
-    winX := waLeft + (waRight - waLeft - winW) // 2
-    winY := waBottom - winH - 8   ; 8px sobre el borde inferior (encima de la barra de tareas)
+    winX := waLeft + (waRight - waLeft - WIN_W) // 2
+    winY := waBottom - WIN_H - 8
 
-    ; Mostrar sin robar el foco
-    gMain.Show("w" . winW . " h" . winH . " x" . winX . " y" . winY . " NoActivate")
+    gMain.Show("w" . WIN_W . " h" . WIN_H . " x" . winX . " y" . winY . " NoActivate")
+
+    ; Rounded corners via DWM (Windows 11+)
+    ; DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWMWCP_ROUND = 2
+    DllCall("dwmapi\DwmSetWindowAttribute",
+        "Ptr",  gMain.Hwnd,
+        "UInt", 33,
+        "UInt*", 2,
+        "UInt", 4)
 }
 
 ; ════════════════════════════════════════════════════════
