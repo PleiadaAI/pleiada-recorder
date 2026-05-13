@@ -287,22 +287,43 @@ def main():
                 ws.close()
                 sys.exit(1)
 
+            # ── Esperar evento RecordStateChanged → STARTED ────────
+            # Mas preciso que polling: OBS emite este evento cuando el
+            # primer frame fue escrito al archivo, minimizando el offset.
             active = False
-            for i in range(50):
-                time.sleep(0.1)
-                status = send(ws, "GetRecordStatus")
-                active = (status.get("d", {})
-                                .get("responseData", {})
-                                .get("outputActive", False))
-                dbg(f"GetRecordStatus intento {i+1}: outputActive={active}")
-                if active:
-                    break
+            ws.settimeout(10)
+            try:
+                for _ in range(200):
+                    raw = ws.recv()
+                    parsed = json.loads(raw)
+                    if parsed.get("op") == 5:  # evento
+                        ed = parsed.get("d", {})
+                        if ed.get("eventType") == "RecordStateChanged":
+                            state = ed.get("eventData", {}).get("outputState", "")
+                            dbg(f"RecordStateChanged: {state}")
+                            if state == "OBS_WEBSOCKET_OUTPUT_STARTED":
+                                active = True
+                                break
+                    elif parsed.get("op") == 7:  # respuesta a request (ignorar)
+                        continue
+            except Exception as e:
+                dbg(f"Timeout esperando RecordStateChanged: {e} — fallback a polling")
+                # Fallback: polling si el evento no llego
+                ws.settimeout(5)
+                for i in range(30):
+                    time.sleep(0.1)
+                    status = send(ws, "GetRecordStatus")
+                    active = (status.get("d", {})
+                                    .get("responseData", {})
+                                    .get("outputActive", False))
+                    if active:
+                        break
 
             ws.close()
             if active:
-                dbg("StartRecord OK — OBS grabando activamente")
+                dbg("StartRecord OK — OBS grabando (RecordStateChanged STARTED)")
             else:
-                dbg("OBS no confirmo outputActive=True tras 50 intentos")
+                dbg("OBS no confirmo grabacion activa")
                 sys.exit(1)
 
         except Exception as e:
