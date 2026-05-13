@@ -78,8 +78,7 @@ def check_video(path):
         import cv2
         v   = cv2.VideoCapture(path)
         fps = v.get(cv2.CAP_PROP_FPS)
-        v.set(cv2.CAP_PROP_POS_AVI_RATIO, 1)
-        total_frames = v.get(cv2.CAP_PROP_POS_FRAMES)
+        total_frames = v.get(cv2.CAP_PROP_FRAME_COUNT)
         v.release()
         duration_ms = (total_frames / fps * 1000) if fps > 0 else None
         return {"fps": fps, "total_frames": int(total_frames),
