@@ -73,14 +73,162 @@ def check_csv(path, name):
             "start_ts": start_ts, "end_ts": end_ts,
             "duration_ms": duration_ms}
 
+def _mp4_frag_duration_ms(path):
+    """
+    Calcula la duración real de un MP4 fragmentado (formato OBS)
+    parseando los boxes moof → traf → tfhd + tfdt + trun.
+    Retorna la duración en milisegundos, o None si falla/no aplica.
+    """
+    import struct
+
+    def next_box(f, pos, limit):
+        if pos + 8 > limit:
+            return None, None, None
+        f.seek(pos)
+        raw = f.read(8)
+        if len(raw) < 8:
+            return None, None, None
+        size     = struct.unpack('>I', raw[:4])[0]
+        box_type = raw[4:8]
+        if size < 8:
+            return None, None, None
+        return pos + size, box_type, pos + 8
+
+    def find_box(f, start, end, target):
+        """Primer box de tipo `target` dentro de [start, end). Retorna (data_start, box_end)."""
+        pos = start
+        while True:
+            box_end, btype, data_start = next_box(f, pos, end)
+            if box_end is None:
+                return None, None
+            if btype == target:
+                return data_start, box_end
+            pos = box_end
+
+    try:
+        file_size = os.path.getsize(path)
+
+        with open(path, 'rb') as f:
+            # ── 1. Timescale desde moov/trak/mdia/mdhd ─────────────
+            moov_data, moov_end = find_box(f, 0, min(file_size, 131072), b'moov')
+            if moov_data is None:
+                return None
+
+            trak_data, trak_end = find_box(f, moov_data, moov_end, b'trak')
+            if trak_data is None:
+                return None
+
+            mdia_data, mdia_end = find_box(f, trak_data, trak_end, b'mdia')
+            if mdia_data is None:
+                return None
+
+            mdhd_data, _ = find_box(f, mdia_data, mdia_end, b'mdhd')
+            if mdhd_data is None:
+                return None
+
+            f.seek(mdhd_data)
+            version = struct.unpack('B', f.read(1))[0]
+            f.read(3)                     # flags
+            f.read(16 if version == 1 else 8)  # creation + modification time
+            timescale = struct.unpack('>I', f.read(4))[0]
+            if not timescale:
+                return None
+
+            # ── 2. Escanear todos los moof y acumular tiempo ────────
+            last_end_time = 0
+            pos = 0
+
+            while pos < file_size:
+                box_end, btype, data_start = next_box(f, pos, file_size)
+                if box_end is None:
+                    break
+
+                if btype == b'moof':
+                    traf_data, traf_end = find_box(f, data_start, box_end, b'traf')
+                    if traf_data is None:
+                        pos = box_end
+                        continue
+
+                    # tfhd → default_sample_duration
+                    default_dur = 0
+                    tfhd_data, _ = find_box(f, traf_data, traf_end, b'tfhd')
+                    if tfhd_data is not None:
+                        f.seek(tfhd_data)
+                        f.read(1)  # version
+                        fl = f.read(3)
+                        tfhd_flags = (fl[0] << 16) | (fl[1] << 8) | fl[2]
+                        f.read(4)  # track_ID
+                        if tfhd_flags & 0x000001: f.read(8)  # base-data-offset
+                        if tfhd_flags & 0x000002: f.read(4)  # sample-description-index
+                        if tfhd_flags & 0x000008:
+                            default_dur = struct.unpack('>I', f.read(4))[0]
+
+                    # tfdt → base_decode_time del fragmento
+                    base_decode_time = 0
+                    tfdt_data, _ = find_box(f, traf_data, traf_end, b'tfdt')
+                    if tfdt_data is not None:
+                        f.seek(tfdt_data)
+                        tfdt_ver = struct.unpack('B', f.read(1))[0]
+                        f.read(3)  # flags
+                        if tfdt_ver == 1:
+                            base_decode_time = struct.unpack('>Q', f.read(8))[0]
+                        else:
+                            base_decode_time = struct.unpack('>I', f.read(4))[0]
+
+                    # trun → suma de duraciones de las muestras del fragmento
+                    frag_duration = 0
+                    trun_data, _ = find_box(f, traf_data, traf_end, b'trun')
+                    if trun_data is not None:
+                        f.seek(trun_data)
+                        f.read(1)  # version
+                        fl = f.read(3)
+                        trun_flags   = (fl[0] << 16) | (fl[1] << 8) | fl[2]
+                        sample_count = struct.unpack('>I', f.read(4))[0]
+                        if trun_flags & 0x001: f.read(4)  # data-offset
+                        if trun_flags & 0x004: f.read(4)  # first-sample-flags
+                        has_dur   = bool(trun_flags & 0x100)
+                        has_size  = bool(trun_flags & 0x200)
+                        has_sflags= bool(trun_flags & 0x400)
+                        has_cts   = bool(trun_flags & 0x800)
+                        for _ in range(sample_count):
+                            if has_dur:
+                                frag_duration += struct.unpack('>I', f.read(4))[0]
+                            else:
+                                frag_duration += default_dur
+                            if has_size:   f.read(4)
+                            if has_sflags: f.read(4)
+                            if has_cts:    f.read(4)
+
+                    end_time = base_decode_time + frag_duration
+                    if end_time > last_end_time:
+                        last_end_time = end_time
+
+                pos = box_end
+
+        if last_end_time == 0:
+            return None
+        return round(last_end_time / timescale * 1000)
+
+    except Exception:
+        return None
+
+
 def check_video(path):
+    # Para MP4 de OBS (fragmentado), parsear boxes moof/tfdt/trun da
+    # la duración real; CAP_PROP_FRAME_COUNT suele quedar ~1-2 s corto.
+    frag_dur_ms = None
+    if path.lower().endswith('.mp4'):
+        frag_dur_ms = _mp4_frag_duration_ms(path)
+
     try:
         import cv2
         v   = cv2.VideoCapture(path)
         fps = v.get(cv2.CAP_PROP_FPS)
         total_frames = v.get(cv2.CAP_PROP_FRAME_COUNT)
         v.release()
-        duration_ms = (total_frames / fps * 1000) if fps > 0 else None
+        duration_ms = frag_dur_ms if frag_dur_ms else (
+            (total_frames / fps * 1000) if fps > 0 else None
+        )
         return {"fps": fps, "total_frames": int(total_frames),
                 "duration_ms": duration_ms, "opencv": True}
     except ImportError:
