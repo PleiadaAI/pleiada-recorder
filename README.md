@@ -53,8 +53,7 @@ Después de cada sesión, verificá que el video y los logs quedaron bien sincro
 
 **Resultados posibles:**
 - ✅ **SINCRONIZADOS** → la sesión está bien, podés entregarla.
-- ⚠ **OFFSET LEVE** → desfase menor a 2 seg, generalmente aceptable.
-- ✖ **OFFSET CRÍTICO** → desfase grande, la sesión puede no ser usable.
+- ⚠ **OFFSET** → desfase detectado entre el video y los logs; la sesión puede no ser usable.
 
 ¿Dudas? Visitá [pleiada.ai/faqs](https://www.pleiada.ai/faqs)
 
@@ -120,6 +119,47 @@ No se accede al micrófono, cámara, portapapeles, historial de navegación ni n
 
 ---
 
+## Changelog
+
+### V24 — 13/05/2026
+- **Fix sincronización por hardware (segundo moof):** eliminado el offset de ~1.7 s que existía en todas las PCs. `obs_control.py` ya no usa el evento `OBS_WEBSOCKET_OUTPUT_STARTED` como referencia de inicio. En su lugar, espera a que aparezca el segundo box `moof` en el archivo MP4 (= primer GOP completo en disco), calcula la duración exacta del primer GOP en ticks del encoder, y resta ese valor al timestamp de detección para obtener el instante real del primer frame. La corrección es completamente independiente del hardware: funciona igual en cualquier GPU, encoder o configuración de sistema.
+- **Synch Checker:** umbral de extensión del video ampliado a 10 s (antes 3 s). Con keyframe intervals grandes (4–8 s), OBS puede tardar hasta la duración de un GOP en hacer flush al detener la grabación — eso es normal y no indica desfase.
+- **Synch Checker:** mensaje de cierre explícito — al finalizar la verificación se muestra si los 4 archivos están sincronizados y cuántos ms extiende el video post-sesión.
+
+### V23 — 13/05/2026
+- **Fix duración de video (MP4 fragmentado):** el Synch Checker ahora parsea directamente los boxes `moof/tfdt/trun` del MP4 para obtener la duración real. El método anterior (`CAP_PROP_FRAME_COUNT` de OpenCV) subestimaba la duración ~1.7 s en grabaciones OBS.
+
+### V22 — 13/05/2026
+- **Fix sincronización:** el offset entre el video y los logs pasó de ~1.4 s a menos de 500 ms.
+- **Fix Synch Checker:** corregido el cálculo de duración del video que generaba falsos "OFFSET CRÍTICO".
+
+### V21.1 — 03/05/2026
+- **Fix íconos:** los íconos de escritorio ahora se ven en alta definición (16, 32, 48 y 256 px).
+
+### V20 — 03/05/2026
+- **OBS inteligente:** si OBS ya está instalado en la versión requerida (32.1.2) o superior, la instalación lo saltea.
+- **OBS visible:** el instalador de OBS se muestra en primer plano.
+
+### V19 — 03/05/2026
+- **Nuevos íconos:** íconos oficiales de Pleiada Recorder y Synch Checker en alta definición.
+- **UI floater rediseñada:** tipografía unificada, timer más grande, botón redondeado, esquinas redondeadas.
+- **UI Synch Checker rediseñada:** logo oficial, botón redondeado, tipografía unificada.
+- **Nombre de sesión dinámico:** muestra el nombre de carpeta durante la grabación; se convierte en hipervínculo al finalizar.
+- **Fix shortcut Synch Checker:** corregida la ruta con espacios en el acceso directo del escritorio.
+
+### V18 — 01/05/2026
+- **Auto-stop de sesión:** la grabación se detiene automáticamente al llegar a 1 hora 5 minutos.
+
+### V17.2 — 27/04/2026
+- **Fix descarga de AutoHotkey:** resuelto un bloqueo de Cloudflare durante la instalación.
+
+### V17 — 27/04/2026
+- Versión inicial de Pleiada Recorder.
+- Instalación automática de Python 3.12, AutoHotkey v2, OBS Studio 32.1.2 y dependencias.
+- Floater de grabación con timer, control de sesión y límite configurable.
+- Synch Checker para verificar sincronización entre video y logs.
+- Configuración automática de OBS WebSocket al instalar.
+
 ---
 
 ## Para devs
@@ -163,7 +203,7 @@ python obs_control.py start
 python obs_control.py stop [session_folder]
 ```
 
-**Start:** detecta `obs64.exe` via tasklist → busca el ejecutable (paths conocidos → registro → glob) → conecta WS con auth SHA-256 → si falla, mata y relanza OBS (1 reintento) → desmutea `wasapi_output_capture`, mutea todos los `wasapi_input_capture` → llama `StartRecord` → confirma `outputActive=True` (hasta 50 polls × 100 ms).
+**Start:** detecta `obs64.exe` via tasklist → busca el ejecutable (paths conocidos → registro → glob) → conecta WS con auth SHA-256 → si falla, mata y relanza OBS (1 reintento) → desmutea `wasapi_output_capture`, mutea todos los `wasapi_input_capture` → captura `GetRecordDirectory` y lista los MP4 existentes → llama `StartRecord` → espera el evento `RecordStateChanged → STARTED` → cierra el WS → monitorea el nuevo MP4: lee el `timescale` del `mdhd` y espera a que aparezca el **segundo `moof`** (= primer GOP completo en disco) → calcula `anchor_ts = T_detección − duración_primer_GOP_ms` → escribe el anchor en `%TEMP%\pleiada_anchor_ts.txt` para que AHK lo use como `ANCHOR_START`. Esta técnica es independiente del hardware: el offset se mide directamente del archivo generado por el encoder.
 
 **Stop:** llama `StopRecord` → lee `outputPath` de la respuesta → fallback a escaneo de `~/Videos` si el path está vacío → mueve el video a `session_folder` con hasta 20 reintentos.
 
