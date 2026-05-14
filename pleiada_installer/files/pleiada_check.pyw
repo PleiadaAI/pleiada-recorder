@@ -315,18 +315,19 @@ def run_analysis(video, mouse, key, timeline):
             add(f"Duración video : {fmt_ms(vid_dur)}", TEXT, dot=True)
             signed_diff = vid_dur - csv_dur   # + = video más largo
             add(f"Diferencia     : {abs(signed_diff):.0f} ms ({signed_diff/1000:+.2f} seg)", TEXT, dot=True)
-            if 0 <= signed_diff <= 3000:
-                # El video es ligeramente más largo: OBS grabó un poco
-                # después de que el logger se detuvo (flush del encoder).
-                # El inicio está correctamente sincronizado.
+            # El video normalmente extiende entre 0 y ~keyframe_interval + 1-2s
+            # después del ANCHOR_END, porque OBS necesita completar el GOP
+            # en curso antes de detener el encoder. Con keyframe intervals
+            # grandes (4-8 s) esto puede llegar a 8-10 s — es normal.
+            if 0 <= signed_diff <= 10000:
                 tail = signed_diff / 1000
                 add(f"SINCRONIZADOS — video extiende {tail:.2f}s post-sesión (normal)", OK_COLOR, dot=True)
             elif abs(signed_diff) < 500:
                 add("SINCRONIZADOS — diferencia menor a 500 ms", OK_COLOR, dot=True)
             elif signed_diff < -500:
                 add(f"OFFSET — el video inició {abs(signed_diff)/1000:.2f}s tarde respecto al logger", WARN_COLOR, dot=True)
-            elif signed_diff > 3000:
-                add(f"OFFSET — el video extiende {signed_diff/1000:.1f}s extra (verificar encoder)", WARN_COLOR, dot=True)
+            elif signed_diff > 10000:
+                add(f"OFFSET — el video extiende {signed_diff/1000:.1f}s extra (verificar configuración OBS)", WARN_COLOR, dot=True)
 
     add()
     add("Verificación completada", ACCENT)
