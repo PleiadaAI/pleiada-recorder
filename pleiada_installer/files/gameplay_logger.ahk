@@ -214,7 +214,22 @@ StartRecording() {
     mouseFH.WriteLine("timestamp_ms,event_type,x,y,button")
     keyFH.WriteLine("timestamp_ms,event_type,key,vk_code")
     videoFH.WriteLine("timestamp_ms,event_type")
-    anchorTs := NowMs()
+
+    ; Leer anchor timestamp calculado por obs_control.py
+    ; (Unix-ms del primer frame real del video, ±50 ms)
+    ; Si el archivo no existe, fallback a NowMs()
+    anchorTs := 0
+    anchorFile := A_Temp . "\pleiada_anchor_ts.txt"
+    if FileExist(anchorFile) {
+        try {
+            anchorContent := FileRead(anchorFile)
+            anchorTs := Integer(Trim(anchorContent))
+        }
+        try FileDelete anchorFile
+    }
+    if anchorTs == 0
+        anchorTs := NowMs()
+
     mouseFH.WriteLine(anchorTs . ",ANCHOR_START,,,")
     keyFH.WriteLine(anchorTs   . ",ANCHOR_START,,")
     videoFH.WriteLine(anchorTs . ",ANCHOR_START")

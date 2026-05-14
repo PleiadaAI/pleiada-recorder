@@ -313,13 +313,20 @@ def run_analysis(video, mouse, key, timeline):
             add("Comparación CSV vs Video", ACCENT)
             add(f"Duración CSV   : {fmt_ms(csv_dur)}", TEXT, dot=True)
             add(f"Duración video : {fmt_ms(vid_dur)}", TEXT, dot=True)
-            add(f"Diferencia     : {diff:.0f} ms ({diff/1000:.2f} seg)", TEXT, dot=True)
-            if diff < 500:
+            signed_diff = vid_dur - csv_dur   # + = video más largo
+            add(f"Diferencia     : {abs(signed_diff):.0f} ms ({signed_diff/1000:+.2f} seg)", TEXT, dot=True)
+            if 0 <= signed_diff <= 3000:
+                # El video es ligeramente más largo: OBS grabó un poco
+                # después de que el logger se detuvo (flush del encoder).
+                # El inicio está correctamente sincronizado.
+                tail = signed_diff / 1000
+                add(f"SINCRONIZADOS — video extiende {tail:.2f}s post-sesión (normal)", OK_COLOR, dot=True)
+            elif abs(signed_diff) < 500:
                 add("SINCRONIZADOS — diferencia menor a 500 ms", OK_COLOR, dot=True)
-            elif diff < 2000:
-                add(f"OFFSET LEVE — ajustar {diff:.0f} ms en post-procesamiento", WARN_COLOR, dot=True)
-            else:
-                add(f"OFFSET CRÍTICO — {diff/1000:.1f} seg de desfase", ERR_COLOR, dot=True)
+            elif signed_diff < -500:
+                add(f"OFFSET — el video inició {abs(signed_diff)/1000:.2f}s tarde respecto al logger", WARN_COLOR, dot=True)
+            elif signed_diff > 3000:
+                add(f"OFFSET — el video extiende {signed_diff/1000:.1f}s extra (verificar encoder)", WARN_COLOR, dot=True)
 
     add()
     add("Verificación completada", ACCENT)

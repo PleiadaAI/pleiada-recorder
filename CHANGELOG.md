@@ -1,5 +1,8 @@
 # Changelog — Pleiada Recorder
 
+## V24 — 13/05/2026
+- **Fix sincronización por hardware (primer moof):** eliminado el offset de ~1.7 s que existía en todas las PCs. El recorder ya no usa el evento `OBS_WEBSOCKET_OUTPUT_STARTED` como referencia de inicio (ese evento dispara ~0.75 s antes del primer frame real). En su lugar, `obs_control.py` espera a que aparezca el primer box `moof` en el archivo MP4, calcula su duración exacta en ticks del encoder, y resta ese valor al timestamp de detección para obtener el instante real del primer frame. La corrección es completamente independiente del hardware: funciona igual en cualquier GPU, encoder o configuración de sistema.
+
 ## V23 — 13/05/2026
 - **Fix duración de video (MP4 fragmentado):** el Synch Checker ahora parsea directamente los boxes `moof/tfdt/trun` del MP4 para obtener la duración real. El método anterior (`CAP_PROP_FRAME_COUNT` de OpenCV) subestimaba la duración ~1.7 s en grabaciones OBS, causando el "OFFSET LEVE" reportado. El resultado ahora es preciso y debería mostrar diferencia ≤ 100 ms.
 
