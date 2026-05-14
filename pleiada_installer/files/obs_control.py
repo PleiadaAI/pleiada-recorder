@@ -1,5 +1,5 @@
 """
-obs_control.py  V13
+obs_control.py  V14
 Controla OBS Studio via WebSocket.
 Uso desde AHK:
     obs_control.py start
@@ -185,10 +185,13 @@ def find_recent_video(since_time):
 #
 #   1. Esperamos a que aparezca un nuevo .mp4 en el directorio de grabaciones
 #   2. Leemos el timescale del mdhd (moov box, escrito al inicio)
-#   3. Esperamos el primer moof box (primer fragmento con frames reales)
+#   3. Esperamos el SEGUNDO moof box (indica que el primer GOP está completo)
 #   4. Calculamos:
-#        anchor_ts = timestamp_deteccion - duracion_primer_moof_ms
+#        anchor_ts = timestamp_deteccion_moof2 - duracion_moof1_ms
 #      → anchor_ts ≈ Unix-ms del primer frame capturado (±50 ms)
+#   Nota: OBS escribe el header del moof al INICIO del GOP (antes de codificar
+#   los frames), por lo que detectar moof1 es prematuro. moof2 aparece cuando
+#   moof1 (el primer GOP) ya está completamente escrito en disco.
 #   5. Escribimos anchor_ts en ANCHOR_FILE para que AHK lo use como ANCHOR_START
 #
 # Esto funciona en cualquier hardware porque medimos el timing directamente
@@ -247,65 +250,79 @@ def _mp4_read_timescale(path):
     except Exception:
         return None
 
+def _mp4_parse_traf_duration(f, traf_data, traf_end):
+    """
+    Parsea un traf box y retorna la suma de duraciones de sus samples en ticks.
+    Retorna 0 si no se puede parsear.
+    """
+    default_dur = 0
+    tfhd_data, _ = _mp4_find_box(f, traf_data, traf_end, b'tfhd')
+    if tfhd_data is not None:
+        f.seek(tfhd_data)
+        f.read(1)
+        fl = f.read(3)
+        flags = (fl[0] << 16) | (fl[1] << 8) | fl[2]
+        f.read(4)  # track_ID
+        if flags & 0x000001: f.read(8)
+        if flags & 0x000002: f.read(4)
+        if flags & 0x000008:
+            default_dur = struct.unpack('>I', f.read(4))[0]
+
+    frag_ticks = 0
+    trun_data, _ = _mp4_find_box(f, traf_data, traf_end, b'trun')
+    if trun_data is not None:
+        f.seek(trun_data)
+        f.read(1)
+        fl = f.read(3)
+        trun_flags   = (fl[0] << 16) | (fl[1] << 8) | fl[2]
+        sample_count = struct.unpack('>I', f.read(4))[0]
+        if trun_flags & 0x001: f.read(4)
+        if trun_flags & 0x004: f.read(4)
+        has_dur   = bool(trun_flags & 0x100)
+        has_size  = bool(trun_flags & 0x200)
+        has_flags = bool(trun_flags & 0x400)
+        has_cts   = bool(trun_flags & 0x800)
+        for _ in range(sample_count):
+            if has_dur:
+                frag_ticks += struct.unpack('>I', f.read(4))[0]
+            else:
+                frag_ticks += default_dur
+            if has_size:  f.read(4)
+            if has_flags: f.read(4)
+            if has_cts:   f.read(4)
+    return frag_ticks
+
 def _mp4_first_moof_duration_ms(path, timescale):
     """
-    Busca el primer moof en el archivo y retorna su duración en ms.
-    Retorna None si el moof todavía no existe.
+    Escanea el archivo en busca de DOS moofs consecutivos.
+    Solo retorna la duración del PRIMER moof (en ms) cuando el SEGUNDO
+    moof ya está presente en el archivo — esto garantiza que el primer
+    GOP está completamente escrito en disco (OBS puede escribir el header
+    del moof antes de codificar sus frames, así que detectorarlo apenas
+    aparece sería prematuro).
+    Retorna None si el segundo moof todavía no existe.
     """
     try:
         file_size = os.path.getsize(path)
         with open(path, 'rb') as f:
             pos = 0
+            moof_count      = 0
+            first_dur_ticks = 0
             while pos < file_size:
                 box_end, btype, data_start = _mp4_next_box(f, pos, file_size)
                 if box_end is None:
                     break
                 if btype == b'moof':
-                    traf_data, traf_end = _mp4_find_box(f, data_start, box_end, b'traf')
-                    if traf_data is None:
+                    moof_count += 1
+                    if moof_count == 1:
+                        traf_data, traf_end = _mp4_find_box(f, data_start, box_end, b'traf')
+                        if traf_data is not None:
+                            first_dur_ticks = _mp4_parse_traf_duration(f, traf_data, traf_end)
+                    elif moof_count == 2:
+                        # Segundo moof presente → primer GOP completo en disco
+                        if first_dur_ticks > 0:
+                            return round(first_dur_ticks / timescale * 1000)
                         return None
-
-                    # tfhd → default_sample_duration
-                    default_dur = 0
-                    tfhd_data, _ = _mp4_find_box(f, traf_data, traf_end, b'tfhd')
-                    if tfhd_data is not None:
-                        f.seek(tfhd_data)
-                        f.read(1)
-                        fl = f.read(3)
-                        flags = (fl[0] << 16) | (fl[1] << 8) | fl[2]
-                        f.read(4)  # track_ID
-                        if flags & 0x000001: f.read(8)
-                        if flags & 0x000002: f.read(4)
-                        if flags & 0x000008:
-                            default_dur = struct.unpack('>I', f.read(4))[0]
-
-                    # trun → suma de duraciones
-                    frag_ticks = 0
-                    trun_data, _ = _mp4_find_box(f, traf_data, traf_end, b'trun')
-                    if trun_data is not None:
-                        f.seek(trun_data)
-                        f.read(1)
-                        fl = f.read(3)
-                        trun_flags  = (fl[0] << 16) | (fl[1] << 8) | fl[2]
-                        sample_count = struct.unpack('>I', f.read(4))[0]
-                        if trun_flags & 0x001: f.read(4)
-                        if trun_flags & 0x004: f.read(4)
-                        has_dur   = bool(trun_flags & 0x100)
-                        has_size  = bool(trun_flags & 0x200)
-                        has_flags = bool(trun_flags & 0x400)
-                        has_cts   = bool(trun_flags & 0x800)
-                        for _ in range(sample_count):
-                            if has_dur:
-                                frag_ticks += struct.unpack('>I', f.read(4))[0]
-                            else:
-                                frag_ticks += default_dur
-                            if has_size:  f.read(4)
-                            if has_flags: f.read(4)
-                            if has_cts:   f.read(4)
-
-                    if frag_ticks > 0:
-                        return round(frag_ticks / timescale * 1000)
-                    return None
                 pos = box_end
     except Exception as e:
         dbg(f"_mp4_first_moof_duration_ms: {e}")
@@ -313,8 +330,9 @@ def _mp4_first_moof_duration_ms(path, timescale):
 
 def compute_anchor_ts(rec_dir, existing_videos):
     """
-    Monitorea rec_dir esperando un nuevo .mp4, luego espera el primer moof
-    y calcula el anchor timestamp (Unix ms) del primer frame del video.
+    Monitorea rec_dir esperando un nuevo .mp4, luego espera el SEGUNDO moof
+    (que indica que el primer GOP está completo) y calcula el anchor timestamp
+    (Unix ms) del primer frame del video.
     Retorna el anchor en ms, o None si falla/timeout.
     """
     # 1. Esperar nuevo archivo .mp4
@@ -346,17 +364,19 @@ def compute_anchor_ts(rec_dir, existing_videos):
         dbg("compute_anchor_ts: no se pudo leer timescale")
         return None
 
-    # 3. Esperar primer moof y calcular anchor
-    for _ in range(150):   # hasta 15 s
+    # 3. Esperar segundo moof (= primer GOP completo) y calcular anchor.
+    #    Cuando el segundo moof aparece, T_detección ≈ T_primer_frame + dur_moof1.
+    #    anchor = T_detección - dur_moof1 ≈ T_primer_frame  (±50 ms de polling).
+    for _ in range(300):   # hasta 30 s (cubre GOP de hasta ~15 s)
         time.sleep(0.1)
         dur_ms = _mp4_first_moof_duration_ms(new_file, timescale)
         if dur_ms is not None:
             detection_ts = int(time.time() * 1000)
             anchor_ts    = detection_ts - dur_ms
-            dbg(f"Primer moof: dur={dur_ms} ms  detection={detection_ts}  anchor={anchor_ts}")
+            dbg(f"Segundo moof detectado: dur_primer_GOP={dur_ms} ms  detection={detection_ts}  anchor={anchor_ts}")
             return anchor_ts
 
-    dbg("compute_anchor_ts: timeout esperando primer moof (15 s)")
+    dbg("compute_anchor_ts: timeout esperando segundo moof (30 s)")
     return None
 
 # ── Main ─────────────────────────────────────────────────────────
