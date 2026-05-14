@@ -340,7 +340,7 @@ def run_analysis(video, mouse, key, timeline):
     if csvs_ok and video_ok:
         add(
             f"Verificación completa — los 4 archivos se encuentran sincronizados. "
-            f"El video extiende {signed_diff} ms al final de la sesión (flush del encoder, normal).",
+            f"El video extiende {round(signed_diff)} ms al final de la sesión (flush del encoder, normal).",
             OK_COLOR
         )
     elif csvs_ok and signed_diff is not None and abs(signed_diff) < 500:
