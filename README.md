@@ -121,6 +121,11 @@ No se accede al micrófono, cámara, portapapeles, historial de navegación ni n
 
 ## Changelog
 
+### V24.1 — 14/05/2026
+- **Fix Synch Checker — umbral de extensión de video:** ampliado de 3 s a 10 s. Con keyframe intervals grandes (4–8 s), OBS puede tardar hasta la duración de un GOP en hacer flush al detener — eso es normal y no indica desfase.
+- **Fix Synch Checker — mensaje de cierre:** al finalizar la verificación se muestra explícitamente si los 4 archivos están sincronizados y cuántos ms extiende el video post-sesión.
+- **Fix Synch Checker — ms redondeados:** corregido un valor flotante en el mensaje de cierre.
+
 ### V24 — 13/05/2026
 - **Fix sincronización por hardware (segundo moof):** eliminado el offset de ~1.7 s que existía en todas las PCs. `obs_control.py` ya no usa el evento `OBS_WEBSOCKET_OUTPUT_STARTED` como referencia de inicio. En su lugar, espera a que aparezca el segundo box `moof` en el archivo MP4 (= primer GOP completo en disco), calcula la duración exacta del primer GOP en ticks del encoder, y resta ese valor al timestamp de detección para obtener el instante real del primer frame. La corrección es completamente independiente del hardware: funciona igual en cualquier GPU, encoder o configuración de sistema.
 - **Synch Checker:** umbral de extensión del video ampliado a 10 s (antes 3 s). Con keyframe intervals grandes (4–8 s), OBS puede tardar hasta la duración de un GOP en hacer flush al detener la grabación — eso es normal y no indica desfase.
