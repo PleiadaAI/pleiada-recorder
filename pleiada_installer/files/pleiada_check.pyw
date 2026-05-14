@@ -257,6 +257,10 @@ def run_analysis(video, mouse, key, timeline):
     def add(text="", color=TEXT, dot=False):
         lines.append((text, color, dot))
 
+    # Variables de estado para el resumen final
+    diff_start  = None   # diferencia entre ANCHOR_START de los 3 CSVs
+    signed_diff = None   # vid_dur - csv_dur (+ = video más largo)
+
     add("PLEIADA — Reporte de sincronización", ACCENT)
     add()
 
@@ -281,7 +285,7 @@ def run_analysis(video, mouse, key, timeline):
     ends   = [r["end_ts"]   for r in results if r.get("end_ts")]
 
     if len(starts) == 3:
-        diff_start = max(starts) - min(starts)
+        diff_start = max(starts) - min(starts)  # actualiza variable de estado
         diff_end   = max(ends) - min(ends) if ends else None
         ok_s = diff_start == 0
         ok_e = diff_end == 0 if diff_end is not None else False
@@ -313,7 +317,7 @@ def run_analysis(video, mouse, key, timeline):
             add("Comparación CSV vs Video", ACCENT)
             add(f"Duración CSV   : {fmt_ms(csv_dur)}", TEXT, dot=True)
             add(f"Duración video : {fmt_ms(vid_dur)}", TEXT, dot=True)
-            signed_diff = vid_dur - csv_dur   # + = video más largo
+            signed_diff = vid_dur - csv_dur   # + = video más largo  # actualiza variable de estado
             add(f"Diferencia     : {abs(signed_diff):.0f} ms ({signed_diff/1000:+.2f} seg)", TEXT, dot=True)
             # El video normalmente extiende entre 0 y ~keyframe_interval + 1-2s
             # después del ANCHOR_END, porque OBS necesita completar el GOP
@@ -330,7 +334,23 @@ def run_analysis(video, mouse, key, timeline):
                 add(f"OFFSET — el video extiende {signed_diff/1000:.1f}s extra (verificar configuración OBS)", WARN_COLOR, dot=True)
 
     add()
-    add("Verificación completada", ACCENT)
+    # ── Resumen final ────────────────────────────────────────────────────────
+    csvs_ok  = diff_start  is not None and diff_start == 0
+    video_ok = signed_diff is not None and 0 <= signed_diff <= 10000
+    if csvs_ok and video_ok:
+        add(
+            f"Verificación completa — los 4 archivos se encuentran sincronizados. "
+            f"El video extiende {signed_diff} ms al final de la sesión (flush del encoder, normal).",
+            OK_COLOR
+        )
+    elif csvs_ok and signed_diff is not None and abs(signed_diff) < 500:
+        add(
+            f"Verificación completa — los 4 archivos se encuentran sincronizados "
+            f"con una diferencia de {abs(signed_diff)} ms.",
+            OK_COLOR
+        )
+    else:
+        add("Verificación completada", ACCENT)
     return lines
 
 # ── Logo canvas helper ───────────────────────────────────────────────────────
