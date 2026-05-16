@@ -242,30 +242,37 @@ def find_files_in_folder(folder):
             video = max(matches, key=os.path.getmtime)
             break
     mouse    = os.path.join(folder, "mouse_log.csv")
+    delta    = os.path.join(folder, "mouse_delta_log.csv")
     key      = os.path.join(folder, "key_log.csv")
     timeline = os.path.join(folder, "video_timeline.csv")
     return (
         video                                                if video and os.path.isfile(video) else None,
         mouse    if os.path.isfile(mouse)    else None,
+        delta    if os.path.isfile(delta)    else None,
         key      if os.path.isfile(key)      else None,
         timeline if os.path.isfile(timeline) else None,
     )
 
-def run_analysis(video, mouse, key, timeline):
+def run_analysis(video, mouse, delta, key, timeline):
     lines = []
 
     def add(text="", color=TEXT, dot=False):
         lines.append((text, color, dot))
 
     # Variables de estado para el resumen final
-    diff_start  = None   # diferencia entre ANCHOR_START de los 3 CSVs
+    diff_start  = None   # diferencia entre ANCHOR_START de los 4 CSVs
     signed_diff = None   # vid_dur - csv_dur (+ = video más largo)
 
     add("PLEIADA — Reporte de sincronización", ACCENT)
     add()
 
     results = []
-    csv_files = [(mouse, "mouse_log"), (key, "key_log"), (timeline, "video_timeline")]
+    csv_files = [
+        (mouse,    "mouse_log"),
+        (delta,    "mouse_delta_log"),
+        (key,      "key_log"),
+        (timeline, "video_timeline"),
+    ]
     for path, name in csv_files:
         try:
             r = check_csv(path, name)
@@ -280,11 +287,11 @@ def run_analysis(video, mouse, key, timeline):
             add(f"ERROR leyendo {name}: {e}", ERR_COLOR, dot=True)
             add()
 
-    add("Sincronización entre los 3 CSV", ACCENT)
+    add("Sincronización entre los 4 CSV", ACCENT)
     starts = [r["start_ts"] for r in results if r.get("start_ts")]
     ends   = [r["end_ts"]   for r in results if r.get("end_ts")]
 
-    if len(starts) == 3:
+    if len(starts) == 4:
         diff_start = max(starts) - min(starts)  # actualiza variable de estado
         diff_end   = max(ends) - min(ends) if ends else None
         ok_s = diff_start == 0
@@ -319,16 +326,21 @@ def run_analysis(video, mouse, key, timeline):
             add(f"Duración video : {fmt_ms(vid_dur)}", TEXT, dot=True)
             signed_diff = vid_dur - csv_dur   # + = video más largo  # actualiza variable de estado
             add(f"Diferencia     : {abs(signed_diff):.0f} ms ({signed_diff/1000:+.2f} seg)", TEXT, dot=True)
-            # El video normalmente extiende entre 0 y ~keyframe_interval + 1-2s
-            # después del ANCHOR_END, porque OBS necesita completar el GOP
-            # en curso antes de detener el encoder. Con keyframe intervals
-            # grandes (4-8 s) esto puede llegar a 8-10 s — es normal.
+            # signed_diff = vid_dur - csv_dur
+            #   > 0  : video extiende más allá de ANCHOR_END (flush del encoder — normal)
+            #   ≈ 0  : video se detiene cerca de ANCHOR_END (normal)
+            #   < 0  : video termina antes de ANCHOR_END; puede ser el GOP parcial
+            #          final descartado por OBS al detener (hasta ~4-5 s — normal),
+            #          o un offset real si la diferencia es mayor.
             if 0 <= signed_diff <= 10000:
                 tail = signed_diff / 1000
-                add(f"SINCRONIZADOS — video extiende {tail:.2f}s post-sesión (normal)", OK_COLOR, dot=True)
+                add(f"SINCRONIZADOS — video extiende {tail:.2f}s post-sesión (flush del encoder, normal)", OK_COLOR, dot=True)
             elif abs(signed_diff) < 500:
                 add("SINCRONIZADOS — diferencia menor a 500 ms", OK_COLOR, dot=True)
-            elif signed_diff < -500:
+            elif -4500 <= signed_diff < -500:
+                # GOP parcial final descartado al detener OBS — normal con keyframe interval de 4 s
+                add(f"SINCRONIZADOS — el video terminó {abs(signed_diff)/1000:.2f}s antes de ANCHOR_END (GOP parcial final, normal)", OK_COLOR, dot=True)
+            elif signed_diff < -4500:
                 add(f"OFFSET — el video inició {abs(signed_diff)/1000:.2f}s tarde respecto al logger", WARN_COLOR, dot=True)
             elif signed_diff > 10000:
                 add(f"OFFSET — el video extiende {signed_diff/1000:.1f}s extra (verificar configuración OBS)", WARN_COLOR, dot=True)
@@ -336,16 +348,23 @@ def run_analysis(video, mouse, key, timeline):
     add()
     # ── Resumen final ────────────────────────────────────────────────────────
     csvs_ok  = diff_start  is not None and diff_start == 0
-    video_ok = signed_diff is not None and 0 <= signed_diff <= 10000
+    video_ok = signed_diff is not None and -4500 <= signed_diff <= 10000
     if csvs_ok and video_ok:
-        add(
-            f"Verificación completa — los 4 archivos se encuentran sincronizados. "
-            f"El video extiende {round(signed_diff)} ms al final de la sesión (flush del encoder, normal).",
-            OK_COLOR
-        )
+        if signed_diff >= 0:
+            add(
+                f"Verificación completa — los 5 archivos se encuentran sincronizados. "
+                f"El video extiende {round(signed_diff)} ms al final de la sesión (flush del encoder, normal).",
+                OK_COLOR
+            )
+        else:
+            add(
+                f"Verificación completa — los 5 archivos se encuentran sincronizados. "
+                f"El video terminó {abs(round(signed_diff))} ms antes de ANCHOR_END (GOP parcial final descartado, normal).",
+                OK_COLOR
+            )
     elif csvs_ok and signed_diff is not None and abs(signed_diff) < 500:
         add(
-            f"Verificación completa — los 4 archivos se encuentran sincronizados "
+            f"Verificación completa — los 5 archivos se encuentran sincronizados "
             f"con una diferencia de {abs(signed_diff)} ms.",
             OK_COLOR
         )
@@ -705,12 +724,13 @@ class App(tk.Tk):
         if not folder or not os.path.isdir(folder) or self._placeholder_active:
             self._files_label.config(text="")
             return
-        video, mouse, key, timeline = find_files_in_folder(folder)
+        video, mouse, delta, key, timeline = find_files_in_folder(folder)
         lines = [
-            f"  {'✔' if video    else '✗'}  Video     : {os.path.basename(video)    if video    else 'no encontrado'}",
-            f"  {'✔' if mouse    else '✗'}  mouse_log : {os.path.basename(mouse)    if mouse    else 'no encontrado'}",
-            f"  {'✔' if key      else '✗'}  key_log   : {os.path.basename(key)      if key      else 'no encontrado'}",
-            f"  {'✔' if timeline else '✗'}  timeline  : {os.path.basename(timeline) if timeline else 'no encontrado'}",
+            f"  {'✔' if video    else '✗'}  Video          : {os.path.basename(video)    if video    else 'no encontrado'}",
+            f"  {'✔' if mouse    else '✗'}  mouse_log      : {os.path.basename(mouse)    if mouse    else 'no encontrado'}",
+            f"  {'✔' if delta    else '✗'}  mouse_delta_log: {os.path.basename(delta)    if delta    else 'no encontrado'}",
+            f"  {'✔' if key      else '✗'}  key_log        : {os.path.basename(key)      if key      else 'no encontrado'}",
+            f"  {'✔' if timeline else '✗'}  timeline       : {os.path.basename(timeline) if timeline else 'no encontrado'}",
         ]
         self._files_label.config(text="\n".join(lines))
 
@@ -720,10 +740,11 @@ class App(tk.Tk):
             self._write_lines([("Seleccioná una carpeta de sesión.", ERR_COLOR, True)])
             return
 
-        video, mouse, key, timeline = find_files_in_folder(folder)
+        video, mouse, delta, key, timeline = find_files_in_folder(folder)
         missing = []
         if not video:    missing.append("video (.mp4/.mkv)")
         if not mouse:    missing.append("mouse_log.csv")
+        if not delta:    missing.append("mouse_delta_log.csv")
         if not key:      missing.append("key_log.csv")
         if not timeline: missing.append("video_timeline.csv")
 
@@ -739,7 +760,7 @@ class App(tk.Tk):
 
         def worker():
             try:
-                lines = run_analysis(video, mouse, key, timeline)
+                lines = run_analysis(video, mouse, delta, key, timeline)
             except Exception as e:
                 lines = [(f"Error inesperado: {e}", ERR_COLOR, True)]
             self.after(0, lambda: self._finish(lines))

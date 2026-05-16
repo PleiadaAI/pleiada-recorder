@@ -2,8 +2,16 @@
 #SingleInstance Force
 
 ; ══════════════════════════════════════════════════════
-;  PLEIADA — Gameplay Logger V13
-;  Ventana floating — UI v2.1
+;  PLEIADA — Gameplay Logger V14
+;  Ventana floating — UI v2.2
+;
+;  CAMBIOS V14 (Bug 4 — overlay no invasivo):
+;  · Ventana visible en la taskbar de Windows → Alt+Tab para traerla
+;    al frente sin interrumpir el juego.
+;  · Eliminado +AlwaysOnTop: el floater ya no queda superpuesto al
+;    juego y tampoco queda grabado en el video.
+;  · El Raw Input (RIDEV_INPUTSINK) sigue capturando teclado y mouse
+;    aunque el juego tenga el foco — no se pierde ningún evento.
 ;
 ;  CAMBIOS V13 (Raw Input refactor — Issues 1/2/3):
 ;  · mouse_delta_log.csv NUEVO: dx/dy por evento de hardware,
@@ -556,7 +564,10 @@ CreateFloater() {
     WIN_W := 300
     WIN_H := 182
 
-    gMain := Gui("-Caption +ToolWindow +AlwaysOnTop")
+    ; Sin +ToolWindow → aparece en taskbar de Windows (Alt+Tab).
+    ; Sin +AlwaysOnTop → no queda superpuesto al juego ni grabado.
+    ; El título "Pleiada Recorder" se muestra en la barra de tareas.
+    gMain := Gui("-Caption", "Pleiada Recorder")
     gMain.BackColor := "0d0d18"
     gMain.MarginX   := 0
     gMain.MarginY   := 0
@@ -655,6 +666,14 @@ CreateFloater() {
     winY := waBottom - WIN_H - 8
 
     gMain.Show("w" . WIN_W . " h" . WIN_H . " x" . winX . " y" . winY . " NoActivate")
+
+    ; Ícono en taskbar y Alt+Tab (WM_SETICON)
+    icoPath := A_ScriptDir . "\pleiada.ico"
+    if FileExist(icoPath) {
+        hIcon := LoadPicture(icoPath, "Icon1", &_t)
+        SendMessage(0x0080, 0, hIcon, , gMain)   ; ICON_SMALL → taskbar
+        SendMessage(0x0080, 1, hIcon, , gMain)   ; ICON_BIG   → Alt+Tab
+    }
 
     DllCall("dwmapi\DwmSetWindowAttribute",
         "Ptr",  gMain.Hwnd,

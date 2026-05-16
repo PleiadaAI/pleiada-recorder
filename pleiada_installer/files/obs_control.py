@@ -95,7 +95,10 @@ def launch_obs():
         return False
     dbg(f"Lanzando OBS: {obs}")
     obs_dir = os.path.dirname(obs)
-    subprocess.Popen([obs], cwd=obs_dir, close_fds=True)
+    # --disable-shutdown-check evita el diálogo de "modo seguro" que aparece
+    # cuando OBS detecta un cierre forzado previo (ej: plugins como Input Overlay).
+    # Sin este flag, el diálogo bloquea el WebSocket y la autenticación falla.
+    subprocess.Popen([obs, "--disable-shutdown-check"], cwd=obs_dir, close_fds=True)
     for i in range(30):
         time.sleep(1)
         try:

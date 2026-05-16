@@ -121,6 +121,14 @@ No se accede al micrófono, cámara, portapapeles, historial de navegación ni n
 
 ## Changelog
 
+### V25.3 — 16/05/2026
+- **Fix overlay invasivo:** el floater ya no es siempre visible sobre el juego. Aparece en la barra de tareas de Windows y se puede traer al frente con Alt+Tab. El video de OBS ya no captura el overlay.
+
+### V25.2 — 16/05/2026
+- **Fix Synch Checker — 5 archivos:** `mouse_delta_log.csv` ahora se verifica junto a los otros 4 archivos.
+- **Fix Synch Checker — GOP parcial final:** el rango "normal" se amplió a `[-4500ms, +10000ms]`. El GOP parcial al detener OBS ya no genera falso "OFFSET".
+- **Fix Synch Checker — mensaje de resumen:** actualizado a "5 archivos"; distingue flush del encoder vs GOP parcial final.
+
 ### V25.1 — 15/05/2026
 - **Fix ortografía — popup de instalación:** corregidas 10 tildes faltantes en el texto de consentimiento.
 - **Fix ortografía — popup de error:** "leido los terminos" → "leído los términos".

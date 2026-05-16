@@ -1,5 +1,13 @@
 # Changelog — Pleiada Recorder
 
+## V25.3 — 16/05/2026
+- **Fix overlay invasivo:** el floater de Pleiada Recorder ya no es `+AlwaysOnTop` ni `+ToolWindow`. Ahora aparece en la barra de tareas de Windows y puede traerse al frente con Alt+Tab sin interrumpir el juego. El overlay tampoco queda grabado en el video cuando OBS captura en modo ventana. El Raw Input (`RIDEV_INPUTSINK`) sigue funcionando sin cambios — captura teclado y mouse aunque el juego tenga el foco.
+
+## V25.2 — 16/05/2026
+- **Fix Synch Checker — 5 archivos:** `mouse_delta_log.csv` ahora se verifica junto a los otros 4 archivos. El reporte muestra los 5 y la sincronización se mide entre los 4 CSVs.
+- **Fix Synch Checker — GOP parcial final:** el rango "normal" en la comparación CSV vs Video se amplió a `[-4500ms, +10000ms]`. Cuando OBS detiene la grabación en medio de un GOP (hasta ~4s antes de ANCHOR_END), ahora se reporta como "SINCRONIZADOS — GOP parcial final descartado, normal" en lugar de "OFFSET". El diagnóstico confirmado via debug log: el anchor es correcto, el video termina antes de ANCHOR_END cuando OBS descarta el último GOP incompleto.
+- **Fix Synch Checker — mensaje de resumen:** actualizado a "5 archivos"; distingue entre video que extiende post-sesión (flush del encoder) y video que termina antes de ANCHOR_END (GOP parcial).
+
 ## V25.1 — 15/05/2026
 - **Fix ortografía — popup de instalación:** corregidas 10 tildes faltantes en el texto de consentimiento del instalador (información, ¡Bienvenidos!, Está, código, QUÉ, sesión, grabación, anónima, ningún, identificación, instalación, leído, términos).
 - **Fix ortografía — popup de error (términos no aceptados):** "leido los terminos" → "leído los términos".

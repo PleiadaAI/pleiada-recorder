@@ -2,7 +2,7 @@
 ; Genera: PleiadaRecorder_Setup.exe
 
 #define AppName    "Pleiada Recorder"
-#define AppVersion "0.25.1"
+#define AppVersion "0.25.3"
 #define AppPublisher "Pleiada"
 #define AppDir     "{autopf}\Pleiada Recorder"
 
@@ -98,17 +98,17 @@ Filename: "{sys}\taskkill.exe"; \
     Flags: runhidden; \
     Check: OBSNeedsInstall
 
-; 5. Instalar dependencias Python via pip
-Filename: "python"; \
+; 5. Instalar dependencias Python via pip (ruta absoluta para evitar problemas de PATH)
+Filename: "{code:FindPythonExe}"; \
     Parameters: "-m pip install websocket-client Pillow opencv-python --quiet"; \
     StatusMsg: "{cm:InstallingDeps}"; \
-    Flags: runhidden
+    Flags: runhidden waituntilterminated
 
 ; 6. Configurar OBS WebSocket automaticamente
-Filename: "python"; \
+Filename: "{code:FindPythonExe}"; \
     Parameters: """{tmp}\configure_obs.py"""; \
     StatusMsg: "{cm:ConfiguringOBS}"; \
-    Flags: runhidden
+    Flags: runhidden waituntilterminated
 
 ; 7. Wizard de configuracion inicial — se lanza automaticamente (sin checkbox)
 Filename: "{app}\pleiada_setup_wizard.pyw"; \
@@ -127,7 +127,7 @@ begin
   ConsentPage := CreateCustomPage(
     wpWelcome,
     'Bienvenido a Pleiada Recorder - Gameplay Alliance',
-    'Lee atentamente la siguiente información antes de continuar.'
+    'Leé atentamente la siguiente información antes de continuar.'
   );
 
   ConsentMemo := TNewMemo.Create(ConsentPage);
@@ -206,6 +206,37 @@ begin
     Result := RegKeyExists(HKLM, 'Software\Python\PythonCore\3.12');
 end;
 
+{ Devuelve la ruta completa a python.exe para ejecutar pip y scripts }
+function FindPythonExe(Param: String): String;
+var
+  PythonDir: String;
+begin
+  Result := 'python.exe'; { fallback si no se encuentra por registro }
+
+  { Python instalado per-user (InstallAllUsers=0 — nuestro caso) }
+  if RegQueryStringValue(HKCU,
+      'Software\Python\PythonCore\3.12\InstallPath', '', PythonDir) then
+  begin
+    if (Length(PythonDir) > 0) and (PythonDir[Length(PythonDir)] <> '\') then
+      PythonDir := PythonDir + '\';
+    if FileExists(PythonDir + 'python.exe') then
+    begin
+      Result := PythonDir + 'python.exe';
+      Exit;
+    end;
+  end;
+
+  { Python instalado para todos los usuarios }
+  if RegQueryStringValue(HKLM,
+      'SOFTWARE\Python\PythonCore\3.12\InstallPath', '', PythonDir) then
+  begin
+    if (Length(PythonDir) > 0) and (PythonDir[Length(PythonDir)] <> '\') then
+      PythonDir := PythonDir + '\';
+    if FileExists(PythonDir + 'python.exe') then
+      Result := PythonDir + 'python.exe';
+  end;
+end;
+
 { Devuelve la ruta completa a pythonw.exe para el shortcut del Synch Checker }
 function FindPythonW(Param: String): String;
 var
@@ -272,6 +303,7 @@ begin
        ewWaitUntilTerminated, RC);
   Result := (RC = 0);
 end;
+
 
 
 
