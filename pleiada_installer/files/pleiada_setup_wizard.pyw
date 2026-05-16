@@ -1,5 +1,5 @@
 ﻿"""
-pleiada_setup_wizard.pyw  V13
+pleiada_setup_wizard.pyw  V14
 Wizard de configuracion inicial — se lanza al finalizar la instalacion.
 3 paginas: OBS setup / Prueba de grabacion / Synch Checker.
 """
@@ -23,7 +23,7 @@ GREEN   = "#4caf50"
 LINK    = "#9c8fe0"
 
 WIN_W = 580
-WIN_H = 560
+WIN_H = 630
 
 PAGES = [
     {
@@ -40,7 +40,9 @@ PAGES = [
             "     \"60 o 30 pero en alta resolución\".\n\n"
             "3.  Sin importar si lo tenías instalado o no, en la sección Fuentes\n"
             "     (abajo a la izquierda) hacé clic en el  +  , seleccioná\n"
-            "     \"Captura de Juego\"  y dejá el nombre que aparece.\n\n"
+            "     \"Captura de Juego\"  y dejá el nombre que aparece. Luego en\n"
+            "     Modo seleccioná  \"Capturar Ventana específica\"  y en Ventana\n"
+            "     seleccioná la que esté mostrando tu juego ya iniciado.\n\n"
             "4.  En la sección Mezclador de audio (abajo al centro), si aparece\n"
             "     una sección de nombre \"Mic/Aux\", silenciala haciendo clic en\n"
             "     el 🔊 hasta que quede rojo (muteado)."

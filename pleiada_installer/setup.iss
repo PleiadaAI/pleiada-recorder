@@ -2,7 +2,7 @@
 ; Genera: PleiadaRecorder_Setup.exe
 
 #define AppName    "Pleiada Recorder"
-#define AppVersion "0.25.3"
+#define AppVersion "0.25.5"
 #define AppPublisher "Pleiada"
 #define AppDir     "{autopf}\Pleiada Recorder"
 
@@ -114,6 +114,14 @@ Filename: "{code:FindPythonExe}"; \
 Filename: "{app}\pleiada_setup_wizard.pyw"; \
     StatusMsg: "{cm:AllDone}"; \
     Flags: nowait shellexec
+
+[UninstallRun]
+; Cerrar Pleiada Recorder si está abierto al desinstalar.
+; La ventana se titula "Pleiada Recorder" (seteado en gameplay_logger.ahk V14+).
+Filename: "{sys}\taskkill.exe"; \
+    Parameters: "/F /FI ""WINDOWTITLE eq Pleiada Recorder"""; \
+    Flags: runhidden; \
+    RunOnceId: "KillRecorder"
 
 [Code]
 
@@ -303,6 +311,8 @@ begin
        ewWaitUntilTerminated, RC);
   Result := (RC = 0);
 end;
+
+
 
 
 

@@ -12,9 +12,10 @@ echo.
 echo  Copiando archivos a: %DST%
 echo.
 
-copy /Y "%SRC%\gameplay_logger.ahk" "%DST%\gameplay_logger.ahk"
-copy /Y "%SRC%\obs_control.py"      "%DST%\obs_control.py"
-copy /Y "%SRC%\pleiada_check.pyw"   "%DST%\pleiada_check.pyw"
+copy /Y "%SRC%\gameplay_logger.ahk"        "%DST%\gameplay_logger.ahk"
+copy /Y "%SRC%\obs_control.py"             "%DST%\obs_control.py"
+copy /Y "%SRC%\pleiada_check.pyw"          "%DST%\pleiada_check.pyw"
+copy /Y "%SRC%\pleiada_setup_wizard.pyw"   "%DST%\pleiada_setup_wizard.pyw"
 
 echo.
 echo  Listo. Podes abrir Pleiada Recorder desde el escritorio.

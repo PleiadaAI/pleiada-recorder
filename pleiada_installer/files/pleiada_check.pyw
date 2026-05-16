@@ -14,7 +14,7 @@ except Exception:
     pass
 
 import tkinter as tk
-from tkinter import filedialog, scrolledtext
+from tkinter import filedialog
 import csv
 import os
 import glob
@@ -73,11 +73,67 @@ def check_csv(path, name):
             "start_ts": start_ts, "end_ts": end_ts,
             "duration_ms": duration_ms}
 
+def _mp4_is_truncated(path):
+    """
+    True si el archivo MP4 no contiene un bloque moov legible.
+    En MP4 fragmentado (OBS), el moov está al comienzo (primeros 128 KB).
+    En MP4 estándar, el moov está al final (últimos 512 KB).
+    Si no se encuentra en ninguno → el archivo está genuinamente truncado
+    (caso típico: OBS crasheó antes de poder escribir el moov).
+
+    Nota: el último mdat de un MP4 fragmentado de OBS puede declarar un size
+    levemente mayor que los bytes reales escritos — esto es comportamiento
+    normal del muxer de OBS al finalizar y NO indica truncamiento.
+    """
+    import struct
+
+    def find_moov(f, start, end):
+        pos = start
+        while pos + 8 <= end:
+            f.seek(pos)
+            raw = f.read(8)
+            if len(raw) < 8:
+                break
+            size = struct.unpack('>I', raw[:4])[0]
+            btype = raw[4:8]
+            if btype == b'moov':
+                return True
+            if size == 1:          # extended 64-bit size
+                ext_raw = f.read(8)
+                if len(ext_raw) < 8:
+                    break
+                size = struct.unpack('>Q', ext_raw)[0]
+                if size < 16:
+                    break
+            elif size == 0:        # extends to EOF
+                break
+            elif size < 8:
+                break
+            pos += size
+        return False
+
+    try:
+        file_size = os.path.getsize(path)
+        with open(path, 'rb') as f:
+            # 1. MP4 fragmentado: moov al inicio (primeros 128 KB)
+            if find_moov(f, 0, min(file_size, 131072)):
+                return False
+            # 2. MP4 estándar: moov al final (últimos 512 KB)
+            search_start = max(0, file_size - 524288)
+            if find_moov(f, search_start, file_size):
+                return False
+        return True   # sin moov → realmente truncado
+    except Exception:
+        return False
+
+
 def _mp4_frag_duration_ms(path):
     """
-    Calcula la duración real de un MP4 fragmentado (formato OBS)
-    parseando los boxes moof → traf → tfhd + tfdt + trun.
-    Retorna la duración en milisegundos, o None si falla/no aplica.
+    Calcula la duración real de un MP4 de OBS.
+    Soporta:
+    · MP4 fragmentado (moof/traf/trun) — formato normal de Pleiada Recorder.
+    · MP4 estándar (moov/mdhd al final) — fallback cuando OBS graba sin fragmentar.
+    Retorna la duración en ms, o None si el archivo no puede ser parseado.
     """
     import struct
 
@@ -109,10 +165,15 @@ def _mp4_frag_duration_ms(path):
         file_size = os.path.getsize(path)
 
         with open(path, 'rb') as f:
-            # ── 1. Timescale desde moov/trak/mdia/mdhd ─────────────
+            # ── 1. Buscar moov: primero en los primeros 128 KB (MP4 fragmentado,
+            #       moov al inicio), luego en los últimos 512 KB (MP4 estándar,
+            #       moov al final). Si no se encuentra en ninguno → archivo truncado.
             moov_data, moov_end = find_box(f, 0, min(file_size, 131072), b'moov')
             if moov_data is None:
-                return None
+                search_start = max(0, file_size - 524288)
+                moov_data, moov_end = find_box(f, search_start, file_size, b'moov')
+            if moov_data is None:
+                return None   # sin moov → archivo truncado o formato desconocido
 
             trak_data, trak_end = find_box(f, moov_data, moov_end, b'trak')
             if trak_data is None:
@@ -133,6 +194,16 @@ def _mp4_frag_duration_ms(path):
             timescale = struct.unpack('>I', f.read(4))[0]
             if not timescale:
                 return None
+
+            # mdhd duration: en MP4 estándar (moov al final) contiene la duración
+            # real; en MP4 fragmentado suele ser 0 (se usa moof scan en su lugar).
+            if version == 1:
+                mdhd_duration = struct.unpack('>Q', f.read(8))[0]
+            else:
+                mdhd_duration = struct.unpack('>I', f.read(4))[0]
+            sentinel = 0xFFFFFFFFFFFFFFFF if version == 1 else 0xFFFFFFFF
+            if mdhd_duration and mdhd_duration != sentinel:
+                return round(mdhd_duration / timescale * 1000)
 
             # ── 2. Escanear todos los moof y acumular tiempo ────────
             last_end_time = 0
@@ -216,9 +287,12 @@ def _mp4_frag_duration_ms(path):
 def check_video(path):
     # Para MP4 de OBS (fragmentado), parsear boxes moof/tfdt/trun da
     # la duración real; CAP_PROP_FRAME_COUNT suele quedar ~1-2 s corto.
-    frag_dur_ms = None
-    if path.lower().endswith('.mp4'):
-        frag_dur_ms = _mp4_frag_duration_ms(path)
+    frag_dur_ms  = None
+    is_truncated = False
+    if path and path.lower().endswith('.mp4'):
+        is_truncated = _mp4_is_truncated(path)
+        if not is_truncated:
+            frag_dur_ms = _mp4_frag_duration_ms(path)
 
     try:
         import cv2
@@ -230,9 +304,10 @@ def check_video(path):
             (total_frames / fps * 1000) if fps > 0 else None
         )
         return {"fps": fps, "total_frames": int(total_frames),
-                "duration_ms": duration_ms, "opencv": True}
+                "duration_ms": duration_ms, "opencv": True,
+                "truncated": is_truncated}
     except ImportError:
-        return {"opencv": False}
+        return {"opencv": False, "truncated": is_truncated}
 
 def find_files_in_folder(folder):
     video = None
@@ -262,6 +337,7 @@ def run_analysis(video, mouse, delta, key, timeline):
     # Variables de estado para el resumen final
     diff_start  = None   # diferencia entre ANCHOR_START de los 4 CSVs
     signed_diff = None   # vid_dur - csv_dur (+ = video más largo)
+    vinfo       = {}     # resultado de check_video (inicializado defensivamente)
 
     add("PLEIADA — Reporte de sincronización", ACCENT)
     add()
@@ -310,6 +386,10 @@ def run_analysis(video, mouse, delta, key, timeline):
     if not vinfo.get("opencv"):
         add("opencv-python no instalado.", WARN_COLOR, dot=True)
         add("Ejecutá: pip install opencv-python", WARN_COLOR, dot=True)
+    elif vinfo.get("truncated"):
+        add(f"Archivo        : {os.path.basename(video)}", TEXT, dot=True)
+        add("Archivo incompleto — OBS cerró sin finalizar la grabación.", ERR_COLOR, dot=True)
+        add("El índice del video (moov) no existe. Duración no disponible.", ERR_COLOR, dot=True)
     else:
         add(f"Archivo        : {os.path.basename(video)}", TEXT, dot=True)
         add(f"FPS            : {vinfo['fps']}", TEXT, dot=True)
@@ -347,29 +427,50 @@ def run_analysis(video, mouse, delta, key, timeline):
 
     add()
     # ── Resumen final ────────────────────────────────────────────────────────
-    csvs_ok  = diff_start  is not None and diff_start == 0
-    video_ok = signed_diff is not None and -4500 <= signed_diff <= 10000
+    csvs_ok       = diff_start  is not None and diff_start == 0
+    video_ok      = signed_diff is not None and -4500 <= signed_diff <= 10000
+    video_trouble = vinfo.get("truncated", False)
+
+    SEP = "─" * 48
+
     if csvs_ok and video_ok:
-        if signed_diff >= 0:
-            add(
-                f"Verificación completa — los 5 archivos se encuentran sincronizados. "
-                f"El video extiende {round(signed_diff)} ms al final de la sesión (flush del encoder, normal).",
-                OK_COLOR
-            )
-        else:
-            add(
-                f"Verificación completa — los 5 archivos se encuentran sincronizados. "
-                f"El video terminó {abs(round(signed_diff))} ms antes de ANCHOR_END (GOP parcial final descartado, normal).",
-                OK_COLOR
-            )
-    elif csvs_ok and signed_diff is not None and abs(signed_diff) < 500:
-        add(
-            f"Verificación completa — los 5 archivos se encuentran sincronizados "
-            f"con una diferencia de {abs(signed_diff)} ms.",
-            OK_COLOR
-        )
+        # Todo OK: CSVs + video sincronizados
+        add(SEP, OK_COLOR)
+        add("✅  SESIÓN LISTA PARA ENVIAR", OK_COLOR)
+        add("    Los 5 archivos están sincronizados.", OK_COLOR)
+        add(SEP, OK_COLOR)
+
+    elif csvs_ok and video_trouble:
+        # CSVs OK pero el video está incompleto o no pudo leerse
+        add(SEP, ERR_COLOR)
+        add("⚠   SESIÓN NO APTA PARA ENVIAR", ERR_COLOR)
+        add("    Los 4 CSV están sincronizados, pero el video no es válido.", ERR_COLOR)
+        add("    Descartá esta sesión e iniciá una nueva grabación.", ERR_COLOR)
+        add(SEP, ERR_COLOR)
+
+    elif csvs_ok and signed_diff is None:
+        # CSVs OK pero duración del video no disponible (no truncado, pero no parseable)
+        add(SEP, ACCENT)
+        add("    Los 4 CSV están sincronizados.", OK_COLOR)
+        add("⚠   Video: duración no disponible — sync con video no verificada.", WARN_COLOR)
+        add(SEP, ACCENT)
+
+    elif not csvs_ok:
+        # Diferencia entre los ANCHOR de los CSVs
+        add(SEP, ERR_COLOR)
+        add("⚠   SESIÓN NO APTA PARA ENVIAR", ERR_COLOR)
+        add("    Los CSV no están sincronizados entre sí.", ERR_COLOR)
+        add("    Descartá esta sesión e iniciá una nueva grabación.", ERR_COLOR)
+        add(SEP, ERR_COLOR)
+
     else:
-        add("Verificación completada", ACCENT)
+        # Offset detectado entre CSV y video
+        add(SEP, ERR_COLOR)
+        add("⚠   SESIÓN NO APTA PARA ENVIAR", ERR_COLOR)
+        add("    Se detectó un desfase entre el video y los logs.", ERR_COLOR)
+        add("    Descartá esta sesión e iniciá una nueva grabación.", ERR_COLOR)
+        add(SEP, ERR_COLOR)
+
     return lines
 
 # ── Logo canvas helper ───────────────────────────────────────────────────────
@@ -647,13 +748,29 @@ class App(tk.Tk):
                  font=FONT_LABEL).pack(anchor="w", pady=(0, 8))
 
         # ── Área de resultados ──
+        # Se usa Text + Scrollbar manual con grid para evitar que la
+        # barra de scroll quede recortada por el borde del frame exterior.
         result_frame = tk.Frame(body,
                                 bg=BG_RESULTS,
                                 highlightbackground=BORDER,
                                 highlightthickness=1)
         result_frame.pack(fill="both", expand=True)
+        result_frame.columnconfigure(0, weight=1)
+        result_frame.rowconfigure(0, weight=1)
 
-        self.output = scrolledtext.ScrolledText(
+        _vbar = tk.Scrollbar(
+            result_frame,
+            bg=BG_TITLEBAR,
+            troughcolor=BG,
+            activebackground=ACCENT,
+            width=10,
+            relief="flat",
+            bd=0,
+            highlightthickness=0
+        )
+        _vbar.grid(row=0, column=1, sticky="ns", padx=(0, 4), pady=4)
+
+        self.output = tk.Text(
             result_frame,
             bg=BG_RESULTS, fg=TEXT,
             font=FONT_MONO,
@@ -662,17 +779,12 @@ class App(tk.Tk):
             wrap="word",
             insertbackground=TEXT,
             padx=14, pady=12,
-            bd=0
+            bd=0,
+            highlightthickness=0,
+            yscrollcommand=_vbar.set
         )
-        self.output.pack(fill="both", expand=True)
-
-        self.output.vbar.config(
-            bg=BG_TITLEBAR,
-            troughcolor=BG,
-            activebackground=ACCENT,
-            width=8,
-            relief="flat"
-        )
+        self.output.grid(row=0, column=0, sticky="nsew")
+        _vbar.config(command=self.output.yview)
 
         # Tags de color
         for tag, color in [
@@ -713,7 +825,14 @@ class App(tk.Tk):
     # ── Acciones ─────────────────────────────────────────────────────────────
 
     def _browse(self):
-        folder = filedialog.askdirectory(title="Seleccionar carpeta de sesión")
+        # Abrir por default en Pleiada Recordings (donde están todas las sesiones)
+        default_dir = os.path.join(os.path.expanduser("~"), "Documents", "Pleiada Recordings")
+        if not os.path.isdir(default_dir):
+            default_dir = os.path.expanduser("~")
+        folder = filedialog.askdirectory(
+            title="Seleccionar carpeta de sesión",
+            initialdir=default_dir
+        )
         if folder:
             self._placeholder_active = False
             self._entry.config(fg=TEXT)

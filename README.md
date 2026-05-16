@@ -80,11 +80,12 @@ Cada sesión genera una carpeta en:
 
 ```
 Documentos\Pleiada Recordings\
-  └── 2026-04-26 15-13-40 recording\
-        ├── 2026-04-26 15-13-42.mp4    ← video
-        ├── mouse_log.csv              ← movimientos del mouse
-        ├── key_log.csv                ← teclas presionadas
-        └── video_timeline.csv         ← línea de tiempo
+  └── FarCry6_26_04_26__15_13_40 recording\
+        ├── FarCry6_26_04_26__15_13_42.mp4  ← video
+        ├── mouse_log.csv                   ← movimientos del mouse
+        ├── mouse_delta_log.csv             ← deltas de hardware del mouse
+        ├── key_log.csv                     ← teclas presionadas
+        └── video_timeline.csv              ← línea de tiempo
 ```
 
 ---
@@ -111,6 +112,30 @@ No se accede al micrófono, cámara, portapapeles, historial de navegación ni n
 
 ---
 
+## Preguntas frecuentes (FAQs)
+
+---
+
+**¿Por qué el Synch Checker muestra "Archivo incompleto" en el video y no puede leer la duración?**
+
+Significa que OBS no terminó de escribir el archivo de video correctamente. En el formato MP4 estándar, OBS escribe todos los datos de video primero y al final agrega el índice del archivo (el box `moov`). Si OBS se cierra de forma abrupta durante la grabación —por un crash, cierre forzado, corte de luz o reinicio del equipo— ese índice nunca se escribe. El archivo queda truncado: los datos de video están ahí, pero sin el índice ningún reproductor ni herramienta de IA puede leerlos.
+
+**¿Este dataset es válido para el programa?**
+
+No. Para que una sesión sea válida necesitás el par completo: video reproducible + logs sincronizados. Si el video está truncado, la sesión no es utilizable para entrenamiento de IA, aunque los CSV (mouse, teclado, timeline) estén perfectamente sincronizados. Descartá la sesión e iniciá una nueva grabación.
+
+**¿Puede volver a pasar con la versión actual de Pleiada Recorder?**
+
+Es muy poco probable. Pleiada Recorder configura OBS para grabar en **formato MP4 fragmentado**, donde el índice se escribe al comienzo del archivo y cada fragmento de video queda indexado a medida que se graba. Si OBS se cierra de forma inesperada, el video grabado hasta ese momento sigue siendo reproducible. El caso de video truncado afecta principalmente a grabaciones hechas con versiones anteriores o con una configuración manual de OBS diferente a la recomendada.
+
+**¿Qué hago si me pasa?**
+
+1. Verificá en el Synch Checker — si muestra "Archivo incompleto", la sesión no es válida.
+2. Descartá la sesión e iniciá una nueva grabación.
+3. Si el problema se repite, asegurate de usar siempre el botón **"Detener grabación"** de Pleiada Recorder para cerrar la sesión de forma limpia.
+
+---
+
 ## Contacto y soporte
 
 - Información del programa: [pleiada.ai](https://pleiada.ai)
@@ -120,6 +145,18 @@ No se accede al micrófono, cámara, portapapeles, historial de navegación ni n
 ---
 
 ## Changelog
+
+### V25.5 — 16/05/2026
+- **Mejora — nombre de sesión con juego:** la carpeta de cada grabación ahora incluye el nombre del juego: `NombreJuego_dd_mm_aa__hh_mm_ss recording`. El nombre se extrae automáticamente de la fuente "Captura de Juego" de OBS. Si no hay ventana específica configurada, se usa solo fecha y hora.
+- **Fix — Synch Checker detecta video truncado:** si OBS se cerró abruptamente y el MP4 quedó incompleto, ahora se muestra un mensaje claro en lugar de duración N/A sin explicación.
+
+### V25.4 — 16/05/2026
+- **Mejora — botón "?" en el Recorder:** reabre el wizard de configuración desde la title bar.
+- **Fix — tutorial paso 1:** punto 3 ahora incluye la instrucción de "Capturar Ventana específica".
+- **Fix — app sigue abierta al desinstalar:** el desinstalador cierra Pleiada Recorder automáticamente.
+- **Fix — textos recortados en Recorder:** "Pleiada Recorder" y "Listo para grabar" ya no se recortan con DPI alto.
+- **Fix — scrollbar recortada en Synch Checker:** barra de scroll completamente visible en todos los tamaños de ventana.
+- **Mejora — Examinar abre Pleiada Recordings:** el diálogo de selección de carpeta se abre directamente en la carpeta de grabaciones.
 
 ### V25.3 — 16/05/2026
 - **Fix overlay invasivo:** el floater ya no es siempre visible sobre el juego. Aparece en la barra de tareas de Windows y se puede traer al frente con Alt+Tab. El video de OBS ya no captura el overlay.

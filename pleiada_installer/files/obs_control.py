@@ -1,5 +1,5 @@
 """
-obs_control.py  V14
+obs_control.py  V15
 Controla OBS Studio via WebSocket.
 Uso desde AHK:
     obs_control.py start
@@ -25,6 +25,7 @@ OBS_PASSWORD = ""
 
 DEBUG_LOG   = os.path.join(os.environ.get("TEMP", "C:\\Temp"), "pleiada_obs_debug.txt")
 ANCHOR_FILE = os.path.join(os.environ.get("TEMP", "C:\\Temp"), "pleiada_anchor_ts.txt")
+GAME_FILE   = os.path.join(os.environ.get("TEMP", "C:\\Temp"), "pleiada_game_name.txt")
 
 def dbg(msg):
     try:
@@ -468,6 +469,39 @@ def main():
 
             except Exception as e:
                 dbg(f"Verificacion de audio error (continuando): {e}")
+
+            # ── Obtener nombre del juego capturado en OBS ─────────────
+            game_name = ""
+            try:
+                game_src = next(
+                    (i for i in inputs if i.get("inputKind") == "game_capture"),
+                    None
+                )
+                if game_src:
+                    sr = send(ws, "GetInputSettings",
+                              {"inputName": game_src.get("inputName", "")})
+                    window = (sr.get("d", {})
+                                .get("responseData", {})
+                                .get("inputSettings", {})
+                                .get("window", ""))
+                    if window:
+                        # OBS format: "Window Title:ClassName:executable.exe"
+                        raw = window.split(":")[0].strip()
+                        for ch in '\\/:*?"<>|':
+                            raw = raw.replace(ch, "")
+                        game_name = raw.strip()
+                        dbg(f"Juego capturado: '{game_name}'")
+                    else:
+                        dbg("Game Capture sin ventana específica configurada")
+            except Exception as e:
+                dbg(f"GetInputSettings error (continuando): {e}")
+
+            try:
+                with open(GAME_FILE, "w", encoding="utf-8") as fh:
+                    fh.write(game_name)
+                dbg(f"Game name escrito en {GAME_FILE}: '{game_name}'")
+            except Exception as e:
+                dbg(f"Error escribiendo game name: {e}")
 
             # ── Capturar directorio de grabaciones y archivos existentes ──
             # (ANTES de StartRecord, para identificar el nuevo archivo)

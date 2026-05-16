@@ -2,8 +2,18 @@
 #SingleInstance Force
 
 ; ══════════════════════════════════════════════════════
-;  PLEIADA — Gameplay Logger V14
-;  Ventana floating — UI v2.2
+;  PLEIADA — Gameplay Logger V16
+;  Ventana floating — UI v2.3
+;
+;  CAMBIOS V16 (nombre de sesión con juego):
+;  · El nombre de la carpeta de sesión incluye el nombre del juego
+;    capturado en OBS: "NombreJuego_dd_mm_aa__hh_mm_ss recording".
+;    Si no hay ventana específica configurada, usa solo fecha y hora.
+;
+;  CAMBIOS V15 (varios fixes/mejoras):
+;  · Botón "?" en la title bar → reabre el wizard de configuración.
+;  · Textos "Pleiada Recorder" y "Listo para grabar" ya no se recortan
+;    con escalado DPI alto (controles ampliados).
 ;
 ;  CAMBIOS V14 (Bug 4 — overlay no invasivo):
 ;  · Ventana visible en la taskbar de Windows → Alt+Tab para traerla
@@ -346,26 +356,16 @@ StartRecording() {
     if recording
         return
 
-    ; Crear carpeta de sesion con timestamp
-    sessionName := FormatTime(, "yyyy-MM-dd HH-mm-ss")
-    logDir      := baseDir . "\" . sessionName . " recording"
-    sessionCompleted := false
-    if !DirExist(baseDir)
-        DirCreate(baseDir)
-    DirCreate(logDir)
-    mouseFile := logDir . "\mouse_log.csv"
-    deltaFile := logDir . "\mouse_delta_log.csv"
-    keyFile   := logDir . "\key_log.csv"
-    videoFile := logDir . "\video_timeline.csv"
-
     ; Limpiar estado de teclas presionadas
-    pressedKeys := Map()
+    pressedKeys      := Map()
+    sessionCompleted := false
 
     ; UI: estado "iniciando"
     lblStatus.Value := "Iniciando..."
     btnIdle.Enabled := false
 
-    ; Lanzar OBS y esperar confirmacion
+    ; Lanzar OBS y esperar confirmacion.
+    ; obs_control.py escribe el nombre del juego en pleiada_game_name.txt
     exitCode := OBSStart()
     if exitCode != 0 {
         lblStatus.Value := "Listo para grabar"
@@ -377,6 +377,32 @@ StartRecording() {
         )
         return
     }
+
+    ; Leer nombre del juego capturado por obs_control.py
+    gameName := ""
+    gameFile := A_Temp . "\pleiada_game_name.txt"
+    if FileExist(gameFile) {
+        try gameName := Trim(FileRead(gameFile))
+        try FileDelete gameFile
+    }
+
+    ; Construir nombre de sesión: "NombreJuego_dd_MM_yy__HH_mm_ss recording"
+    ; Si no hay juego configurado, usar solo fecha-hora ISO
+    dateStr := FormatTime(, "dd_MM_yy")
+    timeStr := FormatTime(, "HH_mm_ss")
+    if gameName != ""
+        sessionName := gameName . "_" . dateStr . "__" . timeStr
+    else
+        sessionName := FormatTime(, "yyyy-MM-dd HH-mm-ss")
+
+    logDir := baseDir . "\" . sessionName . " recording"
+    if !DirExist(baseDir)
+        DirCreate(baseDir)
+    DirCreate(logDir)
+    mouseFile := logDir . "\mouse_log.csv"
+    deltaFile := logDir . "\mouse_delta_log.csv"
+    keyFile   := logDir . "\key_log.csv"
+    videoFile := logDir . "\video_timeline.csv"
 
     ; Abrir CSVs y escribir headers
     InitTimer()
@@ -520,6 +546,16 @@ CloseAll(*) {
 }
 
 ; ════════════════════════════════════════════════════════
+;  ABRIR WIZARD DE CONFIGURACION (botón "?")
+; ════════════════════════════════════════════════════════
+
+OpenWizard(*) {
+    script := A_ScriptDir . "\pleiada_setup_wizard.pyw"
+    if FileExist(script)
+        Run('pythonw "' . script . '"', , "Hide")
+}
+
+; ════════════════════════════════════════════════════════
 ;  HIPERVÍNCULO DE SESION
 ; ════════════════════════════════════════════════════════
 
@@ -583,10 +619,14 @@ CreateFloater() {
     gMain.Add("Text", "x12 y10 w16 h14 Background0a0a12 Center", "✦")
 
     gMain.SetFont("s9 cDDDDDD w500", "Segoe UI")
-    gMain.Add("Text", "x31 y12 w182 h12 Background0a0a12", "Pleiada Recorder")
+    gMain.Add("Text", "x31 y12 w200 h12 Background0a0a12", "Pleiada Recorder")
 
     gMain.SetFont("s6 cFFFFFF w700", "Segoe UI")
-    btnDotClose := gMain.Add("Text", "x277 y11 w11 h11 BackgroundFF5F57 Center +0x200", "x")
+    ; Botón "?" — reabre el wizard de configuración
+    btnDotHelp := gMain.Add("Text", "x255 y11 w11 h11 Background4a4a8a Center +0x200", "?")
+    btnDotHelp.OnEvent("Click", OpenWizard)
+    ; Botón "x" — cierra la app
+    btnDotClose := gMain.Add("Text", "x269 y11 w11 h11 BackgroundFF5F57 Center +0x200", "x")
     btnDotClose.OnEvent("Click", (*) => CloseFloater())
 
     gMain.Add("Text", "x0 y33 w300 h1 Background2a2850", "")
@@ -599,7 +639,7 @@ CreateFloater() {
     lblStatusDot := gMain.Add("Text", "x16 y43 w12 h12 BackgroundTrans", "●")
 
     gMain.SetFont("s9 c7b78a8 norm", "Segoe UI")
-    lblStatus := gMain.Add("Text", "x32 y43 w130 h13 BackgroundTrans", "Listo para grabar")
+    lblStatus := gMain.Add("Text", "x32 y43 w145 h13 BackgroundTrans", "Listo para grabar")
 
     gMain.SetFont("s15 cE0E0E0", "Segoe UI Light")
     lblTimer := gMain.Add("Text", "x160 y37 w128 h24 Right BackgroundTrans", "00:00:00")

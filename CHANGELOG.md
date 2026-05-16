@@ -1,5 +1,18 @@
 # Changelog — Pleiada Recorder
 
+## V25.5 — 16/05/2026
+- **Mejora — nombre de sesión con juego:** la carpeta de cada grabación ahora incluye el nombre del juego capturado en OBS: `NombreJuego_dd_mm_aa__hh_mm_ss recording`. El nombre se extrae automáticamente de la fuente "Captura de Juego" configurada en OBS (campo "Ventana específica"). Si no hay ventana configurada, se usa el formato anterior de solo fecha y hora.
+- **Fix — Synch Checker detecta video truncado:** si OBS se cerró abruptamente y el archivo MP4 quedó incompleto (sin el bloque `moov`), el Synch Checker ahora lo detecta y muestra un mensaje claro: "Archivo incompleto — OBS cerró sin finalizar la grabación." En lugar de mostrar duración N/A sin explicación. Los archivos generados con la configuración recomendada (MP4 fragmentado) no se ven afectados por este problema.
+- **Mejora — FAQ en README:** nueva sección de Preguntas Frecuentes con el caso "¿Por qué el Synch Checker muestra 'Archivo incompleto'?" y sus implicancias para el dataset.
+
+## V25.4 — 16/05/2026
+- **Mejora — botón "?" en el Recorder:** nuevo botón en la title bar que reabre el wizard de configuración inicial en cualquier momento (útil para reconfigurar Game Capture al cambiar de juego).
+- **Fix — tutorial desactualizado (paso 1, punto 3):** agregada la instrucción faltante: "en Modo seleccioná 'Capturar Ventana específica' y en Ventana seleccioná la que esté mostrando tu juego ya iniciado."
+- **Fix — app sigue abierta al desinstalar:** el desinstalador ahora cierra Pleiada Recorder automáticamente antes de eliminar los archivos (`[UninstallRun]` con taskkill por título de ventana).
+- **Fix — textos recortados en Recorder:** los controles de "Pleiada Recorder" (w182→w200) y "Listo para grabar" (w130→w145) ampliados para evitar recorte con escalado DPI alto.
+- **Fix — scrollbar recortada en Synch Checker:** reemplazado `ScrolledText` por `Text + Scrollbar` manual con layout `grid` e insets explícitos; la barra de scroll ya no queda clipeada por el borde del frame.
+- **Mejora — Examinar abre Pleiada Recordings:** el diálogo de selección de carpeta en el Synch Checker se abre directamente en `Documentos\Pleiada Recordings` en lugar de la carpeta raíz del sistema.
+
 ## V25.3 — 16/05/2026
 - **Fix overlay invasivo:** el floater de Pleiada Recorder ya no es `+AlwaysOnTop` ni `+ToolWindow`. Ahora aparece en la barra de tareas de Windows y puede traerse al frente con Alt+Tab sin interrumpir el juego. El overlay tampoco queda grabado en el video cuando OBS captura en modo ventana. El Raw Input (`RIDEV_INPUTSINK`) sigue funcionando sin cambios — captura teclado y mouse aunque el juego tenga el foco.
 
