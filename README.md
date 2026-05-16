@@ -121,6 +121,13 @@ No se accede al micrófono, cámara, portapapeles, historial de navegación ni n
 
 ## Changelog
 
+### V25.1 — 15/05/2026
+- **Fix ortografía — popup de instalación:** corregidas 10 tildes faltantes en el texto de consentimiento.
+- **Fix ortografía — popup de error:** "leido los terminos" → "leído los términos".
+- **Mejora — botón Volver en el wizard:** el tutorial post-instalación ahora tiene un botón "← Volver" en los pasos 2 y 3.
+- **Fix — tutorial paso 2/3:** el texto ahora menciona los textos reales de los botones ("Iniciar grabación" / "Detener grabación") en lugar de íconos ⏺/⏹ que no existen en la UI.
+- **Fix — tutorial paso 3/3:** resultados del Synch Checker actualizados (eliminados "OFFSET LEVE" / "OFFSET CRÍTICO", reemplazados por "OFFSET").
+
 ### V25 — 15/05/2026
 - **Raw Input — mouse_delta_log.csv (nuevo archivo):** registra los deltas de hardware (dx/dy) del mouse por evento, vía Windows Raw Input (WM_INPUT). Funciona aunque el juego tenga el cursor capturado (modos FPS/TPS con aim-lock). Complementa al `mouse_log.csv` que sigue registrando posición absoluta del cursor y botones.
 - **Raw Input — KEY_UP:** el `key_log.csv` ahora incluye eventos `KEY_UP` además de `KEY_DOWN`. Permite reconstruir exactamente cuándo se presionó y soltó cada tecla.

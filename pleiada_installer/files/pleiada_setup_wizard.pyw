@@ -1,5 +1,5 @@
 ﻿"""
-pleiada_setup_wizard.pyw  V12
+pleiada_setup_wizard.pyw  V13
 Wizard de configuracion inicial — se lanza al finalizar la instalacion.
 3 paginas: OBS setup / Prueba de grabacion / Synch Checker.
 """
@@ -57,9 +57,9 @@ PAGES = [
             "2.  Hacé doble clic en el ícono  Pleiada Recorder  del escritorio.\n"
             "     Aparece una pequeña ventana flotante — podés moverla\n"
             "     arrastrando el encabezado.\n\n"
-            "3.  Hacé clic en el botón  ⏺  para iniciar la grabación.\n"
-            "     El botón cambia a  ⏹  y el contador empieza a correr.\n\n"
-            "4.  Jugá unos 60 segundos y luego hacé clic en  ⏹  para detener.\n\n"
+            "3.  Hacé clic en el botón  Iniciar grabación  para comenzar.\n"
+            "     El botón cambia a  Detener grabación  y el contador empieza a correr.\n\n"
+            "4.  Jugá unos 60 segundos y luego hacé clic en  Detener grabación.\n\n"
             "5.  Los archivos quedan guardados automáticamente en:\n"
             "     Documentos  ›  Pleiada Recordings"
         ),
@@ -76,8 +76,7 @@ PAGES = [
             "3.  Hacé clic en  Verificar Sync.\n\n"
             "Resultados posibles:\n"
             "  ✅  SINCRONIZADOS  →  la sesión está bien, podés entregarla.\n"
-            "  ⚠   OFFSET LEVE   →  desfase menor a 2 seg, generalmente aceptable.\n"
-            "  ✖   OFFSET CRÍTICO →  desfase grande, la sesión puede no ser usable.\n\n"
+            "  ⚠   OFFSET          →  desfase detectado, la sesión puede no ser usable.\n\n"
             "¿Dudas? Visitá  "
         ),
         "link": "https://www.pleiada.ai/faqs",
@@ -174,6 +173,16 @@ class PleiadaWizard:
         )
         self.btn_next.pack(side="right")
 
+        self.btn_back = tk.Button(
+            footer, text="←  Volver",
+            font=("Segoe UI", 10),
+            bg=BG, fg=SUBTEXT,
+            activebackground=BG2, activeforeground=TEXT,
+            relief="flat", bd=0, padx=16, pady=8, cursor="hand2",
+            command=self._prev_page
+        )
+        self.btn_back.pack(side="right", padx=(0, 8))
+
         # ── Contenido central ────────────────────────────────────
         self.content = tk.Frame(root, bg=BG2, padx=30, pady=16)
         self.content.pack(fill="both", expand=True, side="top")
@@ -242,6 +251,10 @@ class PleiadaWizard:
         self.lbl_step.config(text=f"Paso {page['step']}")
         is_last = idx == len(PAGES) - 1
         self.btn_next.config(text="Terminar" if is_last else "Continuar  →")
+        if idx > 0:
+            self.btn_back.pack(side="right", padx=(0, 8))
+        else:
+            self.btn_back.pack_forget()
 
     # ── Navegacion ───────────────────────────────────────────────
 
@@ -251,6 +264,11 @@ class PleiadaWizard:
             self._show_page(self.page)
         else:
             self.root.destroy()
+
+    def _prev_page(self):
+        if self.page > 0:
+            self.page -= 1
+            self._show_page(self.page)
 
 
 def main():

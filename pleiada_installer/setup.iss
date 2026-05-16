@@ -2,7 +2,7 @@
 ; Genera: PleiadaRecorder_Setup.exe
 
 #define AppName    "Pleiada Recorder"
-#define AppVersion "0.25"
+#define AppVersion "0.25.1"
 #define AppPublisher "Pleiada"
 #define AppDir     "{autopf}\Pleiada Recorder"
 
@@ -127,7 +127,7 @@ begin
   ConsentPage := CreateCustomPage(
     wpWelcome,
     'Bienvenido a Pleiada Recorder - Gameplay Alliance',
-    'Lee atentamente la siguiente informacion antes de continuar.'
+    'Lee atentamente la siguiente información antes de continuar.'
   );
 
   ConsentMemo := TNewMemo.Create(ConsentPage);
@@ -139,37 +139,37 @@ begin
   ConsentMemo.ReadOnly := True;
   ConsentMemo.ScrollBars := ssVertical;
   ConsentMemo.Color    := $F8F6FF;
-  ConsentMemo.Lines.Add('Bienvenidos al Gameplay Alliance!');
+  ConsentMemo.Lines.Add('¡Bienvenidos al Gameplay Alliance!');
   ConsentMemo.Lines.Add('');
   ConsentMemo.Lines.Add(
     'Pleiada Recorder es una herramienta desarrollada por Pleiada para el programa ' +
-    'Gameplay Alliance. Esta construida exclusivamente sobre bibliotecas de codigo ' +
+    'Gameplay Alliance. Está construida exclusivamente sobre bibliotecas de código ' +
     'abierto y es completamente segura de instalar y utilizar.'
   );
   ConsentMemo.Lines.Add('');
-  ConsentMemo.Lines.Add('QUE INSTALA ESTE PROGRAMA:');
+  ConsentMemo.Lines.Add('QUÉ INSTALA ESTE PROGRAMA:');
   ConsentMemo.Lines.Add('');
   ConsentMemo.Lines.Add(
     '- AutoHotkey v2 (https://www.autohotkey.com/)' + #13#10 +
-    '  Software libre de codigo abierto que registra de forma anonimizada ' +
-    'la actividad del teclado y del mouse durante la sesion de grabacion.'
+    '  Software libre de código abierto que registra de forma anonimizada ' +
+    'la actividad del teclado y del mouse durante la sesión de grabación.'
   );
   ConsentMemo.Lines.Add('');
   ConsentMemo.Lines.Add(
     '- OBS Studio (https://obsproject.com/)' + #13#10 +
-    '  Software libre de codigo abierto para grabar la pantalla durante el gameplay.'
+    '  Software libre de código abierto para grabar la pantalla durante el gameplay.'
   );
   ConsentMemo.Lines.Add('');
   ConsentMemo.Lines.Add('SOBRE LOS DATOS RECOPILADOS:');
   ConsentMemo.Lines.Add('');
   ConsentMemo.Lines.Add(
-    'Toda la informacion recopilada por este software es y debe ser estrictamente ' +
-    'anonima. No se almacena ni transmite ningun dato de identificacion personal.'
+    'Toda la información recopilada por este software es y debe ser estrictamente ' +
+    'anónima. No se almacena ni transmite ningún dato de identificación personal.'
   );
   ConsentMemo.Lines.Add('');
   ConsentMemo.Lines.Add(
-    'Al continuar con la instalacion, confirmas que has leido y firmado los ' +
-    'terminos y condiciones, que sos mayor de edad y que participas ' +
+    'Al continuar con la instalación, confirmás que has leído y firmado los ' +
+    'términos y condiciones, que sos mayor de edad y que participás ' +
     'voluntariamente en el programa.'
   );
 
@@ -179,7 +179,7 @@ begin
   ConsentCheck.Top     := ConsentPage.SurfaceHeight - 54;
   ConsentCheck.Width   := ConsentPage.SurfaceWidth;
   ConsentCheck.Height  := 54;
-  ConsentCheck.Caption := 'Acepto los terminos y condiciones del programa. (pleiada.ai/terms)';
+  ConsentCheck.Caption := 'Acepto los términos y condiciones del programa. (pleiada.ai/terms)';
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
@@ -190,7 +190,7 @@ begin
     if not ConsentCheck.Checked then
     begin
       MsgBox(
-        'Debes marcar la casilla para confirmar que has leido los terminos y condiciones antes de continuar.',
+        'Debés marcar la casilla para confirmar que has leído los términos y condiciones antes de continuar.',
         mbError,
         MB_OK
       );
