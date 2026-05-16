@@ -2,7 +2,7 @@
 ; Genera: PleiadaRecorder_Setup.exe
 
 #define AppName    "Pleiada Recorder"
-#define AppVersion "0.24.1"
+#define AppVersion "0.25"
 #define AppPublisher "Pleiada"
 #define AppDir     "{autopf}\Pleiada Recorder"
 
