@@ -2,22 +2,32 @@
 #SingleInstance Force
 
 ; ══════════════════════════════════════════════════════
-;  PLEIADA — Gameplay Logger V12
+;  PLEIADA — Gameplay Logger V13
 ;  Ventana floating — UI v2.1
 ;
-;  REQUISITO: obs_control.py debe estar en la misma
-;  carpeta que este script.
+;  CAMBIOS V13 (Raw Input refactor — Issues 1/2/3):
+;  · mouse_delta_log.csv NUEVO: dx/dy por evento de hardware,
+;    funciona aunque el juego tenga el cursor bloqueado
+;  · key_log: KEY_UP + KEY_DOWN, sin auto-repeat, TODAS las teclas
+;    (reemplaza whitelist de ~60 hotkeys por WM_INPUT keyboard)
+;  · mouse_log: botones via Raw Input (BUTTON_DOWN/UP en vez de CLICK),
+;    agrega X1/X2 y scroll wheel; cursor-position timer se mantiene
+;  · Un solo RegisterRawInputDevices cubre mouse + teclado
+;
+;  REQUISITO: obs_control.py debe estar en la misma carpeta.
 ; ══════════════════════════════════════════════════════
 
 ; ── Carpeta base de grabaciones ───────────────────────
 global baseDir   := A_MyDocuments . "\Pleiada Recordings"
 global logDir    := ""
 global mouseFile := ""
+global deltaFile := ""   ; mouse_delta_log.csv (Raw Input deltas)
 global keyFile   := ""
 global videoFile := ""
 
 ; ── Handles de archivo ────────────────────────────────
 global mouseFH := 0
+global deltaFH := 0
 global keyFH   := 0
 global videoFH := 0
 
@@ -35,8 +45,8 @@ global startUnix := 0
 
 ; ── GUI handles ───────────────────────────────────────
 global gMain             := 0
-global btnIdle           := 0   ; boton estado idle (purple)
-global btnRec            := 0   ; boton estado grabando (red)
+global btnIdle           := 0
+global btnRec            := 0
 global lblStatusDot      := 0
 global lblStatus         := 0
 global lblTimer          := 0
@@ -44,10 +54,13 @@ global lblCountdown      := 0
 global lblCountdownLabel := 0
 global lblSession        := 0
 
-; ── Estado de sesion (para hipervínculo post-grabacion) ──
+; ── Estado de sesion ──────────────────────────────────
 global sessionName      := ""
 global lastLogDir       := ""
 global sessionCompleted := false
+
+; ── Seguimiento de teclas presionadas (filtro auto-repeat) ──
+global pressedKeys := Map()
 
 ; ════════════════════════════════════════════════════════
 ;  TIMER DE ALTA PRECISION
@@ -77,6 +90,161 @@ FormatCountdown(remaining) {
     m := (remaining - h * 3600) // 60
     s := Mod(remaining, 60)
     return Format("{:02d}:{:02d}:{:02d}", h, m, s)
+}
+
+; ════════════════════════════════════════════════════════
+;  RAW INPUT — registro y handler
+;
+;  Se registran mouse (UsagePage=1, Usage=2) y teclado
+;  (UsagePage=1, Usage=6) con RIDEV_INPUTSINK (0x100) para
+;  recibir eventos aunque el juego tenga el foco.
+;
+;  Mouse  → mouse_delta_log.csv (dx/dy) + mouse_log.csv (botones)
+;  Teclado → key_log.csv (KEY_DOWN / KEY_UP, sin auto-repeat)
+;
+;  Struct sizes (x64):
+;    RAWINPUTDEVICE : usUsagePage(2)+usUsage(2)+dwFlags(4)+hwnd(8) = 16 bytes
+;    RAWINPUTHEADER : dwType(4)+dwSize(4)+hDevice(8)+wParam(8)     = 24 bytes
+;    RAWMOUSE data  : usFlags(2)+[pad2]+ulButtons(4)+ulRaw(4)+lX(4)+lY(4)+extra(4) = 24 bytes
+;    RAWKEYBOARD    : MakeCode(2)+Flags(2)+Rsvd(2)+VKey(2)+Msg(4)+Extra(4) = 16 bytes
+;
+;  Offsets en el buffer RAWINPUT (header en 0..23, data desde 24):
+;    RAWMOUSE.usFlags       = 24
+;    RAWMOUSE.usButtonFlags = 28  (dentro de la union a +4)
+;    RAWMOUSE.usButtonData  = 30  (+6, scroll delta)
+;    RAWMOUSE.lLastX        = 36  (+12)
+;    RAWMOUSE.lLastY        = 40  (+16)
+;    RAWKEYBOARD.Flags      = 26  (+2, bit 0 = RI_KEY_BREAK)
+;    RAWKEYBOARD.VKey       = 30  (+6)
+; ════════════════════════════════════════════════════════
+
+RegisterRawInput() {
+    ; Registra mouse + teclado en una sola llamada
+    cbRid    := 16           ; sizeof(RAWINPUTDEVICE) en x64
+    nDevices := 2
+    rid      := Buffer(cbRid * nDevices, 0)
+
+    ; Entrada 0 — Mouse (UsagePage=1, Usage=2)
+    NumPut("UShort", 1,     rid,  0)   ; usUsagePage
+    NumPut("UShort", 2,     rid,  2)   ; usUsage
+    NumPut("UInt",   0x100, rid,  4)   ; dwFlags = RIDEV_INPUTSINK
+    NumPut("Ptr", A_ScriptHwnd, rid, 8)   ; hwndTarget
+
+    ; Entrada 1 — Teclado (UsagePage=1, Usage=6)
+    NumPut("UShort", 1,     rid, 16)
+    NumPut("UShort", 6,     rid, 18)
+    NumPut("UInt",   0x100, rid, 20)
+    NumPut("Ptr", A_ScriptHwnd, rid, 24)
+
+    ok := DllCall("RegisterRawInputDevices", "Ptr", rid, "UInt", nDevices, "UInt", cbRid)
+    return ok
+}
+
+HandleRawInput(wParam, lParam, msg, hwnd) {
+    global recording, mouseFH, deltaFH, keyFH, pressedKeys
+
+    if !recording
+        return
+
+    ; ── Obtener tamaño del buffer necesario ───────────
+    cbSize := 0
+    DllCall("GetRawInputData",
+        "Ptr",   lParam,
+        "UInt",  0x10000003,   ; RID_INPUT
+        "Ptr",   0,
+        "UInt*", &cbSize,
+        "UInt",  24)           ; sizeof(RAWINPUTHEADER) en x64
+
+    if cbSize == 0
+        return
+
+    buf := Buffer(cbSize, 0)
+    if DllCall("GetRawInputData",
+            "Ptr",   lParam,
+            "UInt",  0x10000003,
+            "Ptr",   buf,
+            "UInt*", &cbSize,
+            "UInt",  24) == 0
+        return
+
+    dwType := NumGet(buf, 0, "UInt")
+    ts     := NowMs()
+
+    ; ── MOUSE (dwType == 0) ───────────────────────────
+    if dwType == 0 {
+        usFlags       := NumGet(buf, 24, "UShort")
+        usButtonFlags := NumGet(buf, 28, "UShort")
+        usButtonData  := NumGet(buf, 30, "UShort")   ; scroll delta (unsigned)
+        lLastX        := NumGet(buf, 36, "Int")
+        lLastY        := NumGet(buf, 40, "Int")
+
+        ; Movimiento relativo → mouse_delta_log.csv
+        ; usFlags & 0x01 == MOUSE_MOVE_ABSOLUTE: ignorar (tabletas, etc.)
+        if (lLastX != 0 || lLastY != 0) && !(usFlags & 0x01)
+            deltaFH.WriteLine(ts . ",MOVE," . lLastX . "," . lLastY)
+
+        ; Eventos de botones → mouse_log.csv
+        if usButtonFlags {
+            MouseGetPos(&cx, &cy)
+
+            if usButtonFlags & 0x0001
+                mouseFH.WriteLine(ts . ",BUTTON_DOWN," . cx . "," . cy . ",LEFT")
+            if usButtonFlags & 0x0002
+                mouseFH.WriteLine(ts . ",BUTTON_UP,"   . cx . "," . cy . ",LEFT")
+            if usButtonFlags & 0x0004
+                mouseFH.WriteLine(ts . ",BUTTON_DOWN," . cx . "," . cy . ",RIGHT")
+            if usButtonFlags & 0x0008
+                mouseFH.WriteLine(ts . ",BUTTON_UP,"   . cx . "," . cy . ",RIGHT")
+            if usButtonFlags & 0x0010
+                mouseFH.WriteLine(ts . ",BUTTON_DOWN," . cx . "," . cy . ",MIDDLE")
+            if usButtonFlags & 0x0020
+                mouseFH.WriteLine(ts . ",BUTTON_UP,"   . cx . "," . cy . ",MIDDLE")
+            if usButtonFlags & 0x0040
+                mouseFH.WriteLine(ts . ",BUTTON_DOWN," . cx . "," . cy . ",X1")
+            if usButtonFlags & 0x0080
+                mouseFH.WriteLine(ts . ",BUTTON_UP,"   . cx . "," . cy . ",X1")
+            if usButtonFlags & 0x0100
+                mouseFH.WriteLine(ts . ",BUTTON_DOWN," . cx . "," . cy . ",X2")
+            if usButtonFlags & 0x0200
+                mouseFH.WriteLine(ts . ",BUTTON_UP,"   . cx . "," . cy . ",X2")
+
+            ; Scroll: usButtonData es un SHORT con signo (120 = un tick arriba)
+            if usButtonFlags & 0x0400 {
+                delta := usButtonData
+                if delta >= 0x8000   ; interpretar como signed short
+                    delta -= 0x10000
+                mouseFH.WriteLine(ts . ",SCROLL," . cx . "," . cy . "," . delta)
+            }
+            ; Scroll horizontal (usButtonFlags & 0x0800) — omitido por ahora
+        }
+
+    ; ── TECLADO (dwType == 1) ─────────────────────────
+    } else if dwType == 1 {
+        flags := NumGet(buf, 26, "UShort")   ; Flags: bit0 = RI_KEY_BREAK
+        vKey  := NumGet(buf, 30, "UShort")   ; VKey
+
+        ; Ignorar códigos inválidos
+        if vKey == 0 || vKey == 0xFF
+            return
+
+        isBreak := flags & 0x01   ; 1 = KEY_UP, 0 = KEY_DOWN
+
+        if isBreak {
+            ; KEY_UP — solo si teníamos registrado el KEY_DOWN
+            if pressedKeys.Has(vKey) {
+                pressedKeys.Delete(vKey)
+                keyName := GetKeyName(Format("vk{:02X}", vKey))
+                keyFH.WriteLine(ts . ",KEY_UP," . keyName . "," . Format("{:02X}", vKey))
+            }
+        } else {
+            ; KEY_DOWN — ignorar auto-repeat (tecla ya estaba presionada)
+            if !pressedKeys.Has(vKey) {
+                pressedKeys[vKey] := true
+                keyName := GetKeyName(Format("vk{:02X}", vKey))
+                keyFH.WriteLine(ts . ",KEY_DOWN," . keyName . "," . Format("{:02X}", vKey))
+            }
+        }
+    }
 }
 
 ; ════════════════════════════════════════════════════════
@@ -115,14 +283,6 @@ TrackTimeline() {
     if !recording
         return
     videoFH.WriteLine(NowMs() . ",FRAME")
-}
-
-LogKey(vk) {
-    global recording, keyFH
-    if !recording
-        return
-    keyName := GetKeyName(Format("vk{:02X}", vk))
-    keyFH.WriteLine(NowMs() . ",KEY_DOWN," . keyName . "," . Format("{:02X}", vk))
 }
 
 ; ════════════════════════════════════════════════════════
@@ -169,11 +329,11 @@ OnRecordBtn(*) {
 }
 
 StartRecording() {
-    global recording, mouseFH, keyFH, videoFH
-    global mouseFile, keyFile, videoFile, logDir, baseDir
+    global recording, mouseFH, deltaFH, keyFH, videoFH
+    global mouseFile, deltaFile, keyFile, videoFile, logDir, baseDir
     global recSeconds, btnIdle, btnRec
     global lblStatusDot, lblStatus, lblTimer, lblCountdown, lblCountdownLabel, lblSession
-    global sessionName, lastLogDir, sessionCompleted
+    global sessionName, lastLogDir, sessionCompleted, pressedKeys
 
     if recording
         return
@@ -186,14 +346,18 @@ StartRecording() {
         DirCreate(baseDir)
     DirCreate(logDir)
     mouseFile := logDir . "\mouse_log.csv"
+    deltaFile := logDir . "\mouse_delta_log.csv"
     keyFile   := logDir . "\key_log.csv"
     videoFile := logDir . "\video_timeline.csv"
+
+    ; Limpiar estado de teclas presionadas
+    pressedKeys := Map()
 
     ; UI: estado "iniciando"
     lblStatus.Value := "Iniciando..."
     btnIdle.Enabled := false
 
-    ; Lanzar OBS y esperar confirmacion (RunWait bloquea hasta que Python termina)
+    ; Lanzar OBS y esperar confirmacion
     exitCode := OBSStart()
     if exitCode != 0 {
         lblStatus.Value := "Listo para grabar"
@@ -206,19 +370,19 @@ StartRecording() {
         return
     }
 
-    ; Abrir CSVs y escribir headers + anchor
+    ; Abrir CSVs y escribir headers
     InitTimer()
     mouseFH := FileOpen(mouseFile, "w", "UTF-8")
+    deltaFH := FileOpen(deltaFile, "w", "UTF-8")
     keyFH   := FileOpen(keyFile,   "w", "UTF-8")
     videoFH := FileOpen(videoFile, "w", "UTF-8")
     mouseFH.WriteLine("timestamp_ms,event_type,x,y,button")
+    deltaFH.WriteLine("timestamp_ms,event_type,dx,dy")
     keyFH.WriteLine("timestamp_ms,event_type,key,vk_code")
     videoFH.WriteLine("timestamp_ms,event_type")
 
     ; Leer anchor timestamp calculado por obs_control.py
-    ; (Unix-ms del primer frame real del video, ±50 ms)
-    ; Si el archivo no existe, fallback a NowMs()
-    anchorTs := 0
+    anchorTs   := 0
     anchorFile := A_Temp . "\pleiada_anchor_ts.txt"
     if FileExist(anchorFile) {
         try {
@@ -231,6 +395,7 @@ StartRecording() {
         anchorTs := NowMs()
 
     mouseFH.WriteLine(anchorTs . ",ANCHOR_START,,,")
+    deltaFH.WriteLine(anchorTs . ",ANCHOR_START,,")
     keyFH.WriteLine(anchorTs   . ",ANCHOR_START,,")
     videoFH.WriteLine(anchorTs . ",ANCHOR_START")
 
@@ -266,7 +431,7 @@ StartRecording() {
 }
 
 StopRecording() {
-    global recording, mouseFH, keyFH, videoFH, logDir
+    global recording, mouseFH, deltaFH, keyFH, videoFH, logDir
     global recSeconds, btnIdle, btnRec
     global lblStatusDot, lblStatus, lblTimer, lblCountdown, lblCountdownLabel, lblSession
     global sessionName, lastLogDir, sessionCompleted
@@ -282,14 +447,16 @@ StopRecording() {
     ; Escribir anchor final y cerrar archivos
     endTs := NowMs()
     mouseFH.WriteLine(endTs . ",ANCHOR_END,,,")
+    deltaFH.WriteLine(endTs . ",ANCHOR_END,,")
     keyFH.WriteLine(endTs   . ",ANCHOR_END,,")
     videoFH.WriteLine(endTs . ",ANCHOR_END")
     mouseFH.Close()
+    deltaFH.Close()
     keyFH.Close()
     videoFH.Close()
     recording := false
 
-    ; Detener OBS en background (no bloquea AHK)
+    ; Detener OBS en background
     OBSStop(logDir)
 
     ; UI: volver al estado idle
@@ -325,16 +492,18 @@ CloseFloater(*) {
 }
 
 CloseAll(*) {
-    global recording, mouseFH, keyFH, videoFH, logDir
+    global recording, mouseFH, deltaFH, keyFH, videoFH, logDir
     if recording {
         SetTimer(TrackMouse,    0)
         SetTimer(TrackTimeline, 0)
         SetTimer(TickTimer,     0)
         endTs := NowMs()
         try mouseFH.WriteLine(endTs . ",ANCHOR_END,,,")
+        try deltaFH.WriteLine(endTs . ",ANCHOR_END,,")
         try keyFH.WriteLine(endTs   . ",ANCHOR_END,,")
         try videoFH.WriteLine(endTs . ",ANCHOR_END")
         try mouseFH.Close()
+        try deltaFH.Close()
         try keyFH.Close()
         try videoFH.Close()
         OBSStop(logDir)
@@ -393,63 +562,49 @@ CreateFloater() {
     gMain.MarginY   := 0
 
     ; ════════════════════════════════════════
-    ;  TITLE BAR (fondo oscuro 0a0a12)
+    ;  TITLE BAR
     ; ════════════════════════════════════════
 
-    ; Fondo de la barra de titulo
     gMain.Add("Text", "x0 y0 w300 h33 Background0a0a12", "")
-
-    ; Acento superior (3px purple)
     gMain.Add("Text", "x0 y0 w300 h3 Background7c6fcd", "")
 
-    ; Icono constelacion
     gMain.SetFont("s10 c6B68C4 bold", "Segoe UI")
     gMain.Add("Text", "x12 y10 w16 h14 Background0a0a12 Center", "✦")
 
-    ; Nombre
     gMain.SetFont("s9 cDDDDDD w500", "Segoe UI")
     gMain.Add("Text", "x31 y12 w182 h12 Background0a0a12", "Pleiada Recorder")
 
-    ; Dot rojo con X (cerrar) — alineado a la derecha
     gMain.SetFont("s6 cFFFFFF w700", "Segoe UI")
     btnDotClose := gMain.Add("Text", "x277 y11 w11 h11 BackgroundFF5F57 Center +0x200", "x")
     btnDotClose.OnEvent("Click", (*) => CloseFloater())
 
-    ; Separador cabecera / cuerpo
     gMain.Add("Text", "x0 y33 w300 h1 Background2a2850", "")
 
     ; ════════════════════════════════════════
-    ;  FILA DE ESTADO (y ≈ 40-62)
+    ;  FILA DE ESTADO
     ; ════════════════════════════════════════
 
-    ; Dot de estado
     gMain.SetFont("s9 c6B68C4 bold", "Segoe UI")
     lblStatusDot := gMain.Add("Text", "x16 y43 w12 h12 BackgroundTrans", "●")
 
-    ; Texto de estado
     gMain.SetFont("s9 c7b78a8 norm", "Segoe UI")
     lblStatus := gMain.Add("Text", "x32 y43 w130 h13 BackgroundTrans", "Listo para grabar")
 
-    ; Timer (grande, ligero — Segoe UI Light = weight 300)
     gMain.SetFont("s15 cE0E0E0", "Segoe UI Light")
     lblTimer := gMain.Add("Text", "x160 y37 w128 h24 Right BackgroundTrans", "00:00:00")
 
     ; ════════════════════════════════════════
-    ;  PILL DE COUNTDOWN (y=65-89)
+    ;  PILL DE COUNTDOWN
     ; ════════════════════════════════════════
 
-    ; Fondo de la pill (color ligeramente distinto al bg)
     ctrlPillBg := gMain.Add("Text", "x10 y75 w280 h26 Background141426", "")
 
-    ; Etiqueta "Límite de sesión"
     gMain.SetFont("s7 c6B68C4 w700", "Segoe UI")
     lblCountdownLabel := gMain.Add("Text", "x18 y80 w148 h13 Background141426", "Límite de sesión")
 
-    ; Valor del countdown — Segoe UI Light para consistencia tipografica
     gMain.SetFont("s11 cE0E0E0", "Segoe UI Light")
     lblCountdown := gMain.Add("Text", "x178 y76 w104 h18 Right Background141426", "01:05:00")
 
-    ; Rounded corners en la pill (radio 8px)
     hRgnPill := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", 280, "Int", 26, "Int", 16, "Int", 16, "Ptr")
     DllCall("SetWindowRgn", "Ptr", ctrlPillBg.Hwnd, "Ptr", hRgnPill, "Int", true)
 
@@ -460,20 +615,17 @@ CreateFloater() {
     gMain.Add("Text", "x0 y106 w300 h1 Background2a2850", "")
 
     ; ════════════════════════════════════════
-    ;  BOTON PRINCIPAL (Text control coloreado)
+    ;  BOTON PRINCIPAL
     ; ════════════════════════════════════════
 
-    ; Estado idle — fondo morado
     gMain.SetFont("s10 cFFFFFF w500", "Segoe UI")
     btnIdle := gMain.Add("Text", "x10 y112 w280 h35 Background7d7ad0 Center +0x200", "Iniciar grabación")
     btnIdle.OnEvent("Click", OnRecordBtn)
 
-    ; Estado grabando — fondo rojo oscuro (oculto al inicio)
     gMain.SetFont("s10 cE07575 w500", "Segoe UI")
     btnRec := gMain.Add("Text", "x10 y112 w280 h35 Background2a1010 Center +0x200 Hidden", "Detener grabación")
     btnRec.OnEvent("Click", OnRecordBtn)
 
-    ; Rounded corners en ambos botones (radio 14px — mismo nivel que la ventana)
     hRgnIdle := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", 280, "Int", 35, "Int", 28, "Int", 28, "Ptr")
     DllCall("SetWindowRgn", "Ptr", btnIdle.Hwnd, "Ptr", hRgnIdle, "Int", true)
     hRgnRec  := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", 280, "Int", 35, "Int", 28, "Int", 28, "Ptr")
@@ -494,18 +646,16 @@ CreateFloater() {
     ;  EVENTOS Y POSICION
     ; ════════════════════════════════════════
 
-    OnMessage(0x84, WM_NCHITTEST_Handler)
+    OnMessage(0x84,   WM_NCHITTEST_Handler)
+    OnMessage(0x00FF, HandleRawInput)       ; WM_INPUT
     gMain.OnEvent("Close", CloseFloater)
 
-    ; Centrado horizontalmente, pegado al borde inferior
     MonitorGetWorkArea(1, &waLeft, &waTop, &waRight, &waBottom)
     winX := waLeft + (waRight - waLeft - WIN_W) // 2
     winY := waBottom - WIN_H - 8
 
     gMain.Show("w" . WIN_W . " h" . WIN_H . " x" . winX . " y" . winY . " NoActivate")
 
-    ; Rounded corners via DWM (Windows 11+)
-    ; DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWMWCP_ROUND = 2
     DllCall("dwmapi\DwmSetWindowAttribute",
         "Ptr",  gMain.Hwnd,
         "UInt", 33,
@@ -514,103 +664,10 @@ CreateFloater() {
 }
 
 ; ════════════════════════════════════════════════════════
-;  HOTKEYS DE TRACKING (mouse y teclado — sin bloquear input)
-; ════════════════════════════════════════════════════════
-
-~*LButton:: {
-    global recording, mouseFH
-    if !recording
-        return
-    MouseGetPos(&x, &y)
-    mouseFH.WriteLine(NowMs() . ",CLICK," . x . "," . y . ",LEFT")
-}
-
-~*RButton:: {
-    global recording, mouseFH
-    if !recording
-        return
-    MouseGetPos(&x, &y)
-    mouseFH.WriteLine(NowMs() . ",CLICK," . x . "," . y . ",RIGHT")
-}
-
-~*MButton:: {
-    global recording, mouseFH
-    if !recording
-        return
-    MouseGetPos(&x, &y)
-    mouseFH.WriteLine(NowMs() . ",CLICK," . x . "," . y . ",MIDDLE")
-}
-
-; Letras
-~*a:: LogKey(GetKeyVK("a"))
-~*b:: LogKey(GetKeyVK("b"))
-~*c:: LogKey(GetKeyVK("c"))
-~*d:: LogKey(GetKeyVK("d"))
-~*e:: LogKey(GetKeyVK("e"))
-~*f:: LogKey(GetKeyVK("f"))
-~*g:: LogKey(GetKeyVK("g"))
-~*h:: LogKey(GetKeyVK("h"))
-~*i:: LogKey(GetKeyVK("i"))
-~*j:: LogKey(GetKeyVK("j"))
-~*k:: LogKey(GetKeyVK("k"))
-~*l:: LogKey(GetKeyVK("l"))
-~*m:: LogKey(GetKeyVK("m"))
-~*n:: LogKey(GetKeyVK("n"))
-~*o:: LogKey(GetKeyVK("o"))
-~*p:: LogKey(GetKeyVK("p"))
-~*q:: LogKey(GetKeyVK("q"))
-~*r:: LogKey(GetKeyVK("r"))
-~*s:: LogKey(GetKeyVK("s"))
-~*t:: LogKey(GetKeyVK("t"))
-~*u:: LogKey(GetKeyVK("u"))
-~*v:: LogKey(GetKeyVK("v"))
-~*w:: LogKey(GetKeyVK("w"))
-~*x:: LogKey(GetKeyVK("x"))
-~*y:: LogKey(GetKeyVK("y"))
-~*z:: LogKey(GetKeyVK("z"))
-; Numeros
-~*0:: LogKey(GetKeyVK("0"))
-~*1:: LogKey(GetKeyVK("1"))
-~*2:: LogKey(GetKeyVK("2"))
-~*3:: LogKey(GetKeyVK("3"))
-~*4:: LogKey(GetKeyVK("4"))
-~*5:: LogKey(GetKeyVK("5"))
-~*6:: LogKey(GetKeyVK("6"))
-~*7:: LogKey(GetKeyVK("7"))
-~*8:: LogKey(GetKeyVK("8"))
-~*9:: LogKey(GetKeyVK("9"))
-; Teclas especiales de juego
-~*Space::  LogKey(GetKeyVK("Space"))
-~*Enter::  LogKey(GetKeyVK("Enter"))
-~*Shift::  LogKey(GetKeyVK("Shift"))
-~*LShift:: LogKey(GetKeyVK("LShift"))
-~*RShift:: LogKey(GetKeyVK("RShift"))
-~*Ctrl::   LogKey(GetKeyVK("Ctrl"))
-~*LCtrl::  LogKey(GetKeyVK("LCtrl"))
-~*RCtrl::  LogKey(GetKeyVK("RCtrl"))
-~*Alt::    LogKey(GetKeyVK("Alt"))
-~*LAlt::   LogKey(GetKeyVK("LAlt"))
-~*RAlt::   LogKey(GetKeyVK("RAlt"))
-~*Tab::    LogKey(GetKeyVK("Tab"))
-~*Escape:: LogKey(GetKeyVK("Escape"))
-~*Up::     LogKey(GetKeyVK("Up"))
-~*Down::   LogKey(GetKeyVK("Down"))
-~*Left::   LogKey(GetKeyVK("Left"))
-~*Right::  LogKey(GetKeyVK("Right"))
-~*F1::     LogKey(GetKeyVK("F1"))
-~*F2::     LogKey(GetKeyVK("F2"))
-~*F3::     LogKey(GetKeyVK("F3"))
-~*F4::     LogKey(GetKeyVK("F4"))
-~*F5::     LogKey(GetKeyVK("F5"))
-~*F6::     LogKey(GetKeyVK("F6"))
-~*F7::     LogKey(GetKeyVK("F7"))
-~*F8::     LogKey(GetKeyVK("F8"))
-; F9 y F10 no se loggean (eran de control en versiones anteriores)
-
-; ════════════════════════════════════════════════════════
 ;  INICIO
 ; ════════════════════════════════════════════════════════
 
 OnExit(CloseAll)
 Persistent()
 CreateFloater()
+RegisterRawInput()

@@ -1,5 +1,12 @@
 # Changelog — Pleiada Recorder
 
+## V25 — 15/05/2026
+- **Raw Input — mouse_delta_log.csv (nuevo archivo):** registra los deltas de hardware (dx/dy) del mouse por evento, vía Windows Raw Input (WM_INPUT). Funciona aunque el juego tenga el cursor capturado (modos FPS/TPS con aim-lock). Complementa al `mouse_log.csv` que sigue registrando posición absoluta del cursor y botones.
+- **Raw Input — KEY_UP:** el `key_log.csv` ahora incluye eventos `KEY_UP` además de `KEY_DOWN`. Permite reconstruir exactamente cuándo se presionó y soltó cada tecla.
+- **Raw Input — cobertura total de teclas:** se eliminó el whitelist de ~60 hotkeys de AutoHotkey. Ahora se capturan absolutamente todas las teclas (letras, números, modificadores, F-keys, teclas de media, Windows key, etc.) sin auto-repeat falso.
+- **Raw Input — botones de mouse mejorados:** `mouse_log.csv` reemplaza `CLICK` por `BUTTON_DOWN`/`BUTTON_UP`. Agrega botones X1/X2 (laterales) y eventos `SCROLL` con delta de rueda (+120 = un tick arriba, -120 = un tick abajo).
+- **ANCHOR en 4 archivos:** `ANCHOR_START` y `ANCHOR_END` ahora se escriben en los 4 CSVs (`mouse_log`, `mouse_delta_log`, `key_log`, `video_timeline`).
+
 ## V24.1 — 14/05/2026
 - **Fix Synch Checker — umbral de extensión de video:** ampliado de 3 s a 10 s. Con keyframe intervals grandes (4–8 s), OBS puede tardar hasta la duración de un GOP en hacer flush al detener — eso es normal y no indica desfase.
 - **Fix Synch Checker — mensaje de cierre:** al finalizar la verificación se muestra explícitamente si los 4 archivos están sincronizados y cuántos ms extiende el video post-sesión.
