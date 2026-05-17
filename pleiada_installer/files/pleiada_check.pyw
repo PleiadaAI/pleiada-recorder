@@ -76,53 +76,45 @@ def check_csv(path, name):
 def _mp4_is_truncated(path):
     """
     True si el archivo MP4 no contiene un bloque moov legible.
-    En MP4 fragmentado (OBS), el moov está al comienzo (primeros 128 KB).
-    En MP4 estándar, el moov está al final (últimos 512 KB).
-    Si no se encuentra en ninguno → el archivo está genuinamente truncado
-    (caso típico: OBS crasheó antes de poder escribir el moov).
 
-    Nota: el último mdat de un MP4 fragmentado de OBS puede declarar un size
-    levemente mayor que los bytes reales escritos — esto es comportamiento
-    normal del muxer de OBS al finalizar y NO indica truncamiento.
+    Recorre los boxes top-level leyendo SOLO los headers (8 bytes cada uno)
+    y saltando el contenido con seek. Funciona para ambos formatos de OBS:
+    · MP4 fragmentado: moov al inicio (pos ~56), encontrado en ~3 iteraciones.
+    · MP4 estándar:   moov al final, después de un mdat de varios GB.
+      El skip por size evita leer el contenido del mdat.
+
+    Caso real de truncación: OBS crasheó antes de escribir el moov final
+    (MP4 estándar sin finalizar).
     """
     import struct
-
-    def find_moov(f, start, end):
-        pos = start
-        while pos + 8 <= end:
-            f.seek(pos)
-            raw = f.read(8)
-            if len(raw) < 8:
-                break
-            size = struct.unpack('>I', raw[:4])[0]
-            btype = raw[4:8]
-            if btype == b'moov':
-                return True
-            if size == 1:          # extended 64-bit size
-                ext_raw = f.read(8)
-                if len(ext_raw) < 8:
-                    break
-                size = struct.unpack('>Q', ext_raw)[0]
-                if size < 16:
-                    break
-            elif size == 0:        # extends to EOF
-                break
-            elif size < 8:
-                break
-            pos += size
-        return False
-
     try:
         file_size = os.path.getsize(path)
         with open(path, 'rb') as f:
-            # 1. MP4 fragmentado: moov al inicio (primeros 128 KB)
-            if find_moov(f, 0, min(file_size, 131072)):
-                return False
-            # 2. MP4 estándar: moov al final (últimos 512 KB)
-            search_start = max(0, file_size - 524288)
-            if find_moov(f, search_start, file_size):
-                return False
-        return True   # sin moov → realmente truncado
+            pos = 0
+            while pos + 8 <= file_size:
+                f.seek(pos)
+                raw = f.read(8)
+                if len(raw) < 8:
+                    break
+                size = struct.unpack('>I', raw[:4])[0]
+                btype = raw[4:8]
+                if btype == b'moov':
+                    return False          # moov encontrado → archivo válido
+                if size == 1:            # extended 64-bit size
+                    ext_raw = f.read(8)
+                    if len(ext_raw) < 8:
+                        break
+                    size = struct.unpack('>Q', ext_raw)[0]
+                    if size < 16:
+                        break
+                elif size == 0:          # extends to EOF, no hay más boxes
+                    break
+                elif size < 8:
+                    break
+                if pos + size > file_size:
+                    break                # box declara espacio más allá del EOF
+                pos += size              # saltar contenido completo del box
+        return True                      # sin moov → truncado
     except Exception:
         return False
 
