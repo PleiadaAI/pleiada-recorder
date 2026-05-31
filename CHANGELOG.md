@@ -1,5 +1,23 @@
 # Changelog — Pleiada Recorder
 
+## V6.0 — 31/05/2026
+
+### Metadata de sesión — key mapping y actividad
+- **Jerarquía de key mapping ampliada:** `config` (archivo real del juego) →
+  **`game_default`** (mapeo de fábrica curado, distribuido por Airtable sin recompilar) →
+  `inferred_from_gameplay` → `unknown`. Cubre juegos cuyo config es binario / no accesible
+  (RAGE, UE5 Enhanced Input, Unity, propietarios).
+- **Fix de modificadores:** `LShift` / `LControl` / `LAlt` ya no se pierden del mapping
+  inferido (se normalizan antes del lookup). Teclas frecuentes sin acción conocida se
+  registran como `unknown_action`.
+- **`possible_remaps`:** teclas observadas ausentes del config / game_default se reportan
+  aparte (posible remapeo del usuario), sin pisar el mapping autoritativo.
+- **`keys_observed` siempre incluido** (teclas / botones realmente usados en la sesión).
+- **Bloque `activity`:** `active_input_ratio`, `idle_seconds`, `longest_idle_seconds` —
+  separa gameplay real de cutscenes / menús / AFK.
+
+No hay cambios en el pipeline de grabación/sincronización ni en la UI.
+
 ## V5.3 — 31/05/2026
 
 ### Captura en pantalla completa exclusiva (fix mayor)

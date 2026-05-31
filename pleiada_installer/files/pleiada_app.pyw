@@ -11,7 +11,7 @@ import ctypes, ctypes.wintypes
 from pathlib import Path
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.5.3"
+VERSION = "v0.6.0"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -198,6 +198,19 @@ def _airtable_download_games():
                 continue
             def _split(v):
                 return [x.strip() for x in v.split(",") if x.strip()] if isinstance(v, str) else (v or [])
+            # default_key_mapping: JSON curado (tecla→acción) del binding de fábrica del
+            # juego. Fallback cuando no se puede leer el config real (ej: RDR2 binario).
+            # Se guarda como dato en Airtable, NO como código por juego.
+            def _parse_default_km(v):
+                if isinstance(v, dict):
+                    return v or None
+                if isinstance(v, str) and v.strip():
+                    try:
+                        d = json.loads(v)
+                        return d if isinstance(d, dict) and d else None
+                    except Exception:
+                        return None
+                return None
             games.append({
                 "game":           name,
                 "perspective":    f.get("perspective") or "",
@@ -210,6 +223,7 @@ def _airtable_download_games():
                 "languages":      _split(f.get("languages")),
                 "developer":      f.get("developer") or None,
                 "igdb_id":        f.get("igdb_id") or None,
+                "default_key_mapping": _parse_default_km(f.get("default_key_mapping")),
             })
         offset = page.get("offset")
         if not offset:
@@ -1834,12 +1848,45 @@ def _meta_source_key_mapping(game_dir, game_name=""):
     except Exception:
         return None, "unknown"
 
-def _meta_infer_key_mapping(session_dir):
-    """
-    Infiere el key mapping de las teclas/botones realmente usados en la sesión
-    + convención FPS/acción. Fallback cuando no se encuentra el config del juego.
-    Retorna (mapping, keys_observed).
-    """
+# Convención general de inferencia (piso FPS/acción). Hoisteada a nivel de módulo
+# para reutilizarla tanto en la inferencia como en el cálculo de possible_remaps.
+_INFER_CONV = {
+    "w": "move_forward", "a": "move_left", "s": "move_backward", "d": "move_right",
+    "space": "jump", "shift": "sprint", "control": "crouch", "ctrl": "crouch",
+    "c": "crouch_toggle", "alt": "walk", "e": "interact", "r": "reload",
+    "f": "use_or_flashlight", "q": "lean_or_ability", "v": "melee", "g": "throw_grenade",
+    "tab": "inventory", "i": "inventory", "b": "build_menu", "j": "journal",
+    "escape": "pause_menu", "1": "hotbar_1", "2": "hotbar_2", "3": "hotbar_3",
+    "4": "hotbar_4", "5": "hotbar_5",
+}
+_INFER_MOUSE_CONV = {"LEFT": "attack_primary", "RIGHT": "aim_or_secondary",
+                     "MIDDLE": "special", "X1": "extra_1", "X2": "extra_2"}
+
+# Teclas multimedia/sistema que NO son acciones de gameplay — se ignoran al mapear
+# y no se reportan como possible_remap (ruido para los AI Labs).
+_NON_GAMEPLAY_KEYS = {
+    "Volume_Up", "Volume_Down", "Volume_Mute", "Media_Play_Pause", "Media_Next",
+    "Media_Prev", "Media_Stop", "Browser_Back", "Browser_Forward", "Browser_Home",
+    "Launch_Mail", "Launch_Media", "Sleep", "PrintScreen", "Pause", "NumLock",
+    "ScrollLock", "Insert", "Apps", "LWin", "RWin",
+}
+
+def _norm_key_for_conv(k):
+    """Normaliza variantes L/R de modificadores al nombre de la convención.
+    El logger escribe 'LShift'/'LControl'/'LAlt'; la convención usa 'shift'/'control'/'alt'.
+    Sin esto, LShift (sprint) y LControl (crouch) se caían del mapping (bug histórico)."""
+    kl = (k or "").lower()
+    if kl in ("lshift", "rshift"):
+        return "shift"
+    if kl in ("lcontrol", "rcontrol", "lctrl", "rctrl"):
+        return "control"
+    if kl in ("lalt", "ralt", "lmenu", "rmenu"):
+        return "alt"
+    return kl
+
+def _meta_observed_keys(session_dir):
+    """Cuenta teclas/botones realmente usados en la sesión.
+    Retorna (keys_counter, mouse_counter, keys_observed_dict)."""
     import collections
     keys, mouse = collections.Counter(), collections.Counter()
     try:
@@ -1856,28 +1903,110 @@ def _meta_infer_key_mapping(session_dir):
                     mouse[r[4]] += 1
     except Exception:
         pass
-
-    conv = {
-        "w": "move_forward", "a": "move_left", "s": "move_backward", "d": "move_right",
-        "space": "jump", "shift": "sprint", "control": "crouch", "ctrl": "crouch",
-        "c": "crouch_toggle", "alt": "walk", "e": "interact", "r": "reload",
-        "f": "use_or_flashlight", "q": "lean_or_ability", "v": "melee", "g": "throw_grenade",
-        "tab": "inventory", "i": "inventory", "b": "build_menu", "j": "journal",
-        "escape": "pause_menu", "1": "hotbar_1", "2": "hotbar_2", "3": "hotbar_3",
-        "4": "hotbar_4", "5": "hotbar_5",
-    }
-    mouse_conv = {"LEFT": "attack_primary", "RIGHT": "aim_or_secondary",
-                  "MIDDLE": "special", "X1": "extra_1", "X2": "extra_2"}
-    mapping = {}
-    for k in keys:
-        if k.lower() in conv:
-            mapping[k] = conv[k.lower()]
-    for b in mouse:
-        if b.upper() in mouse_conv:
-            mapping[f"Mouse{b.capitalize()}"] = mouse_conv[b.upper()]
     keys_observed = {"keyboard": dict(keys.most_common()),
                      "mouse_buttons": dict(mouse.most_common())}
+    return keys, mouse, keys_observed
+
+def _meta_infer_key_mapping(session_dir):
+    """
+    Infiere el key mapping de las teclas/botones realmente usados en la sesión
+    + convención FPS/acción. Fallback cuando no se encuentra config ni game_default.
+    Retorna (mapping, keys_observed).
+    """
+    keys, mouse, keys_observed = _meta_observed_keys(session_dir)
+    mapping = {}
+    for k in keys:
+        nk = _norm_key_for_conv(k)
+        if nk in _INFER_CONV:
+            mapping[k] = _INFER_CONV[nk]
+        elif k in _NON_GAMEPLAY_KEYS:
+            continue
+        elif keys[k] >= 3:
+            # Tecla usada con frecuencia pero sin acción conocida: no la perdemos.
+            mapping[k] = "unknown_action"
+    for b in mouse:
+        if b.upper() in _INFER_MOUSE_CONV:
+            mapping[f"Mouse{b.capitalize()}"] = _INFER_MOUSE_CONV[b.upper()]
     return mapping, keys_observed
+
+def _meta_possible_remaps(key_mapping, keys_observed):
+    """
+    Teclas/botones observados que NO están en el mapping autoritativo (config o
+    game_default). Posible remap del usuario o bind extra. NO se pisa el mapping:
+    se reporta aparte con un guess inferido + conteo. Retorna lista (puede ser []).
+    El default no se 'resta' por falta de uso (no es señal confiable de remap).
+    """
+    if not keys_observed:
+        return []
+    mapped = set(key_mapping or {})
+    out = []
+    for k, n in (keys_observed.get("keyboard") or {}).items():
+        if k in mapped or k in _NON_GAMEPLAY_KEYS:
+            continue
+        out.append({"key": k, "count": n,
+                    "inferred_action": _INFER_CONV.get(_norm_key_for_conv(k), "unknown_action")})
+    for b, n in (keys_observed.get("mouse_buttons") or {}).items():
+        mk = f"Mouse{b.capitalize()}"
+        if mk in mapped:
+            continue
+        out.append({"key": mk, "count": n,
+                    "inferred_action": _INFER_MOUSE_CONV.get(b.upper(), "unknown_action")})
+    return out
+
+def _meta_activity(session_dir, start_ms, end_ms):
+    """
+    Mide actividad de input vs inactividad (cutscenes / menús / AFK).
+    Idle = huecos >= IDLE_GAP_MS sin movimiento de mouse ni eventos de teclado.
+    Usa los anchors (start/end) como bordes. Retorna dict o None.
+    """
+    IDLE_GAP_MS = 10000
+    ts = []
+    try:
+        with open(session_dir / "mouse_delta_log.csv", encoding="utf-8") as f:
+            for r in _csv_mod.reader(f):
+                if len(r) >= 2 and r[1] == "MOVE":
+                    try:
+                        ts.append(int(r[0]))
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+    try:
+        with open(session_dir / "key_log.csv", encoding="utf-8") as f:
+            for r in _csv_mod.reader(f):
+                if len(r) >= 2 and r[1] in ("KEY_DOWN", "KEY_UP"):
+                    try:
+                        ts.append(int(r[0]))
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+    if not start_ms or not end_ms or end_ms <= start_ms or len(ts) < 2:
+        return None
+    ts.sort()
+    span = end_ms - start_ms
+    idle = longest = 0
+    prev = start_ms
+    for t in ts:
+        if t < start_ms or t > end_ms:
+            continue
+        gap = t - prev
+        if gap >= IDLE_GAP_MS:
+            idle += gap
+            longest = max(longest, gap)
+        prev = t
+    gap = end_ms - prev
+    if gap >= IDLE_GAP_MS:
+        idle += gap
+        longest = max(longest, gap)
+    active = span - idle
+    return {
+        "active_input_ratio":    round(active / span, 3),
+        "active_seconds":        round(active / 1000, 1),
+        "idle_seconds":          round(idle / 1000, 1),
+        "longest_idle_seconds":  round(longest / 1000, 1),
+        "idle_gap_threshold_ms": IDLE_GAP_MS,
+    }
 
 def _meta_key_mapping(exe_path, engine, game_name=""):
     """
@@ -1951,18 +2080,33 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
         engine_source = ("detected" if engine_local
                          else "igdb" if engine_igdb else None)
         game_version = _meta_game_version(exe_path)
-        # Key mapping: SIEMPRE intentar primero el config REAL del juego (cualquier disco).
+        # Key mapping — jerarquía: config (archivo real) > game_default (curado en
+        # Airtable) > inferred_from_gameplay > unknown.
+        # keys_observed se calcula SIEMPRE (para comparar contra el mapping y reportar
+        # possible_remaps con transparencia, sin importar la fuente).
+        _, _, keys_observed = _meta_observed_keys(session_dir)
+        possible_remaps = []
+        # 1) Config real del juego (cualquier disco).
         key_map, binding_src = _meta_key_mapping(exe_path, engine, game.get("game", ""))
-        keys_observed = None
-        # Fallback: si no se encontró el config real, inferir del gameplay de la sesión.
-        if not key_map:
-            key_map, keys_observed = _meta_infer_key_mapping(session_dir)
-            binding_src = "inferred_from_gameplay" if key_map else "unknown"
+        if key_map:
+            possible_remaps = _meta_possible_remaps(key_map, keys_observed)
+        else:
+            # 2) game_default curado (Airtable) — fallback cuando no se puede leer el config.
+            default_km = game.get("default_key_mapping")
+            if isinstance(default_km, dict) and default_km:
+                key_map = default_km
+                binding_src = "game_default"
+                possible_remaps = _meta_possible_remaps(key_map, keys_observed)
+            else:
+                # 3) Inferir del gameplay de la sesión.
+                key_map, _ = _meta_infer_key_mapping(session_dir)
+                binding_src = "inferred_from_gameplay" if key_map else "unknown"
         # window_mode: usar el exe realmente resuelto (Airtable process_name suele ser null)
         _proc_for_window = (os.path.basename(exe_path) if exe_path
                             else game.get("process_name", ""))
         window_mode  = _meta_window_mode(_proc_for_window)
         sys_lang     = _meta_system_language()
+        activity     = _meta_activity(session_dir, start_ms, end_ms)
 
         metadata = {
             "schema_version":   "1.0",
@@ -1999,8 +2143,11 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 "gamepad_connected": False,       # Fase 3
                 "key_mapping":       key_map,
                 "binding_source":    binding_src,
-                # keys_observed solo se incluye cuando el mapping fue inferido
+                # keys_observed se incluye siempre (teclas/botones realmente usados).
                 **({"keys_observed": keys_observed} if keys_observed else {}),
+                # possible_remaps: observado pero ausente del config/game_default
+                # (posible remap del usuario o bind extra). Solo cuando hay base autoritativa.
+                **({"possible_remaps": possible_remaps} if possible_remaps else {}),
                 "sampling_hz": {
                     "video_timeline": hz.get("video_timeline"),
                     "mouse_position": hz.get("mouse_log"),
@@ -2028,6 +2175,10 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 "short_session":  sync_results.get("short_session", False),
                 "truncated":      sync_results.get("truncated", False),
             },
+
+            # Actividad de input: separa juego activo de cutscenes/menús/AFK.
+            # Para los AI Labs: ratio de relevancia de la sesión grabada.
+            **({"activity": activity} if activity else {}),
 
             "environment": {
                 "os_name":            os_info.get("name"),
