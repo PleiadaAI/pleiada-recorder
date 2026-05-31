@@ -2,7 +2,7 @@
 ; Genera: PleiadaRecorder_Setup.exe
 
 #define AppName    "Pleiada Recorder"
-#define AppVersion "0.5.0"
+#define AppVersion "0.5.3"
 #define AppPublisher "Pleiada"
 #define AppDir     "{autopf}\Pleiada Recorder"
 
@@ -131,6 +131,7 @@ var
   ConsentPage:  TWizardPage;
   ConsentMemo:  TNewMemo;
   ConsentCheck: TNewCheckBox;
+  ConsentLink:  TNewStaticText;
 
 procedure InitializeWizard;
 begin
@@ -183,13 +184,22 @@ begin
     'voluntariamente en el programa.'
   );
 
+  // Bug 1: el texto + URL larga no entraba en una línea. Lo separamos en dos:
+  //   checkbox con el texto (1 línea) + la URL en un label debajo.
   ConsentCheck := TNewCheckBox.Create(ConsentPage);
   ConsentCheck.Parent  := ConsentPage.Surface;
   ConsentCheck.Left    := 0;
-  ConsentCheck.Top     := ConsentPage.SurfaceHeight - 54;
+  ConsentCheck.Top     := ConsentPage.SurfaceHeight - 40;
   ConsentCheck.Width   := ConsentPage.SurfaceWidth;
-  ConsentCheck.Height  := 54;
-  ConsentCheck.Caption := 'Acepto los términos y condiciones del programa. (https://gameplayalliance.gg/terminos-condiciones)';
+  ConsentCheck.Height  := 20;
+  ConsentCheck.Caption := 'Acepto los términos y condiciones del programa.';
+
+  ConsentLink := TNewStaticText.Create(ConsentPage);
+  ConsentLink.Parent  := ConsentPage.Surface;
+  ConsentLink.Left    := 20;
+  ConsentLink.Top     := ConsentPage.SurfaceHeight - 18;
+  ConsentLink.Width   := ConsentPage.SurfaceWidth - 20;
+  ConsentLink.Caption := 'https://gameplayalliance.gg/terminos-condiciones';
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;

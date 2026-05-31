@@ -11,7 +11,7 @@ import ctypes, ctypes.wintypes
 from pathlib import Path
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.5.0"
+VERSION = "v0.5.3"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -133,7 +133,6 @@ AIRTABLE_TOKEN      = "patDpnvFjK67EiN0g.c56e7a6c69976db0a23bc0dd018f6bf77169a9d
 AIRTABLE_BASE_ID    = "appeyQ2C1DFa7e2HC"
 AIRTABLE_GAMES_TID  = "tblrd5RYBLUmng4zF"
 AIRTABLE_CONFIG_TID = "tblwzcB6aluMoJGPs"
-GAMES_CACHE_TTL     = 86400   # 24 h — no chequear Airtable más seguido que esto
 
 _games_cache = None
 
@@ -230,27 +229,18 @@ def sync_games_list():
             with open(GAMES_CACHE, encoding="utf-8") as f:
                 c = json.load(f)
             cached_version = c.get("version")
-            # Si el caché es reciente, no molestar a Airtable
-            if time.time() - c.get("downloaded_at", 0) < GAMES_CACHE_TTL:
-                return
     except Exception:
         pass
 
+    # La lista es dinámica (se actualiza a diario): chequear SIEMPRE la versión al
+    # abrir — es 1 request liviano (Config.list_version). Solo se descarga el listado
+    # completo si la versión cambió. Si offline, se usa el caché existente.
     remote_version = _airtable_remote_version()
     if remote_version is None:
-        return  # offline o error — seguimos con lo que haya
+        return  # offline o error — seguimos con el caché/fallback
 
     if remote_version == cached_version:
-        # Sin cambios: solo refrescar el timestamp para respetar el TTL
-        try:
-            with open(GAMES_CACHE, encoding="utf-8") as f:
-                c = json.load(f)
-            c["downloaded_at"] = time.time()
-            with open(GAMES_CACHE, "w", encoding="utf-8") as f:
-                json.dump(c, f, ensure_ascii=False)
-        except Exception:
-            pass
-        return
+        return  # ya tenemos la última versión, no descargar
 
     # Versión nueva → descargar todo
     try:
@@ -265,17 +255,26 @@ def sync_games_list():
     except Exception as e:
         _obs_dbg(f"sync_games_list download error: {e}")
 
-def fuzzy_search(query, max_results=8):
-    if not query or len(query) < 2:
-        return []
-    q = query.lower()
+def fuzzy_search(query, max_results=None):
+    """
+    Sin query → toda la lista ordenada alfabéticamente (para scroll).
+    Con query → matches ordenados por relevancia (exacto → empieza-con → contiene),
+    alfabético dentro de cada grupo. Filtra desde el primer caracter.
+    max_results=None devuelve todos (el dropdown maneja el scroll).
+    """
     games = load_games()
+    if not query:
+        out = sorted(games, key=lambda g: g["game"].lower())
+        return out[:max_results] if max_results else out
+    q = query.lower()
     results = [g for g in games if q in g["game"].lower()]
-    # Exactos primero, luego starts-with, luego contains
     exact  = [g for g in results if g["game"].lower() == q]
-    starts = [g for g in results if g["game"].lower().startswith(q) and g not in exact]
-    rest   = [g for g in results if g not in exact and g not in starts]
-    return (exact + starts + rest)[:max_results]
+    starts = sorted([g for g in results if g["game"].lower().startswith(q) and g not in exact],
+                    key=lambda g: g["game"].lower())
+    rest   = sorted([g for g in results if g not in exact and g not in starts],
+                    key=lambda g: g["game"].lower())
+    out = exact + starts + rest
+    return out[:max_results] if max_results else out
 
 # ─── OBS helpers (inlined desde obs_control.py) ───────────────────────────────
 
@@ -406,7 +405,8 @@ def obs_is_running():
     try:
         out = subprocess.check_output(
             ["tasklist", "/FI", "IMAGENAME eq obs64.exe", "/NH"],
-            stderr=subprocess.DEVNULL
+            stderr=subprocess.DEVNULL,
+            creationflags=subprocess.CREATE_NO_WINDOW   # Bug 9: sin ventana de consola
         ).decode(errors="ignore")
         return "obs64.exe" in out
     except Exception:
@@ -427,7 +427,8 @@ def launch_obs():
     if not obs:
         return False
     obs_dir = os.path.dirname(obs)
-    subprocess.Popen([obs, "--disable-shutdown-check"], cwd=obs_dir)
+    subprocess.Popen([obs, "--disable-shutdown-check"], cwd=obs_dir,
+                     creationflags=subprocess.CREATE_NO_WINDOW)
     for _ in range(30):
         time.sleep(1)
         try:
@@ -815,15 +816,16 @@ def _find_ahk():
     import shutil as _sh
     return _sh.which("AutoHotkey64") or _sh.which("AutoHotkey") or "AutoHotkey.exe"
 
-def start_ahk_logger(log_dir_str, game_exe=""):
+def start_ahk_logger(log_dir_str, game_exe="", hotkey_vks=""):
     """Lanza AHK con el directorio de sesión y (opcionalmente) el exe del juego.
     PLE-43/13: si se pasa game_exe, AHK solo registra inputs cuando ese proceso
-    está en primer plano, evitando capturar inputs fuera del contexto de juego."""
+    está en primer plano, evitando capturar inputs fuera del contexto de juego.
+    hotkey_vks: csv de códigos VK (ej "120,121") que AHK excluye del key_log
+    para no registrar los atajos del Recorder (iniciar/detener)."""
     global _ahk_proc
     ahk  = _find_ahk()
-    args = [ahk, str(AHK_SCRIPT), log_dir_str]
-    if game_exe:
-        args.append(game_exe)   # A_Args[2] en AHK — filtra por ventana activa
+    # Args posicionales: [1]=logDir  [2]=gameExe  [3]=hotkeyVKs (csv de vk a excluir)
+    args = [ahk, str(AHK_SCRIPT), log_dir_str, game_exe, hotkey_vks]
     try:
         _ahk_proc = subprocess.Popen(args, creationflags=subprocess.CREATE_NO_WINDOW)
     except Exception as e:
@@ -1361,7 +1363,18 @@ def _meta_find_game_exe_path(obs_window, game_name):
         return re.sub(r"[^a-z0-9]+", "", s.lower())
     cand_norm = [_n(c) for c in cands]
 
-    result = {"pid": None}
+    # Procesos shell/sistema que NUNCA son el juego — Bug 8: el Explorador abierto
+    # en la carpeta "Euro Truck Simulator 2_..." matcheaba por título y resolvía a
+    # explorer.exe. Excluimos estos del match.
+    _SYS_EXE = {
+        "explorer.exe", "applicationframehost.exe", "searchhost.exe",
+        "searchapp.exe", "shellexperiencehost.exe", "dwm.exe", "sihost.exe",
+        "startmenuexperiencehost.exe", "textinputhost.exe", "code.exe",
+        "chrome.exe", "msedge.exe", "firefox.exe", "obs64.exe",
+        "pythonw.exe", "python.exe", "autohotkey64.exe",
+    }
+
+    result = {"path": None}
 
     @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_long)
     def _cb(hwnd, _):
@@ -1376,8 +1389,13 @@ def _meta_find_game_exe_path(obs_window, game_name):
         if wt and any(cn and (cn in wt or wt in cn) for cn in cand_norm):
             pid = ctypes.c_ulong()
             ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-            result["pid"] = pid.value
-            return False
+            path = _meta_pid_image_path(pid.value)
+            # descartar procesos shell/sistema (no son el juego)
+            if path and os.path.basename(path).lower() in _SYS_EXE:
+                return True   # seguir buscando
+            if path:
+                result["path"] = path
+                return False
         return True
 
     try:
@@ -1385,10 +1403,9 @@ def _meta_find_game_exe_path(obs_window, game_name):
     except Exception:
         pass
 
-    if result["pid"]:
-        path = _meta_pid_image_path(result["pid"])
-        _obs_dbg(f"exe_path via window title (pid={result['pid']}): {path}")
-        return path
+    if result["path"]:
+        _obs_dbg(f"exe_path via window title: {result['path']}")
+        return result["path"]
 
     _obs_dbg(f"exe_path: no resuelto (obs_window='{obs_window}', game='{game_name}')")
     return None
@@ -1681,45 +1698,74 @@ def _meta_find_install_dir(game_name):
         try:
             for entry in os.listdir(common):
                 en = _n(entry)
-                if en and (en == target or target in en or en in target):
+                if not en:
+                    continue
+                # match exacto, o substring solo si es largo (>=5) — evita que un
+                # nombre corto matchee la carpeta de otro juego (mismo criterio que Unreal).
+                if (en == target
+                        or (len(target) >= 5 and target in en)
+                        or (len(en) >= 5 and en in target)):
                     return os.path.join(common, entry)
         except Exception:
             pass
     return None
 
-def _meta_unreal_key_mapping(game_dir, game_name=""):
+def _meta_unreal_key_mapping(game_dir, game_name="", exe_path=""):
     """
     Busca key mapping de un juego Unreal Engine:
-    1. Input.ini del usuario en %LOCALAPPDATA%\\{Game}\\... → binding_source: 'config'
-       (matchea la carpeta por nombre del juego; %LOCALAPPDATA% no depende del disco)
+    1. Input.ini del usuario en %LOCALAPPDATA%\\{Proyecto}\\... → binding_source: 'config'
     2. DefaultInput.ini del juego (en install dir, cualquier disco) → 'default'
+
+    IMPORTANTE: el match de la carpeta debe ser CONFIABLE. Si no se identifica el
+    Input.ini del juego correcto, se devuelve None (→ se infiere del gameplay).
+    NO se usa "el más reciente" como fallback, porque agarraba el Input.ini de OTRO
+    juego (bug: a "The Last Caretaker" le asignaba el mapping de Icarus).
     """
     def _n(s):
         return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
 
-    # ── Paso 1: Input.ini del usuario ─────────────────────────────────────────
+    # Nombres candidatos para identificar la carpeta del proyecto en LOCALAPPDATA:
+    #  - nombre del proyecto Unreal derivado del exe ("VoyageSteam-Win64-Shipping" → "voyagesteam")
+    #  - nombre de la carpeta de instalación
+    #  - nombre del juego (Airtable)
+    proj_names = set()
+    if exe_path:
+        base = os.path.basename(exe_path)
+        base = re.sub(r"\.exe$", "", base, flags=re.IGNORECASE)
+        # quitar sufijos típicos de Unreal: -Win64-Shipping, -WinGDK-Shipping, -Shipping, -Win64-Test...
+        base = re.sub(r"[-_](Win64|WinGDK|Win32)([-_](Shipping|Test|Development))?$", "", base, flags=re.IGNORECASE)
+        base = re.sub(r"[-_](Shipping|Test|Development)$", "", base, flags=re.IGNORECASE)
+        if _n(base):
+            proj_names.add(_n(base))
+    if game_dir:
+        # .../{Project}/Binaries/Win64 → {Project}
+        proj_names.add(_n(os.path.basename(os.path.dirname(os.path.dirname(game_dir)))))
+    if game_name:
+        proj_names.add(_n(game_name))
+    proj_names.discard("")
+
+    def _folder_matches(path):
+        folder = _n(path.split(os.sep + "Saved")[0].rsplit(os.sep, 1)[-1])
+        if not folder:
+            return False
+        for p in proj_names:
+            if folder == p:
+                return True
+            # match parcial SOLO si el nombre compartido es largo (>=5 chars) — evita
+            # falsos positivos de carpetas cortas (ej: "AS" ⊂ "theLASTcaretaker").
+            if len(folder) >= 5 and folder in p:
+                return True
+            if len(p) >= 5 and p in folder:
+                return True
+        return False
+
+    # ── Paso 1: Input.ini del usuario (solo si matchea el proyecto con certeza) ─
     local = os.environ.get("LOCALAPPDATA", "")
-    if local:
-        candidates = glob.glob(os.path.join(
-            local, "*", "Saved", "Config", "WindowsNoEditor", "Input.ini"))
-        # también UE5: WindowsClient / Windows
-        candidates += glob.glob(os.path.join(
-            local, "*", "Saved", "Config", "Windows*", "Input.ini"))
-        candidates = list(dict.fromkeys(candidates))
-        ini = None
-        if candidates:
-            # 1a. matchear por nombre del juego
-            gn = _n(game_name)
-            if gn:
-                ini = next((c for c in candidates
-                            if gn in _n(c.split(os.sep + "Saved")[0])), None)
-            # 1b. matchear por carpeta derivada del install dir
-            if not ini and game_dir:
-                gdn = _n(os.path.basename(os.path.dirname(os.path.dirname(game_dir))))
-                ini = next((c for c in candidates if gdn and gdn in _n(c)), None)
-            # 1c. el más reciente
-            if not ini:
-                ini = max(candidates, key=os.path.getmtime)
+    if local and proj_names:
+        candidates  = glob.glob(os.path.join(local, "*", "Saved", "Config", "WindowsNoEditor", "Input.ini"))
+        candidates += glob.glob(os.path.join(local, "*", "Saved", "Config", "Windows*", "Input.ini"))
+        candidates  = list(dict.fromkeys(candidates))
+        ini = next((c for c in candidates if _folder_matches(c)), None)
         if ini and os.path.isfile(ini):
             mapping = _parse_ue_input_ini(ini)
             if mapping:
@@ -1842,7 +1888,7 @@ def _meta_key_mapping(exe_path, engine, game_name=""):
     game_dir = os.path.dirname(exe_path) if exe_path else None
     eng = (engine or "").lower()
     if "unreal" in eng:
-        return _meta_unreal_key_mapping(game_dir, game_name)
+        return _meta_unreal_key_mapping(game_dir, game_name, exe_path)
     elif "source" in eng:
         return _meta_source_key_mapping(game_dir, game_name)
     return None, "unknown"  # Unity y otros: sin parser → se infiere del gameplay
@@ -1885,6 +1931,17 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
         video   = _meta_video_info(session_dir)
         hw      = _meta_hardware()
         os_info = _meta_os()
+
+        # frames_dropped: frames esperados según el tiempo REAL de la sesión (CSV anchors)
+        # menos los frames realmente capturados en el video. Mide la calidad de captura
+        # (OBS que no sostuvo el fps nominal). El video_dur sale del propio frame_count,
+        # por eso la referencia de tiempo real es csv_dur, no el video.
+        frames_dropped = None
+        _fps, _fc, _csvd = video.get("fps_nominal"), video.get("frame_count"), (sync_results or {}).get("csv_dur")
+        if _fps and _fc and _csvd:
+            _expected = round(_csvd / 1000 * _fps)
+            _fd = _expected - _fc
+            frames_dropped = _fd if _fd > 0 else 0
 
         # Fase 2 — detección activa
         game_dir     = os.path.dirname(exe_path) if exe_path else None
@@ -1957,7 +2014,7 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 "codec":          video.get("codec"),
                 "frame_count":    video.get("frame_count"),
                 "bitrate_kbps":   video.get("bitrate_kbps"),
-                "frames_dropped": None,  # Fase 3
+                "frames_dropped": frames_dropped,
                 "hud_present":    None,  # Fase 3
             },
 
@@ -2136,21 +2193,19 @@ class PleiadaApp:
         tk.Label(tb, text=VERSION, fg=DIM, bg=BG2,
                  font=("Segoe UI", 9)).pack(side="left")
 
-        # Botón cerrar (macOS-style dot)
-        close_btn = tk.Label(tb, text="", bg="#3a2a3e", width=2,
+        # Botón cerrar — la × se ve siempre (Bug 5), centrada en el cuadrado
+        close_btn = tk.Label(tb, text="×", bg="#3a2a3e", fg=DIM, width=2,
+                             font=("Segoe UI", 12), anchor="center",
                              cursor="hand2", relief="flat")
-        close_btn.pack(side="right", padx=(0, 12), pady=12)
+        close_btn.pack(side="right", padx=(0, 12), pady=10)
         close_btn.bind("<Button-1>", lambda e: self._on_close())
-        close_btn.bind("<Enter>",  lambda e: close_btn.config(text="×", fg="#ff5f57"))
-        close_btn.bind("<Leave>",  lambda e: close_btn.config(text="", fg=BG))
+        close_btn.bind("<Enter>",  lambda e: close_btn.config(fg="#ff5f57"))
+        close_btn.bind("<Leave>",  lambda e: close_btn.config(fg=DIM))
 
-        # Botón "Cerrar sesión" (visible solo cuando logueado)
-        self._signout_lbl = tk.Label(tb, text="Cerrar sesión", fg=DIM, bg=BG2,
-                                      font=("Segoe UI", 10), cursor="hand2")
+        # Nombre de usuario (solo display — el deslogueo está en Opciones ⚙). Bug 3.
+        self._signout_lbl = tk.Label(tb, text="", fg=DIM, bg=BG2,
+                                      font=("Segoe UI", 10))
         self._signout_lbl.pack(side="right", padx=(0, 14))
-        self._signout_lbl.bind("<Button-1>", lambda e: self._sign_out())
-        self._signout_lbl.bind("<Enter>",  lambda e: self._signout_lbl.config(fg=TEXT))
-        self._signout_lbl.bind("<Leave>",  lambda e: self._signout_lbl.config(fg=DIM))
         self._signout_lbl.pack_forget()  # oculto hasta login
 
         # Sep vertical antes de close dot
@@ -2173,6 +2228,8 @@ class PleiadaApp:
     def _drag_start(self, e):
         self._drag_x = e.x_root - self.root.winfo_x()
         self._drag_y = e.y_root - self.root.winfo_y()
+        # Bug 4: ocultar el dropdown de búsqueda al mover el floater (sino queda desfasado)
+        self._hide_dropdown()
 
     def _drag_move(self, e):
         x = e.x_root - self._drag_x
@@ -2188,7 +2245,7 @@ class PleiadaApp:
             self.user_email = auth["email"]
             _uname = auth["email"].split('@')[0]
             _uname = (_uname[:20] + "…") if len(_uname) > 20 else _uname  # PLE-36
-            self._signout_lbl.config(text=f"  {_uname}  ✕")
+            self._signout_lbl.config(text=f"  {_uname}")
             self._signout_lbl.pack(side="right", padx=(0, 14))
             self._show_idle()
         else:
@@ -2276,7 +2333,7 @@ class PleiadaApp:
             save_auth(email, remember_var.get())
             _uname = email.split('@')[0]
             _uname = (_uname[:20] + "…") if len(_uname) > 20 else _uname  # PLE-36
-            self._signout_lbl.config(text=f"  {_uname}  ✕")
+            self._signout_lbl.config(text=f"  {_uname}")
             self._signout_lbl.pack(side="right", padx=(0, 14))
             self._show_idle()
 
@@ -2584,14 +2641,14 @@ class PleiadaApp:
             self._warn_frame.pack_forget()
             self._obs_status = "idle"
             self._update_record_btn()
-        if len(q) < 2:
-            self._hide_dropdown()
-            return
-        results = fuzzy_search(q)
+        # Sin texto → lista completa alfabética (con scroll). Con texto → filtra.
+        results = fuzzy_search(q.strip())
         if results:
             self._show_dropdown(results)
-        else:
+        elif q.strip():
             self._show_no_results()
+        else:
+            self._hide_dropdown()
 
     def _show_dropdown(self, results):
         self._hide_dropdown()
@@ -2606,14 +2663,9 @@ class PleiadaApp:
         # Calcular posición
         self.root.update_idletasks()
         rx  = self.root.winfo_rootx()
-        ry  = self.root.winfo_rooty()
         sx  = self._sel_outer.winfo_x()
-        sy  = self._sel_outer.winfo_y()
         sw  = self._sel_outer.winfo_width()
-        # relative to content → add titlebar height
         y_off = self._sel_outer.winfo_rooty() + self._sel_outer.winfo_height() + 4
-
-        dd.geometry(f"{sw}x1+{rx + sx}+{y_off}")
 
         outer = tk.Frame(dd, bg=CARD2, bd=1, relief="solid",
                           highlightthickness=1, highlightbackground=BORDER)
@@ -2623,28 +2675,39 @@ class PleiadaApp:
                   font=("Segoe UI", 8, "bold"), anchor="w",
                   pady=8, padx=10).pack(fill="x")
 
-        self._dd_listbox_items = []
+        # ── Bug 7: tk.Listbox nativo (liviano, sin lag con cientos de items,
+        #    scroll incorporado) en lugar de cientos de Frames+Labels ──────────
+        VISIBLE = 10
+        body = tk.Frame(outer, bg=CARD2)
+        body.pack(fill="both", expand=True, padx=4, pady=(0, 4))
+
+        lb = tk.Listbox(
+            body, activestyle="none", bd=0, highlightthickness=0,
+            bg=CARD2, fg=TEXT, font=("Segoe UI", 11),
+            selectbackground="#1e1c40", selectforeground=TEXT,
+            height=min(len(results), VISIBLE), cursor="hand2",
+        )
+        sb = tk.Scrollbar(body, orient="vertical", command=lb.yview)
+        lb.configure(yscrollcommand=sb.set)
+        if len(results) > VISIBLE:
+            sb.pack(side="right", fill="y")
+        lb.pack(side="left", fill="both", expand=True)
+
         for g in results:
-            row = tk.Frame(outer, bg=CARD2, cursor="hand2")
-            row.pack(fill="x", padx=4, pady=1)
-            row.game = g
+            lb.insert("end", "  " + g["game"])
 
-            tk.Label(row, text=g["game"], fg=TEXT, bg=CARD2,
-                      font=("Segoe UI", 11), anchor="w").pack(
-                side="left", fill="x", expand=True, padx=(10, 10), pady=7)
+        def _pick(e=None):
+            sel = lb.curselection()
+            if sel:
+                self._select_game(self._dropdown_data[sel[0]])
+        lb.bind("<<ListboxSelect>>", _pick)
+        lb.bind("<Return>", _pick)
+        self._dd_listbox = lb
 
-            row.bind("<Enter>",    lambda e, r=row: r.config(bg="#1e1c40") or [c.config(bg="#1e1c40") for c in r.winfo_children()])
-            row.bind("<Leave>",    lambda e, r=row: r.config(bg=CARD2) or [c.config(bg=CARD2) for c in r.winfo_children()])
-            row.bind("<Button-1>", lambda e, g=g: self._select_game(g))
-            for child in row.winfo_children():
-                child.bind("<Button-1>", lambda e, g=g: self._select_game(g))
-
-            self._dd_listbox_items.append(row)
-
-        # Resize dropdown height
+        # Altura del Toplevel según el contenido real
         dd.update_idletasks()
-        total_h = sum(r.winfo_reqheight() for r in self._dd_listbox_items) + 36
-        dd.geometry(f"{sw}x{min(total_h, 300)}+{rx + sx}+{y_off}")
+        total_h = outer.winfo_reqheight()
+        dd.geometry(f"{sw}x{total_h}+{rx + sx}+{y_off}")
         self._dropdown_visible = True
 
     def _show_no_results(self):
@@ -2842,10 +2905,12 @@ class PleiadaApp:
         if _proc:
             try:
                 _tl = subprocess.run(
-                    ["tasklist", "/FI", f"IMAGENAME eq {_proc}", "/NH"],
+                    ["tasklist", "/FI", f"IMAGENAME eq {_proc}", "/FO", "CSV", "/NH"],
                     capture_output=True, text=True,
                     creationflags=subprocess.CREATE_NO_WINDOW
                 )
+                # /FO CSV no trunca el nombre (el formato TABLE lo corta a 25 chars,
+                # rompiendo exes largos como "{Proyecto}-Win64-Shipping.exe" de Unreal).
                 if _proc.lower() not in _tl.stdout.lower():
                     import tkinter.messagebox as _mb
                     _mb.showwarning(
@@ -3067,6 +3132,9 @@ class PleiadaApp:
             self.root.after(0, self._show_packaging_anim)   # "Guardando localmente los archivos..."
             build_session_metadata(sdir, self.selected_game, results,
                                    exe_path=self._recording_exe_path)
+            # Bug 2: registrar el check del metadata json para mostrarlo en el análisis
+            self._last_sync_statuses["metadata"] = ("ok"
+                if (sdir / "session_metadata.json").exists() else "err")
 
             # 7. Mostrar resultado
             self.root.after(0, lambda: self._show_result(results["session_ok"], results, None))
@@ -3228,12 +3296,12 @@ class PleiadaApp:
         except Exception:
             pass
 
-        # d. Arrancar AHK — pasar exe del juego para filtrar inputs por ventana activa (PLE-43/13)
-        start_ahk_logger(str(self.session_dir), self._recording_exe)
-
-        # e. Listener de stop externo de OBS + monitor de fuente
+        # d. Resolver el exe del juego ANTES de lanzar AHK (el filtro de ventana lo usa).
+        #    BUGFIX v0.5: antes start_ahk_logger se llamaba con el _recording_exe de la
+        #    grabación ANTERIOR (se resolvía después), y en la 2da grabación de una sesión
+        #    el filtro bloqueaba toda la captura por exe equivocado.
         self._we_stopped = False
-        # PLE-37: capturar exe del juego para detectar si el proceso cierra
+        self._recording_exe = ""   # resetear: no arrastrar el exe de una grabación previa
         _win = ""
         try:
             _sr = obs_connect()
@@ -3248,11 +3316,22 @@ class PleiadaApp:
             _sr.close()
         except Exception:
             self._recording_exe = ""
-        # v0.4 Fase 2: cachear ruta completa del exe (juego está corriendo en este punto).
-        # Resolución robusta: OBS exe -> wmic, con fallback a buscar la ventana del juego.
+        # Cachear ruta completa del exe (juego corriendo): OBS exe -> wmic, con fallback
+        # a buscar la ventana del juego por título.
         self._recording_exe_path = _meta_find_game_exe_path(
             _win, (self.selected_game or {}).get("game", "")
         )
+
+        # e. Arrancar AHK con el exe YA resuelto (filtro de ventana correcto) +
+        #    los VK de los hotkeys del Recorder para que AHK no los registre en key_log.
+        _hk_vks = ",".join(
+            str(self._settings[k]["vk"])
+            for k in ("hotkey_start", "hotkey_stop")
+            if self._settings.get(k, {}).get("vk")
+        )
+        start_ahk_logger(str(self.session_dir), self._recording_exe, _hk_vks)
+
+        # f. Listeners de OBS
         self._start_obs_stop_listener()
         self._start_obs_source_monitor()
 
@@ -3415,8 +3494,11 @@ class PleiadaApp:
             if not exe_name:
                 return True   # sin exe conocido → no bloquear
             try:
+                # /FO CSV no trunca el nombre del proceso (TABLE lo corta a 25 chars,
+                # rompiendo exes largos tipo "{Proyecto}-Win64-Shipping.exe" de Unreal,
+                # lo que cancelaba la sesión por falso "el juego se cerró").
                 result = subprocess.run(
-                    ["tasklist", "/FI", f"IMAGENAME eq {exe_name}", "/NH"],
+                    ["tasklist", "/FI", f"IMAGENAME eq {exe_name}", "/FO", "CSV", "/NH"],
                     capture_output=True, text=True,
                     creationflags=subprocess.CREATE_NO_WINDOW
                 )
@@ -3823,6 +3905,7 @@ class PleiadaApp:
             ("key_log.csv",         "key_log.csv"),
             ("video_timeline.csv",  "video_timeline.csv"),
             ("video",               "video MP4"),
+            ("metadata",            "session_metadata.json"),   # Bug 2
         ]
         statuses = self._last_sync_statuses
         status_labels = {

@@ -1,5 +1,42 @@
 # Changelog — Pleiada Recorder
 
+## V5.3 — 31/05/2026
+
+### Captura en pantalla completa exclusiva (fix mayor)
+- **Teclado y botones de mouse** ahora se capturan vía low-level hooks
+  (`WH_KEYBOARD_LL` / `WH_MOUSE_LL`), que funcionan en juegos en **fullscreen
+  exclusivo** (ej: motor Prism3D de Euro Truck) donde el Raw Input no recibía nada.
+  Los deltas de mouse siguen por Raw Input (re-registrado para enganchar en ese modo).
+- **Detección de "juego activo"** robusta vía `GetForegroundWindow` (antes `WinActive`
+  fallaba en fullscreen exclusivo y podía bloquear toda la captura).
+
+### Atajos de teclado + panel de Ajustes (⚙)
+- Nuevo ícono de **Ajustes** en la barra superior: ver versión, cerrar sesión y
+  configurar atajos.
+- **Atajos globales** F9 (iniciar) / F10 (detener), reasignables, que funcionan aunque
+  el Recorder no tenga el foco. Las teclas de atajo **no se registran** en los logs.
+
+### Metadata de sesión — mejoras
+- **Key mapping del juego correcto:** se lee el config real del propio juego
+  (Source `config.cfg` / Unreal `Input.ini`, incl. formato `UserActionMappings`),
+  identificando la carpeta del proyecto con match confiable. Si no se encuentra, se
+  infiere del gameplay. (Antes podía asignar el mapping de OTRO juego — corregido.)
+- **`frames_dropped`**: nuevo campo — frames esperados según el tiempo real de la
+  sesión menos los realmente capturados (métrica de calidad del video).
+- El análisis de sincronización ahora también verifica `session_metadata.json`.
+
+### Selector de juegos
+- Lista de juegos **dinámica** desde la base online: se actualiza en la próxima apertura
+  cuando se agregan juegos nuevos (sin reinstalar).
+- Selector con **lista alfabética + scroll** (sin lag) y filtrado al escribir.
+
+### Fixes de UI / robustez
+- Ya no aparece una ventana de consola al iniciar grabación (sacaba al juego del fullscreen).
+- Sesiones con ejecutables de nombre largo (juegos Unreal) ya no se cancelan por un falso
+  "el juego se cerró".
+- Botón de cerrar (×) siempre visible; nombre de usuario en la barra; checkbox de términos
+  del instalador en dos líneas; correcciones varias de layout.
+
 ## V4.6 — 30/05/2026
 
 > Primera versión de la **arquitectura unificada** (app única: login, selector de

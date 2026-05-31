@@ -70,6 +70,35 @@ Una vez configurado OBS, el flujo de cada sesión es:
 
 ---
 
+## Atajos de teclado y Ajustes
+
+Pleiada Recorder tiene un panel de **Ajustes** (ícono ⚙ en la barra superior) y **atajos de teclado** para iniciar/detener la grabación sin tener que volver a la ventana del Recorder — muy útil cuando jugás en pantalla completa.
+
+### Atajos por defecto
+
+| Atajo | Acción |
+|-------|--------|
+| **F9** | Iniciar grabación |
+| **F10** | Detener grabación |
+
+Los atajos funcionan **aunque el Recorder no esté en primer plano** (incluso con el juego en pantalla completa). Para iniciar con F9 necesitás tener un juego seleccionado y OBS configurado, igual que con el botón.
+
+### Cambiar los atajos
+
+1. Hacé clic en el ícono **⚙** (arriba a la derecha).
+2. En **Atajos de teclado**, hacé clic sobre el atajo que querés cambiar.
+3. Presioná la nueva tecla. Queda guardada automáticamente.
+
+> Las teclas que uses como atajos del Recorder **no se registran** en los logs de la sesión (no contaminan el dataset de gameplay).
+
+### Panel de Ajustes (⚙)
+
+Desde el panel de Ajustes también podés:
+- Ver la **versión** instalada del Recorder.
+- **Cerrar sesión** de tu cuenta.
+
+---
+
 ## ¿Dónde se guardan los archivos?
 
 Cada sesión genera una carpeta en:

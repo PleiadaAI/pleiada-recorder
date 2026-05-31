@@ -29,6 +29,18 @@ if logDir = "" {
 ; Si está vacío, se loggea todo (sin restricción).
 global gameExe := A_Args.Length > 1 ? A_Args[2] : ""
 
+; ── VK de los hotkeys del Recorder (iniciar/detener) — A_Args[3] ──────────────
+; Se excluyen del key_log para no contaminar el dataset con comandos del recorder
+; (ej: F10 para detener quedaba registrado como un input de gameplay).
+global hotkeyVKs := Map()
+if A_Args.Length > 2 && A_Args[3] != "" {
+    for vkStr in StrSplit(A_Args[3], ",") {
+        v := Integer(Trim(vkStr))
+        if v
+            hotkeyVKs[v] := true
+    }
+}
+
 ; ── Archivos de log ───────────────────────────────────────────────
 global mouseFile := logDir . "\mouse_log.csv"
 global deltaFile := logDir . "\mouse_delta_log.csv"
@@ -87,9 +99,27 @@ NowMs() {
 }
 
 ; ── Filtro de ventana activa (PLE-43) ─────────────────────────────
+; Usa GetForegroundWindow (API de Windows) en vez de WinActive, porque
+; WinActive NO detecta correctamente las ventanas en FULLSCREEN EXCLUSIVO
+; (ej: motor Prism3D de ETS2) — devolvía falso y bloqueaba TODA la captura.
+; GetForegroundWindow sí reporta la app en foreground en ese modo.
 GameActive() {
     global gameExe
-    return gameExe = "" || WinActive("ahk_exe " . gameExe)
+    if gameExe = ""
+        return true
+    try {
+        hwnd := DllCall("GetForegroundWindow", "Ptr")
+        if !hwnd
+            return true   ; sin foreground detectable → beneficio de la duda
+        pid := 0
+        DllCall("GetWindowThreadProcessId", "Ptr", hwnd, "UInt*", &pid)
+        if !pid
+            return true
+        name := ProcessGetName(pid)
+        return (StrLower(name) = StrLower(gameExe))
+    } catch {
+        return true   ; error al resolver → no bloquear la captura
+    }
 }
 
 ; ═══════════════════════════════════════════════════════════════════
@@ -115,10 +145,12 @@ _KeyName(vk) {
 }
 
 KeyDownHandler(ih, vk, sc) {
-    global keyFH, pressedKeys
+    global keyFH, pressedKeys, hotkeyVKs
     if !GameActive()
         return
     if vk == 0 || vk == 0xFF
+        return
+    if hotkeyVKs.Has(vk)          ; no registrar los hotkeys del Recorder (ej: F10 detener)
         return
     if pressedKeys.Has(vk)        ; anti-repeat: ignorar auto-repeat
         return
@@ -127,8 +159,10 @@ KeyDownHandler(ih, vk, sc) {
 }
 
 KeyUpHandler(ih, vk, sc) {
-    global keyFH, pressedKeys
+    global keyFH, pressedKeys, hotkeyVKs
     if vk == 0 || vk == 0xFF
+        return
+    if hotkeyVKs.Has(vk)
         return
     if !pressedKeys.Has(vk)
         return
