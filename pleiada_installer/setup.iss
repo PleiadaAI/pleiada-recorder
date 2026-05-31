@@ -2,7 +2,7 @@
 ; Genera: PleiadaRecorder_Setup.exe
 
 #define AppName    "Pleiada Recorder"
-#define AppVersion "0.4.6"
+#define AppVersion "0.5.0"
 #define AppPublisher "Pleiada"
 #define AppDir     "{autopf}\Pleiada Recorder"
 
@@ -189,7 +189,7 @@ begin
   ConsentCheck.Top     := ConsentPage.SurfaceHeight - 54;
   ConsentCheck.Width   := ConsentPage.SurfaceWidth;
   ConsentCheck.Height  := 54;
-  ConsentCheck.Caption := 'Acepto los términos y condiciones del programa. (pleiada.ai/terms)';
+  ConsentCheck.Caption := 'Acepto los términos y condiciones del programa. (https://gameplayalliance.gg/terminos-condiciones)';
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;

@@ -2,14 +2,19 @@
 #SingleInstance Off
 
 ; ══════════════════════════════════════════════════════════════════
-;  PLEIADA — Input Logger V1 (headless)
-;  Uso: AutoHotkey64.exe input_logger.ahk "<logDir>"
+;  PLEIADA — Input Logger V2 (headless)
+;  Uso: AutoHotkey64.exe input_logger.ahk "<logDir>" ["<gameExe>"]
 ;
-;  Registra teclado y mouse via Raw Input (WM_INPUT).
-;  El directorio de sesión se recibe como A_Args[1].
-;  Lee el anchor timestamp de pleiada_anchor_ts.txt (escrito por
-;  pleiada_app.pyw antes de lanzar este script).
-;  Corre en background hasta que el proceso padre lo mata.
+;  v0.5 — Captura robusta en FULLSCREEN EXCLUSIVO:
+;    • Teclado      → low-level keyboard hook (InputHook / WH_KEYBOARD_LL)
+;    • Botones+rueda→ low-level mouse hooks (hotkeys ~* con InstallMouseHook)
+;    • Deltas mouse → Raw Input (WM_INPUT), re-registrado para enganchar
+;                     aunque el juego ya esté en fullscreen exclusivo al arrancar.
+;
+;  Motivo: RIDEV_INPUTSINK no recibe WM_INPUT cuando se registra mientras una
+;  app está en fullscreen EXCLUSIVO (ej: motor Prism3D de ETS2). Los hooks
+;  low-level operan en el hook-chain del sistema y sí capturan en ese modo.
+;  El formato de salida (CSVs, campos, ANCHOR, NowMs) es idéntico a V1.
 ; ══════════════════════════════════════════════════════════════════
 
 ; ── Directorio de sesión ──────────────────────────────────────────
@@ -21,7 +26,7 @@ if logDir = "" {
 
 ; ── PLE-43/13: exe del juego para filtrar inputs por ventana activa ──────────
 ; Si se recibe como segundo argumento, solo se loggea cuando ese proceso está en foco.
-; Si está vacío, se loggea todo (comportamiento anterior — sin restricción).
+; Si está vacío, se loggea todo (sin restricción).
 global gameExe := A_Args.Length > 1 ? A_Args[2] : ""
 
 ; ── Archivos de log ───────────────────────────────────────────────
@@ -41,9 +46,10 @@ global videoFH := 0
 global lastX      := 0
 global lastY      := 0
 global pressedKeys := Map()
+global keyHook     := 0
+global reRegCount  := 0
 
 ; ── PLE-25: mapa de nombres para teclas OEM que GetKeyName retorna vacío ──────
-; Cubre los caracteres de puntuación más comunes en teclado US-QWERTY.
 global VK_FALLBACK := Map(
     0xBA, "Semicolon",   ; VK_OEM_1   → ;
     0xBB, "Equal",       ; VK_OEM_PLUS  → =
@@ -80,147 +86,144 @@ NowMs() {
     return Round(startUnix + (count - startQPC) / freqQPC * 1000)
 }
 
+; ── Filtro de ventana activa (PLE-43) ─────────────────────────────
+GameActive() {
+    global gameExe
+    return gameExe = "" || WinActive("ahk_exe " . gameExe)
+}
+
 ; ═══════════════════════════════════════════════════════════════════
-;  RAW INPUT — registro y handler
-;  (Igual que gameplay_logger.ahk V16 — sin cambios en la lógica)
-;
-;  Struct sizes (x64):
-;    RAWINPUTDEVICE : 16 bytes por entrada
-;    RAWINPUTHEADER : 24 bytes
-;    Offsets en RAWINPUT data (desde byte 24):
-;      RAWMOUSE.usFlags       = 24
-;      RAWMOUSE.usButtonFlags = 28
-;      RAWMOUSE.usButtonData  = 30
-;      RAWMOUSE.lLastX        = 36
-;      RAWMOUSE.lLastY        = 40
-;      RAWKEYBOARD.Flags      = 26
-;      RAWKEYBOARD.VKey       = 30
+;  TECLADO — low-level keyboard hook vía InputHook (WH_KEYBOARD_LL)
+;  Funciona en fullscreen exclusivo. Formato de salida idéntico a V1.
+; ═══════════════════════════════════════════════════════════════════
+
+SetupKeyboardHook() {
+    global keyHook
+    keyHook := InputHook("V L0 I0")   ; V=no bloquea, L0=sin límite, I0=no ignora
+    keyHook.KeyOpt("{All}", "N")       ; N = notificar down y up de TODAS las teclas
+    keyHook.OnKeyDown := KeyDownHandler
+    keyHook.OnKeyUp   := KeyUpHandler
+    keyHook.Start()
+}
+
+_KeyName(vk) {
+    global VK_FALLBACK
+    n := GetKeyName(Format("vk{:02X}", vk))
+    if n = ""
+        n := VK_FALLBACK.Has(vk) ? VK_FALLBACK[vk] : Format("vk{:02X}", vk)
+    return n
+}
+
+KeyDownHandler(ih, vk, sc) {
+    global keyFH, pressedKeys
+    if !GameActive()
+        return
+    if vk == 0 || vk == 0xFF
+        return
+    if pressedKeys.Has(vk)        ; anti-repeat: ignorar auto-repeat
+        return
+    pressedKeys[vk] := true
+    keyFH.WriteLine(NowMs() . ",KEY_DOWN," . _KeyName(vk) . "," . Format("{:02X}", vk))
+}
+
+KeyUpHandler(ih, vk, sc) {
+    global keyFH, pressedKeys
+    if vk == 0 || vk == 0xFF
+        return
+    if !pressedKeys.Has(vk)
+        return
+    pressedKeys.Delete(vk)
+    ; KEY_UP se registra aunque el juego pierda foco, para cerrar el evento abierto.
+    keyFH.WriteLine(NowMs() . ",KEY_UP," . _KeyName(vk) . "," . Format("{:02X}", vk))
+}
+
+; ═══════════════════════════════════════════════════════════════════
+;  MOUSE BOTONES + RUEDA — low-level mouse hook (hotkeys ~* )
+;  ~ = pasa el evento al juego (no lo bloquea), * = cualquier modificador.
+;  InstallMouseHook fuerza WH_MOUSE_LL → captura en fullscreen exclusivo.
+; ═══════════════════════════════════════════════════════════════════
+
+MouseBtn(evtType, btn) {
+    global mouseFH
+    if !GameActive()
+        return
+    MouseGetPos(&cx, &cy)
+    mouseFH.WriteLine(NowMs() . "," . evtType . "," . cx . "," . cy . "," . btn)
+}
+
+MouseScroll(delta) {
+    global mouseFH
+    if !GameActive()
+        return
+    MouseGetPos(&cx, &cy)
+    mouseFH.WriteLine(NowMs() . ",SCROLL," . cx . "," . cy . "," . delta)
+}
+
+~*LButton::      MouseBtn("BUTTON_DOWN", "LEFT")
+~*LButton Up::   MouseBtn("BUTTON_UP",   "LEFT")
+~*RButton::      MouseBtn("BUTTON_DOWN", "RIGHT")
+~*RButton Up::   MouseBtn("BUTTON_UP",   "RIGHT")
+~*MButton::      MouseBtn("BUTTON_DOWN", "MIDDLE")
+~*MButton Up::   MouseBtn("BUTTON_UP",   "MIDDLE")
+~*XButton1::     MouseBtn("BUTTON_DOWN", "X1")
+~*XButton1 Up::  MouseBtn("BUTTON_UP",   "X1")
+~*XButton2::     MouseBtn("BUTTON_DOWN", "X2")
+~*XButton2 Up::  MouseBtn("BUTTON_UP",   "X2")
+~*WheelUp::      MouseScroll(120)
+~*WheelDown::    MouseScroll(-120)
+
+; ═══════════════════════════════════════════════════════════════════
+;  DELTAS DE MOUSE — Raw Input (WM_INPUT), solo movimiento relativo.
+;  Los botones NO se procesan acá (van por hook) para evitar duplicados.
 ; ═══════════════════════════════════════════════════════════════════
 
 RegisterRawInput() {
-    cbRid    := 16
-    nDevices := 2
-    rid      := Buffer(cbRid * nDevices, 0)
-
-    NumPut("UShort", 1,     rid,  0)
-    NumPut("UShort", 2,     rid,  2)
-    NumPut("UInt",   0x100, rid,  4)   ; RIDEV_INPUTSINK
+    ; Solo mouse (usage page 1, usage 2) con RIDEV_INPUTSINK.
+    rid := Buffer(16, 0)
+    NumPut("UShort", 1,     rid, 0)
+    NumPut("UShort", 2,     rid, 2)
+    NumPut("UInt",   0x100, rid, 4)    ; RIDEV_INPUTSINK
     NumPut("Ptr", A_ScriptHwnd, rid, 8)
+    DllCall("RegisterRawInputDevices", "Ptr", rid, "UInt", 1, "UInt", 16)
+}
 
-    NumPut("UShort", 1,     rid, 16)
-    NumPut("UShort", 6,     rid, 18)
-    NumPut("UInt",   0x100, rid, 20)
-    NumPut("Ptr", A_ScriptHwnd, rid, 24)
-
-    DllCall("RegisterRawInputDevices", "Ptr", rid, "UInt", nDevices, "UInt", cbRid)
+; Re-registrar Raw Input los primeros segundos. Si al arrancar el juego ya
+; estaba en fullscreen exclusivo, el primer registro puede no enganchar;
+; reintentar asegura que el sink reciba WM_INPUT una vez estabilizado.
+ReRegisterRawInput() {
+    global reRegCount
+    RegisterRawInput()
+    reRegCount++
+    if reRegCount >= 6
+        SetTimer(ReRegisterRawInput, 0)   ; detener tras ~6 reintentos
 }
 
 HandleRawInput(wParam, lParam, msg, hwnd) {
-    global mouseFH, deltaFH, keyFH, pressedKeys, gameExe
-
-    ; PLE-43/13: no registrar inputs cuando el juego no está en primer plano.
-    ; RIDEV_INPUTSINK captura input global; este filtro lo restringe al contexto del juego.
-    if gameExe != "" && !WinActive("ahk_exe " . gameExe)
+    global deltaFH
+    if !GameActive()
         return
 
     cbSize := 0
-    DllCall("GetRawInputData",
-        "Ptr",   lParam,
-        "UInt",  0x10000003,
-        "Ptr",   0,
-        "UInt*", &cbSize,
-        "UInt",  24)
-
+    DllCall("GetRawInputData", "Ptr", lParam, "UInt", 0x10000003,
+            "Ptr", 0, "UInt*", &cbSize, "UInt", 24)
     if cbSize == 0
         return
 
     buf := Buffer(cbSize, 0)
-    if DllCall("GetRawInputData",
-            "Ptr",   lParam,
-            "UInt",  0x10000003,
-            "Ptr",   buf,
-            "UInt*", &cbSize,
-            "UInt",  24) == 0
+    if DllCall("GetRawInputData", "Ptr", lParam, "UInt", 0x10000003,
+               "Ptr", buf, "UInt*", &cbSize, "UInt", 24) == 0
         return
 
-    dwType := NumGet(buf, 0, "UInt")
-    ts     := NowMs()
+    if NumGet(buf, 0, "UInt") != 0   ; dwType != 0 → no es mouse
+        return
 
-    ; ── MOUSE (dwType == 0) ───────────────────────────────────────
-    if dwType == 0 {
-        usFlags       := NumGet(buf, 24, "UShort")
-        usButtonFlags := NumGet(buf, 28, "UShort")
-        usButtonData  := NumGet(buf, 30, "UShort")
-        lLastX        := NumGet(buf, 36, "Int")
-        lLastY        := NumGet(buf, 40, "Int")
+    usFlags := NumGet(buf, 24, "UShort")
+    lLastX  := NumGet(buf, 36, "Int")
+    lLastY  := NumGet(buf, 40, "Int")
 
-        ; Movimiento relativo → mouse_delta_log.csv
-        if (lLastX != 0 || lLastY != 0) && !(usFlags & 0x01)
-            deltaFH.WriteLine(ts . ",MOVE," . lLastX . "," . lLastY)
-
-        ; Botones → mouse_log.csv
-        if usButtonFlags {
-            MouseGetPos(&cx, &cy)
-
-            if usButtonFlags & 0x0001
-                mouseFH.WriteLine(ts . ",BUTTON_DOWN," . cx . "," . cy . ",LEFT")
-            if usButtonFlags & 0x0002
-                mouseFH.WriteLine(ts . ",BUTTON_UP,"   . cx . "," . cy . ",LEFT")
-            if usButtonFlags & 0x0004
-                mouseFH.WriteLine(ts . ",BUTTON_DOWN," . cx . "," . cy . ",RIGHT")
-            if usButtonFlags & 0x0008
-                mouseFH.WriteLine(ts . ",BUTTON_UP,"   . cx . "," . cy . ",RIGHT")
-            if usButtonFlags & 0x0010
-                mouseFH.WriteLine(ts . ",BUTTON_DOWN," . cx . "," . cy . ",MIDDLE")
-            if usButtonFlags & 0x0020
-                mouseFH.WriteLine(ts . ",BUTTON_UP,"   . cx . "," . cy . ",MIDDLE")
-            if usButtonFlags & 0x0040
-                mouseFH.WriteLine(ts . ",BUTTON_DOWN," . cx . "," . cy . ",X1")
-            if usButtonFlags & 0x0080
-                mouseFH.WriteLine(ts . ",BUTTON_UP,"   . cx . "," . cy . ",X1")
-            if usButtonFlags & 0x0100
-                mouseFH.WriteLine(ts . ",BUTTON_DOWN," . cx . "," . cy . ",X2")
-            if usButtonFlags & 0x0200
-                mouseFH.WriteLine(ts . ",BUTTON_UP,"   . cx . "," . cy . ",X2")
-
-            if usButtonFlags & 0x0400 {
-                delta := usButtonData
-                if delta >= 0x8000
-                    delta -= 0x10000
-                mouseFH.WriteLine(ts . ",SCROLL," . cx . "," . cy . "," . delta)
-            }
-        }
-
-    ; ── TECLADO (dwType == 1) ─────────────────────────────────────
-    } else if dwType == 1 {
-        flags := NumGet(buf, 26, "UShort")
-        vKey  := NumGet(buf, 30, "UShort")
-
-        if vKey == 0 || vKey == 0xFF
-            return
-
-        isBreak := flags & 0x01
-
-        if isBreak {
-            if pressedKeys.Has(vKey) {
-                pressedKeys.Delete(vKey)
-                keyName := GetKeyName(Format("vk{:02X}", vKey))
-                ; PLE-25: fallback para teclas OEM donde GetKeyName retorna vacío
-                if keyName = ""
-                    keyName := VK_FALLBACK.Has(vKey) ? VK_FALLBACK[vKey] : Format("vk{:02X}", vKey)
-                keyFH.WriteLine(ts . ",KEY_UP," . keyName . "," . Format("{:02X}", vKey))
-            }
-        } else {
-            if !pressedKeys.Has(vKey) {
-                pressedKeys[vKey] := true
-                keyName := GetKeyName(Format("vk{:02X}", vKey))
-                ; PLE-25: fallback para teclas OEM donde GetKeyName retorna vacío
-                if keyName = ""
-                    keyName := VK_FALLBACK.Has(vKey) ? VK_FALLBACK[vKey] : Format("vk{:02X}", vKey)
-                keyFH.WriteLine(ts . ",KEY_DOWN," . keyName . "," . Format("{:02X}", vKey))
-            }
-        }
-    }
+    ; Movimiento relativo → mouse_delta_log.csv (igual que V1)
+    if (lLastX != 0 || lLastY != 0) && !(usFlags & 0x01)
+        deltaFH.WriteLine(NowMs() . ",MOVE," . lLastX . "," . lLastY)
 }
 
 ; ── Tracking de posición de mouse (16 Hz) ─────────────────────────
@@ -242,7 +245,8 @@ TrackTimeline() {
 
 ; ── Salida ordenada — escribe ANCHOR_END y cierra handles ─────────
 GracefulExit() {
-    global mouseFH, deltaFH, keyFH, videoFH, stopFile
+    global mouseFH, deltaFH, keyFH, videoFH, stopFile, keyHook
+    try keyHook.Stop()
     ts := NowMs()
     mouseFH.WriteLine(ts . ",ANCHOR_END,,,")
     deltaFH.WriteLine(ts . ",ANCHOR_END,,")
@@ -269,14 +273,13 @@ CheckStop() {
 ; 1. Inicializar timer de alta precisión
 InitTimer()
 
-; 2. Abrir archivos CSV (append mode para que Python haya podido
-;    escribir el header + ANCHOR_START antes de lanzar este script)
+; 2. Abrir archivos CSV (append mode)
 mouseFH := FileOpen(mouseFile, "a", "UTF-8")
 deltaFH := FileOpen(deltaFile, "a", "UTF-8")
 keyFH   := FileOpen(keyFile,   "a", "UTF-8")
 videoFH := FileOpen(videoFile, "a", "UTF-8")
 
-; Si los archivos son nuevos (Python no los creó aún), escribir headers
+; Si los archivos son nuevos, escribir headers
 if FileGetSize(mouseFile) < 10 {
     mouseFH.WriteLine("timestamp_ms,event_type,x,y,button")
     deltaFH.WriteLine("timestamp_ms,event_type,dx,dy")
@@ -308,14 +311,20 @@ deltaFH.WriteLine(anchorTs . ",ANCHOR_START,,")
 keyFH.WriteLine(anchorTs   . ",ANCHOR_START,,")
 videoFH.WriteLine(anchorTs . ",ANCHOR_START")
 
-; 5. Registrar Raw Input y arrancar timers
+; 5. Instalar hooks low-level (forzar WH_KEYBOARD_LL y WH_MOUSE_LL)
+InstallKeybdHook()
+InstallMouseHook()
+SetupKeyboardHook()
+
+; 6. Registrar Raw Input (deltas de mouse) + re-registro robusto
 RegisterRawInput()
-SetTimer(TrackMouse,    62)    ; ~16 Hz
-SetTimer(TrackTimeline, 62)    ; ~16 Hz
-SetTimer(CheckStop,    200)    ; ~5 Hz — escucha señal de stop
-
-; 6. Listener para WM_INPUT
 OnMessage(0x00FF, HandleRawInput)
+SetTimer(ReRegisterRawInput, 1000)   ; reintenta el registro los primeros segundos
 
-; 7. Mantener vivo hasta que el padre lo mate
+; 7. Timers de polling
+SetTimer(TrackMouse,    62)    ; ~16 Hz — posición absoluta
+SetTimer(TrackTimeline, 62)    ; ~16 Hz — frames
+SetTimer(CheckStop,    200)    ; ~5 Hz — señal de stop
+
+; 8. Mantener vivo hasta que el padre lo mate
 Persistent()

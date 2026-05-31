@@ -11,13 +11,14 @@ import ctypes, ctypes.wintypes
 from pathlib import Path
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.4.6"
+VERSION = "v0.5.0"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
 APP_DIR    = Path(sys.executable).parent if _frozen else Path(__file__).parent
 APPDATA    = Path(os.environ.get("APPDATA", Path.home()))
 AUTH_FILE  = APPDATA / "Pleiada" / "auth.json"
+SETTINGS_FILE = APPDATA / "Pleiada" / "settings.json"   # v0.5: hotkeys y prefs
 GAMES_FILE = APP_DIR / "games_list.json"
 GAMES_CACHE = APPDATA / "Pleiada" / "games_list_cache.json"   # v0.4: caché de Airtable
 TEMP_DIR   = Path(os.environ.get("TEMP", "C:\\Temp"))
@@ -63,6 +64,59 @@ def save_auth(email, remember):
 
 def validate_login(email, password):
     return "@" in email and "." in email and len(password) >= 4
+
+# ─── Settings / hotkeys (v0.5) ────────────────────────────────────────────────
+
+# Hotkeys por defecto: F9 = iniciar, F10 = detener. Sin modificadores.
+DEFAULT_SETTINGS = {
+    "hotkey_start": {"vk": 0x78, "label": "F9"},
+    "hotkey_stop":  {"vk": 0x79, "label": "F10"},
+}
+
+def load_settings():
+    try:
+        with open(SETTINGS_FILE, encoding="utf-8") as f:
+            s = json.load(f)
+        # Completar claves faltantes con defaults
+        out = json.loads(json.dumps(DEFAULT_SETTINGS))
+        out.update({k: v for k, v in s.items() if k in DEFAULT_SETTINGS})
+        return out
+    except Exception:
+        return json.loads(json.dumps(DEFAULT_SETTINGS))
+
+def save_settings(settings):
+    try:
+        SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(settings, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+# Mapa keysym de Tkinter → (vk, label legible) para reasignar hotkeys.
+# Cubre F1-F12, letras, dígitos y algunas teclas comunes.
+def _keysym_to_vk(keysym):
+    ks = keysym
+    # F1-F24
+    if ks.upper().startswith("F") and ks[1:].isdigit():
+        n = int(ks[1:])
+        if 1 <= n <= 24:
+            return 0x70 + (n - 1), f"F{n}"
+    # Letras
+    if len(ks) == 1 and ks.isalpha():
+        return ord(ks.upper()), ks.upper()
+    # Dígitos
+    if len(ks) == 1 and ks.isdigit():
+        return ord(ks), ks
+    # Teclas especiales comunes
+    special = {
+        "space": (0x20, "Space"), "Insert": (0x2D, "Insert"),
+        "Home": (0x24, "Home"), "End": (0x23, "End"),
+        "Prior": (0x21, "PageUp"), "Next": (0x22, "PageDown"),
+        "Pause": (0x13, "Pause"), "Scroll_Lock": (0x91, "ScrollLock"),
+    }
+    if ks in special:
+        return special[ks]
+    return None, None
 
 # ─── Lista de juegos ──────────────────────────────────────────────────────────
 #
@@ -2042,9 +2096,16 @@ class PleiadaApp:
         self._obs_status        = "idle"   # idle | checking | ok | warn | err
         self._last_sync_statuses = {}      # key → "ok"/"err"/"missing"/"truncated"/"offset"
 
+        # v0.5: settings + hotkeys globales
+        self._settings        = load_settings()
+        self._hotkey_running  = True
+        self._capturing_hotkey = None   # "start"/"stop" cuando se reasigna un atajo
+
         self._build_window()
         # v0.4: sincronizar lista de juegos con Airtable en background (no bloquea el arranque)
         threading.Thread(target=sync_games_list, daemon=True).start()
+        # v0.5: listener de hotkeys globales (iniciar/detener grabación sin foco)
+        threading.Thread(target=self._hotkey_listener, daemon=True).start()
         self._check_auto_login()
 
     # ── Construcción de la ventana ─────────────────────────────────────────────
@@ -2094,6 +2155,14 @@ class PleiadaApp:
 
         # Sep vertical antes de close dot
         tk.Frame(tb, bg=BORDER2, width=1, height=16).pack(side="right", pady=11)
+
+        # v0.5: ícono de Settings (⚙)
+        self._settings_btn = tk.Label(tb, text="⚙", fg=DIM, bg=BG2,
+                                       font=("Segoe UI", 12), cursor="hand2")
+        self._settings_btn.pack(side="right", padx=(0, 10))
+        self._settings_btn.bind("<Button-1>", lambda e: self._show_settings())
+        self._settings_btn.bind("<Enter>", lambda e: self._settings_btn.config(fg=TEXT))
+        self._settings_btn.bind("<Leave>", lambda e: self._settings_btn.config(fg=DIM))
 
         # Dragging
         self._drag_x = self._drag_y = 0
@@ -2231,6 +2300,137 @@ class PleiadaApp:
         save_auth("", False)
         self._signout_lbl.pack_forget()
         self._show_login()
+
+    # ── Settings (v0.5) ────────────────────────────────────────────────────────
+
+    def _show_settings(self):
+        if self.recording:
+            return  # no abrir settings durante la grabación
+        if not self.logged_in:
+            return  # settings solo con sesión iniciada
+        self._capturing_hotkey = None
+        self._clear_content()
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+
+        _mk_section_label(frame, "AJUSTES")
+
+        # — Versión —
+        vrow = tk.Frame(frame, bg=BG)
+        vrow.pack(fill="x", pady=(2, 0))
+        tk.Label(vrow, text="Versión:", fg=DIM, bg=BG,
+                 font=("Segoe UI", 10)).pack(side="left")
+        tk.Label(vrow, text=f"  {VERSION}", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 10, "bold")).pack(side="left")
+        tk.Label(vrow, text="✓ Actualizado", fg=GREEN, bg=BG,
+                 font=("Segoe UI", 9)).pack(side="right")
+
+        _mk_separator(frame, color=BORDER2, pady=(14, 12))
+
+        # — Atajos de teclado —
+        _mk_section_label(frame, "ATAJOS DE TECLADO")
+        self._hotkey_btns = {}
+        for key, label in (("hotkey_start", "Iniciar grabación"),
+                           ("hotkey_stop",  "Detener grabación")):
+            hrow = tk.Frame(frame, bg=BG)
+            hrow.pack(fill="x", pady=3)
+            tk.Label(hrow, text=label + ":", fg=TEXT, bg=BG,
+                     font=("Segoe UI", 10), anchor="w").pack(side="left")
+            btn = tk.Label(hrow, text=self._settings[key]["label"],
+                           fg=ACCENT, bg=CARD, font=("Cascadia Code", 10),
+                           cursor="hand2", padx=12, pady=4,
+                           highlightthickness=1, highlightbackground=BORDER)
+            btn.pack(side="right")
+            btn.bind("<Button-1>", lambda e, k=key: self._begin_capture_hotkey(k))
+            self._hotkey_btns[key] = btn
+        tk.Label(frame, text="Hacé clic en un atajo y presioná la nueva tecla.\n"
+                              "Los atajos funcionan aunque la ventana no esté en foco.",
+                 fg=DIM, bg=BG, font=("Segoe UI", 9), justify="left",
+                 wraplength=WIN_W - 60, anchor="w").pack(fill="x", pady=(8, 0))
+
+        _mk_separator(frame, color=BORDER2, pady=(14, 12))
+
+        # — Cuenta —
+        _mk_section_label(frame, "CUENTA")
+        tk.Label(frame, text=self.user_email or "—", fg=DIM, bg=BG,
+                 font=("Segoe UI", 10), anchor="w").pack(fill="x")
+        tk.Button(frame, text="Cerrar sesión", fg=TEXT, bg=CARD,
+                  relief="flat", bd=0, cursor="hand2",
+                  font=("Segoe UI", 10), activebackground=CARD2,
+                  activeforeground=TEXT, command=self._sign_out,
+                  highlightthickness=1, highlightbackground=BORDER).pack(
+            fill="x", ipady=8, pady=(8, 0))
+
+        # spacer + Volver
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        tk.Button(frame, text="←  Volver", fg=DIM, bg=BG,
+                  relief="flat", bd=0, cursor="hand2",
+                  font=("Segoe UI", 10), activebackground=BG,
+                  activeforeground=TEXT, command=self._show_idle).pack(
+            fill="x", ipady=8)
+
+    def _begin_capture_hotkey(self, key):
+        """Entra en modo captura: el próximo KeyPress define el atajo."""
+        self._capturing_hotkey = key
+        btn = self._hotkey_btns[key]
+        btn.config(text="Presioná una tecla…", fg=YELLOW)
+        self.root.bind("<KeyPress>", self._on_capture_keypress)
+        self.root.focus_force()
+
+    def _on_capture_keypress(self, event):
+        key = self._capturing_hotkey
+        if not key:
+            return
+        vk, label = _keysym_to_vk(event.keysym)
+        self.root.unbind("<KeyPress>")
+        self._capturing_hotkey = None
+        if vk is None:
+            # tecla no soportada → restaurar
+            self._hotkey_btns[key].config(text=self._settings[key]["label"], fg=ACCENT)
+            return
+        # Evitar que start y stop sean la misma tecla
+        other = "hotkey_stop" if key == "hotkey_start" else "hotkey_start"
+        if self._settings[other]["vk"] == vk:
+            self._hotkey_btns[key].config(text="Ya en uso", fg=RED)
+            self.root.after(1200, lambda: self._hotkey_btns[key].config(
+                text=self._settings[key]["label"], fg=ACCENT))
+            return
+        self._settings[key] = {"vk": vk, "label": label}
+        save_settings(self._settings)
+        self._hotkey_btns[key].config(text=label, fg=ACCENT)
+
+    def _hotkey_listener(self):
+        """Thread daemon: detecta los hotkeys globales vía GetAsyncKeyState.
+        Funciona aunque la ventana no tenga foco (incl. fullscreen exclusivo)."""
+        try:
+            user32 = ctypes.windll.user32
+        except Exception:
+            return
+        prev = {"hotkey_start": False, "hotkey_stop": False}
+        while self._hotkey_running:
+            time.sleep(0.04)   # ~25 Hz
+            if self._capturing_hotkey:   # no disparar mientras se reasigna
+                continue
+            for key, action in (("hotkey_start", self._hotkey_start),
+                                ("hotkey_stop",  self._hotkey_stop)):
+                vk = self._settings.get(key, {}).get("vk")
+                if not vk:
+                    continue
+                down = bool(user32.GetAsyncKeyState(vk) & 0x8000)
+                if down and not prev[key]:
+                    self.root.after(0, action)
+                prev[key] = down
+
+    def _hotkey_start(self):
+        # Solo si hay sesión, juego seleccionado, OBS ok y no grabando
+        if self.recording or not self.logged_in:
+            return
+        if self.selected_game and self._obs_status == "ok":
+            self._start_recording()
+
+    def _hotkey_stop(self):
+        if self.recording:
+            self._stop_recording()
 
     # ── Pantalla Idle (selector de juego) ──────────────────────────────────────
 
