@@ -30,32 +30,28 @@ Ahora vamos a hacer una grabación corta para verificar que todo funciona bien.
 
 2. Hacé doble clic en el ícono **Pleiada Recorder** del escritorio. Aparece una pequeña ventana flotante — podés moverla arrastrando el encabezado.
 
-3. Hacé clic en el botón **⏺** para iniciar la grabación. El botón cambia a **⏹** y el contador empieza a correr.
+3. En el Recorder, seleccioná de la lista el juego que vas a grabar (tiene que coincidir con el que capturaste en OBS). Luego hacé clic en **Iniciar grabación**. El botón cambia a **Detener grabación** y el contador empieza a correr.
 
-4. Jugá unos 60 segundos y luego hacé clic en **⏹** para detener.
+4. Jugá unos 60 segundos y luego hacé clic en **Detener grabación** desde el Recorder (nunca desde OBS, para que los archivos queden sincronizados).
 
 5. Los archivos quedan guardados automáticamente en:
    `Documentos › Pleiada Recordings`
 
-6. Aprovechá para verificar en los 4 archivos que no se haya grabado en la pantalla o en el registro del teclado nada privado ni personal. De ser así, ese contenido será eliminado permanentemente.
+6. Aprovechá para verificar en los archivos que no se haya grabado en la pantalla ni en el registro del teclado nada privado ni personal. De ser así, ese contenido será eliminado permanentemente. ⚠ Si modificás algún archivo, la sesión será rechazada.
 
 ---
 
-### Paso 3 — Verificar sincronización (Synch Checker)
+### Paso 3 — Verificación automática
 
-Después de cada sesión, verificá que el video y los logs quedaron bien sincronizados.
-
-1. Hacé doble clic en el ícono **Synch Checker** del escritorio.
-
-2. Hacé clic en **Seleccionar carpeta** y elegí la carpeta de la sesión (por ejemplo: `2026-04-25 13-09-07 recording`).
-
-3. Hacé clic en **Verificar Sync**.
+Después de cada sesión, el Recorder verifica **automáticamente** que el video y los logs quedaron bien sincronizados. No tenés que hacer nada.
 
 **Resultados posibles:**
-- ✅ **SINCRONIZADOS** → la sesión está bien, podés entregarla.
-- ⚠ **OFFSET** → desfase detectado entre el video y los logs; la sesión puede no ser usable.
+- ✅ **SINCRONIZADOS** → la sesión quedó lista, podés entregarla.
+- ⚠ **OFFSET / ✗ ERROR** → la sesión se descarta automáticamente; iniciá una nueva grabación.
 
-¿Dudas? Visitá [pleiada.ai/faqs](https://www.pleiada.ai/faqs)
+Los archivos válidos quedan en la carpeta de la sesión, listos para revisar y subir.
+
+¿Dudas? Visitá [gameplayalliance.gg](https://gameplayalliance.gg)
 
 ---
 
@@ -65,10 +61,10 @@ Una vez configurado OBS, el flujo de cada sesión es:
 
 1. Iniciá el juego.
 2. Abrí **Pleiada Recorder** desde el escritorio.
-3. Presioná **⏺** para empezar a grabar.
-4. Jugá tu sesión. La grabación se detiene automáticamente al llegar a **1 hora 5 minutos**. Para evitar subidas de archivos muy pesados.
-5. Cuando termines (o cuando se detenga sola), presioná **⏹**.
-6. Abrí **Synch Checker** y verificá la sesión antes de entregarla.
+3. Seleccioná el juego de la lista y presioná **Iniciar grabación**.
+4. Jugá tu sesión. La grabación se detiene automáticamente al llegar a **1 hora 5 minutos**, para evitar subidas de archivos muy pesados.
+5. Cuando termines (o cuando se detenga sola), presioná **Detener grabación** desde el Recorder.
+6. El Recorder verifica la sesión automáticamente y deja los archivos listos en la carpeta de la sesión.
 
 > Si necesitás grabar más de 1h 5min, podés iniciar una nueva grabación — quedará guardada en una carpeta separada como una sesión nueva.
 
@@ -85,8 +81,11 @@ Documentos\Pleiada Recordings\
         ├── mouse_log.csv                   ← movimientos del mouse
         ├── mouse_delta_log.csv             ← deltas de hardware del mouse
         ├── key_log.csv                     ← teclas presionadas
-        └── video_timeline.csv              ← línea de tiempo
+        ├── video_timeline.csv              ← línea de tiempo
+        └── session_metadata.json           ← metadata de la sesión
 ```
+
+El archivo **`session_metadata.json`** acompaña a cada grabación con información no personal que enriquece el dataset: timing y sincronización, datos del juego (título, motor, perspectiva, género, idiomas, desarrollador), calidad de video (resolución, FPS, codec, bitrate), key mapping real del juego y specs de hardware/OS. Todo se genera automáticamente.
 
 ---
 

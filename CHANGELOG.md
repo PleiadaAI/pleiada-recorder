@@ -1,5 +1,41 @@
 # Changelog — Pleiada Recorder
 
+## V4.6 — 30/05/2026
+
+> Primera versión de la **arquitectura unificada** (app única: login, selector de
+> juego, grabación, sync automático y metadata) publicada en `main`. Reemplaza la
+> línea V25.x basada en `gameplay_logger.ahk`.
+
+### Metadata de sesión (nuevo)
+- **`session_metadata.json`** por sesión, junto a los CSVs y el MP4. Incluye:
+  timing y sincronización, datos del juego, calidad de video, hardware/OS y key mapping.
+- **Key mapping real:** se lee del config del propio juego — Source (`config.cfg`)
+  y Unreal (`Input.ini`, formatos legacy y `UserActionMappings`). Si el usuario
+  personalizó sus controles, se refleja su binding real (`binding_source: "config"`).
+  Si no se encuentra el config, se infiere del gameplay (`inferred_from_gameplay`).
+- **Búsqueda multi-disco:** localiza la instalación del juego en cualquier unidad
+  vía las bibliotecas de Steam.
+- **Enriquecimiento IGDB:** motor, perspectiva de cámara, temas, idiomas y
+  desarrollador de cada juego, vía la API de IGDB.
+
+### Lista de juegos dinámica
+- El listado de juegos se sincroniza desde una base en Airtable al iniciar la app
+  (caché local de 24 h, fallback al listado bundleado). Permite agregar juegos sin
+  recompilar el instalador.
+
+### Calidad de video
+- Resolución, FPS, codec, frame count y bitrate extraídos de cada grabación.
+
+### Cambios de flujo
+- El video ya **no se cifra ni empaqueta**: los archivos quedan locales en la
+  carpeta de sesión para su revisión y subida.
+- Validación de duración mínima (30 s) y de juego en ejecución antes de grabar.
+- Countdown de inicio reducido a 10 s.
+
+### Fixes
+- Botón "Nueva grabación" siempre visible. Textos sin recorte en pantallas con
+  escalado DPI. Detección de fuente de OBS por escena.
+
 ## V25.5 — 16/05/2026
 - **Mejora — nombre de sesión con juego:** la carpeta de cada grabación ahora incluye el nombre del juego capturado en OBS: `NombreJuego_dd_mm_aa__hh_mm_ss recording`. El nombre se extrae automáticamente de la fuente "Captura de Juego" configurada en OBS (campo "Ventana específica"). Si no hay ventana configurada, se usa el formato anterior de solo fecha y hora.
 - **Fix — Synch Checker detecta video truncado:** si OBS se cerró abruptamente y el archivo MP4 quedó incompleto (sin el bloque `moov`), el Synch Checker ahora lo detecta y muestra un mensaje claro: "Archivo incompleto — OBS cerró sin finalizar la grabación." En lugar de mostrar duración N/A sin explicación. Los archivos generados con la configuración recomendada (MP4 fragmentado) no se ven afectados por este problema.

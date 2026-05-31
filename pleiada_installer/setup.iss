@@ -2,7 +2,7 @@
 ; Genera: PleiadaRecorder_Setup.exe
 
 #define AppName    "Pleiada Recorder"
-#define AppVersion "0.25.5"
+#define AppVersion "0.4.6"
 #define AppPublisher "Pleiada"
 #define AppDir     "{autopf}\Pleiada Recorder"
 
@@ -40,10 +40,12 @@ spanish.AllDone=Instalacion completada. Ya podes usar Pleiada Recorder.
 
 [Files]
 ; Scripts principales
-Source: "files\gameplay_logger.ahk";      DestDir: "{app}"; Flags: ignoreversion
-Source: "files\obs_control.py";          DestDir: "{app}"; Flags: ignoreversion
-Source: "files\pleiada_check.pyw";       DestDir: "{app}"; Flags: ignoreversion
+Source: "files\pleiada_app.pyw";          DestDir: "{app}"; Flags: ignoreversion
+Source: "files\input_logger.ahk";         DestDir: "{app}"; Flags: ignoreversion
+Source: "files\obs_control.py";           DestDir: "{app}"; Flags: ignoreversion
 Source: "files\pleiada_setup_wizard.pyw"; DestDir: "{app}"; Flags: ignoreversion
+Source: "files\pleiada_check.pyw";        DestDir: "{app}"; Flags: ignoreversion
+Source: "files\games_list.json";          DestDir: "{app}"; Flags: ignoreversion
 ; Instaladores de dependencias
 Source: "deps\python-3.12.8-amd64.exe";                       DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "deps\AutoHotkey_2.0.24_setup.exe";                   DestDir: "{tmp}"; Flags: deleteafterinstall
@@ -58,15 +60,13 @@ Source: "assets\pleiada_icon.png";   DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{commondesktop}\Pleiada Recorder"; \
-    Filename: "{app}\gameplay_logger.ahk"; \
-    IconFilename: "{app}\pleiada.ico"; \
-    Comment: "Iniciar grabacion de gameplay"
-Name: "{commondesktop}\Synch Checker"; \
     Filename: "{code:FindPythonW}"; \
-    Parameters: """{app}\pleiada_check.pyw"""; \
+    Parameters: """{app}\pleiada_app.pyw"""; \
     WorkingDir: "{app}"; \
-    IconFilename: "{app}\synch_checker.ico"; \
-    Comment: "Verificar sincronizacion de grabacion"
+    IconFilename: "{app}\pleiada.ico"; \
+    Comment: "Pleiada Recorder v0.3 — Gameplay Alliance"
+
+; Nota: el Synch Checker se ejecuta automáticamente desde el Recorder (sin shortcut en escritorio)
 
 [Run]
 ; 1. Instalar Python (silencioso, solo si no esta instalado)
@@ -111,7 +111,9 @@ Filename: "{code:FindPythonExe}"; \
     Flags: runhidden waituntilterminated
 
 ; 7. Wizard de configuracion inicial — se lanza automaticamente (sin checkbox)
-Filename: "{app}\pleiada_setup_wizard.pyw"; \
+Filename: "{code:FindPythonW}"; \
+    Parameters: """{app}\pleiada_setup_wizard.pyw"""; \
+    WorkingDir: "{app}"; \
     StatusMsg: "{cm:AllDone}"; \
     Flags: nowait shellexec
 
@@ -311,6 +313,7 @@ begin
        ewWaitUntilTerminated, RC);
   Result := (RC = 0);
 end;
+
 
 
 

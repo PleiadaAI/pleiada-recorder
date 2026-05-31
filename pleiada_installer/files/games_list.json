@@ -1,0 +1,4290 @@
+[
+  {
+    "game": "Helldivers II",
+    "perspective": "Third Person",
+    "genre": "Shooter",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Arena Breakout: Infinite",
+    "perspective": "First Person",
+    "genre": "Extraction Shooter",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Warframe",
+    "perspective": "Third Person",
+    "genre": "Shooter",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "ARK: Survival Ascended",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "ARK: Survival Evolved",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "War Thunder",
+    "perspective": "Third Person",
+    "genre": "Vehicle Combat",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Rust",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Delta Force",
+    "perspective": "First Person",
+    "genre": "Tactical Shooter",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Finals",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Final Fantasy XIV Online",
+    "perspective": "Third Person",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "DayZ",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Lost Ark",
+    "perspective": "Isometric",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Witcher 3: Wild Hunt",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": "witcher3.exe",
+    "process_source": "exact(The Witcher 3: Wild Hunt)"
+  },
+  {
+    "game": "Assassin's Creed Valhalla",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": "ACValhalla.exe",
+    "process_source": "exact(Assassin's Creed Valhalla)"
+  },
+  {
+    "game": "Assassin's Creed Odyssey",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": "ACOdyssey.exe",
+    "process_source": "exact(Assassin's Creed Odyssey)"
+  },
+  {
+    "game": "Assassin's Creed Shadows",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Horizon Zero Dawn",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": "HorizonZeroDawn.exe",
+    "process_source": "exact(Horizon Zero Dawn)"
+  },
+  {
+    "game": "Horizon Forbidden West",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Dying Light 2: Stay Human",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Kingdom Come: Deliverance",
+    "perspective": "First Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Kingdom Come: Deliverance II",
+    "perspective": "First Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Control",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "Control.exe",
+    "process_source": "exact(Control)"
+  },
+  {
+    "game": "Black Myth: Wukong",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Bloodborne",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Dark Souls III",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Co-op",
+    "process_name": "DS3T.exe",
+    "process_source": "exact(Dark Souls III)"
+  },
+  {
+    "game": "Lies of P",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Final Fantasy VII Rebirth",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Final Fantasy XVI",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Wo Long: Fallen Dynasty",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Rise of the Ronin",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Assassin's Creed Mirage",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "ACMirage.exe",
+    "process_source": "exact(Assassin's Creed Mirage)"
+  },
+  {
+    "game": "Watch Dogs 2",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Co-op",
+    "process_name": "restart64.exe",
+    "process_source": "exact(Watch Dogs 2)"
+  },
+  {
+    "game": "Watch Dogs: Legion",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Co-op",
+    "process_name": "WatchDogsLegion.exe",
+    "process_source": "exact(Watch Dogs: Legion)"
+  },
+  {
+    "game": "Marvel's Spider-Man 2",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Marvel's Spider-Man: Miles Morales",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Saints Row (2022)",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Mafia: Definitive Edition",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Mafia III",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Sleeping Dogs",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Just Cause 4",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Yakuza 0",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Days Gone",
+    "perspective": "Third Person",
+    "genre": "Survival Action",
+    "mode": "Singleplayer",
+    "process_name": "DaysGone.exe",
+    "process_source": "exact(Days Gone)"
+  },
+  {
+    "game": "Death Stranding",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Last of Us Part I",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "tlou-i.exe",
+    "process_source": "exact(The Last of Us Part I)"
+  },
+  {
+    "game": "The Last of Us Part II",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "God of War (2018)",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "God of War Ragnarök",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Uncharted 4: A Thief's End",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Uncharted: The Lost Legacy",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Quantum Break",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "A Plague Tale: Innocence",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "APlagueTaleInnocence_x64.exe",
+    "process_source": "exact(A Plague Tale: Innocence)"
+  },
+  {
+    "game": "A Plague Tale: Requiem",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Senua's Saga: Hellblade II",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Indiana Jones and the Great Circle",
+    "perspective": "First Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Star Wars Jedi: Fallen Order",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "SwGame-Win64-Shipping.exe",
+    "process_source": "exact(Star Wars Jedi: Fallen Order)"
+  },
+  {
+    "game": "Star Wars Jedi: Survivor",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Stellar Blade",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Devil May Cry 5",
+    "perspective": "Third Person",
+    "genre": "Action",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Terraria",
+    "perspective": "Side-Scrolling",
+    "genre": "Sandbox",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Ghost of Yotei",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Tomb Raider (2013)",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Rise of the Tomb Raider",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Shadow of the Tomb Raider",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Mad Max",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Outer Wilds",
+    "perspective": "First Person",
+    "genre": "Exploration",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Mafia II: Definitive Edition",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "Gibbed.Illusion.ExploreSDS.exe",
+    "process_source": "exact(Mafia II: Definitive Edition)"
+  },
+  {
+    "game": "Sleeping Dogs: Definitive Edition",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Just Cause 3",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "justcause3.exe",
+    "process_source": "exact(Just Cause 3)"
+  },
+  {
+    "game": "Watch Dogs",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Days Gone Remastered",
+    "perspective": "Third Person",
+    "genre": "Survival Action",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Detroit: Become Human",
+    "perspective": "Third Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Stray",
+    "perspective": "Third Person",
+    "genre": "Adventure",
+    "mode": "Singleplayer",
+    "process_name": "Stray.exe",
+    "process_source": "exact(Stray)"
+  },
+  {
+    "game": "Sifu",
+    "perspective": "Third Person",
+    "genre": "Action",
+    "mode": "Singleplayer",
+    "process_name": "Sifu.exe",
+    "process_source": "exact(Sifu)"
+  },
+  {
+    "game": "Cities: Skylines II",
+    "perspective": "Isometric",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": "Cities2.exe",
+    "process_source": "exact(Cities: Skylines II)"
+  },
+  {
+    "game": "DCS World",
+    "perspective": "First Person",
+    "genre": "Flight Sim",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Planet Coaster 2",
+    "perspective": "Isometric",
+    "genre": "Management Sim",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Planet Zoo",
+    "perspective": "Isometric",
+    "genre": "Management Sim",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Baldur's Gate III",
+    "perspective": "Isometric",
+    "genre": "RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Stardew Valley",
+    "perspective": "Top-Down",
+    "genre": "Farming Sim",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Tekken 8",
+    "perspective": "Third Person",
+    "genre": "Fighting",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Street Fighter 6",
+    "perspective": "Third Person",
+    "genre": "Fighting",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Mortal Kombat 1",
+    "perspective": "Third Person",
+    "genre": "Fighting",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "UFC 5",
+    "perspective": "Third Person",
+    "genre": "Sports",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Far Cry 5",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Co-op",
+    "process_name": "Unlock_FOV.exe",
+    "process_source": "exact(Far Cry 5)"
+  },
+  {
+    "game": "Far Cry 6",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Atomic Heart",
+    "perspective": "First Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Microsoft Flight Simulator 2024",
+    "perspective": "First Person",
+    "genre": "Flight Sim",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Heavy Rain",
+    "perspective": "Third Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": "HeavyRain.exe",
+    "process_source": "exact(Heavy Rain)"
+  },
+  {
+    "game": "Persona 5 Royal",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Forza Horizon 4",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Need for Speed Unbound",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Crew Motorfest",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Wreckfest",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Dirt Rally 2.0",
+    "perspective": "Third Person",
+    "genre": "Racing Sim",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "F1 25",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Yakuza: Like a Dragon",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Like a Dragon: Infinite Wealth",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Metaphor: ReFantazio",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Minecraft",
+    "perspective": "First Person",
+    "genre": "Sandbox",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Garry's Mod",
+    "perspective": "First Person",
+    "genre": "Sandbox",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Roblox",
+    "perspective": "Third Person",
+    "genre": "Sandbox",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Gran Turismo 7",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Forza Motorsport (2023)",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Assetto Corsa",
+    "perspective": "First Person",
+    "genre": "Racing Sim",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "iRacing",
+    "perspective": "First Person",
+    "genre": "Racing Sim",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Power Wash Simulator",
+    "perspective": "First Person",
+    "genre": "Simulation",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "House Flipper 2",
+    "perspective": "First Person",
+    "genre": "Simulation",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Farming Simulator 25",
+    "perspective": "First Person",
+    "genre": "Simulation",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Sims 4",
+    "perspective": "Isometric",
+    "genre": "Life Sim",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "EA Sports FC 25",
+    "perspective": "Third Person",
+    "genre": "Sports",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Madden NFL 25",
+    "perspective": "Third Person",
+    "genre": "Sports",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "MLB The Show 25",
+    "perspective": "Third Person",
+    "genre": "Sports",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "PGA Tour 2K25",
+    "perspective": "Third Person",
+    "genre": "Sports",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "NBA 2K25",
+    "perspective": "Third Person",
+    "genre": "Sports",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Valheim",
+    "perspective": "Third Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Grounded",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Pacific Drive",
+    "perspective": "First Person",
+    "genre": "Driving Survival",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Alan Wake 2",
+    "perspective": "Third Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Resident Evil 4 (Remake)",
+    "perspective": "Third Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Resident Evil Village",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Silent Hill 2 (Remake)",
+    "perspective": "Third Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "The Forest",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Sniper Elite 5",
+    "perspective": "Third Person",
+    "genre": "Tactical Shooter",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Returnal",
+    "perspective": "Third Person",
+    "genre": "Roguelike Shooter",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "BeamNG.drive",
+    "perspective": "Third Person",
+    "genre": "Driving Sim",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Train Sim World 5",
+    "perspective": "First Person",
+    "genre": "Simulation",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Snowrunner",
+    "perspective": "Third Person",
+    "genre": "Driving Sim",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Mudrunner",
+    "perspective": "Third Person",
+    "genre": "Driving Sim",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Expeditions: A MudRunner Game",
+    "perspective": "Third Person",
+    "genre": "Driving Sim",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Euro Truck Simulator 2",
+    "perspective": "First Person",
+    "genre": "Driving Sim",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Cyberpunk 2077",
+    "perspective": "First Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": "Cyberpunk2077.exe",
+    "process_source": "exact(Cyberpunk 2077)"
+  },
+  {
+    "game": "Monster Hunter Rise",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Sea of Thieves",
+    "perspective": "First Person",
+    "genre": "Adventure",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Grand Theft Auto Online",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Marathon",
+    "perspective": "First Person",
+    "genre": "Extraction Shooter",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Dying Light",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Co-op",
+    "process_name": "DyingLightGame.exe",
+    "process_source": "exact(Dying Light)"
+  },
+  {
+    "game": "Call of Duty: Modern Warfare",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Fallout 4",
+    "perspective": "First Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": "Fallout4.exe",
+    "process_source": "exact(Fallout 4)"
+  },
+  {
+    "game": "Arma: Reforger",
+    "perspective": "First Person",
+    "genre": "Tactical Shooter",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Forza",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Resident Evil Requiem",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "World of Tanks",
+    "perspective": "Third Person",
+    "genre": "Vehicle Combat",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Sekiro: Shadows Die Twice",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": "Sekiro.exe",
+    "process_source": "exact(Sekiro: Shadows Die Twice)"
+  },
+  {
+    "game": "Red Dead Redemption 2",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Marvel's Spider-Man",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Ghost of Tsushima",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Fallout 76",
+    "perspective": "First Person",
+    "genre": "Action RPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Dark Souls: Remastered",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Co-op",
+    "process_name": "DeviceLister.exe",
+    "process_source": "search→Dark Souls Remastered"
+  },
+  {
+    "game": "Zenless Zone Zero",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Wuthering Waves",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Hogwarts Legacy",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Where Winds Meet",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Mount & Blade II",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Nier: Automata",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Fallout: New Vegas",
+    "perspective": "First Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Project Playtime",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Naraka: Bladepoint",
+    "perspective": "Third Person",
+    "genre": "Battle Royale",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Split Fiction",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Co-op",
+    "process_name": "SplitFiction.exe",
+    "process_source": "exact(Split Fiction)"
+  },
+  {
+    "game": "A Way Out",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Left 4 Dead 2",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Co-op",
+    "process_name": "left4dead2.exe",
+    "process_source": "exact(Left 4 Dead 2)"
+  },
+  {
+    "game": "Deep Rock Galactic",
+    "perspective": "First Person",
+    "genre": "Shooter",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "World War Z",
+    "perspective": "Third Person",
+    "genre": "Shooter",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Hunt: Showdown",
+    "perspective": "First Person",
+    "genre": "Extraction Shooter",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Satisfactory",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "For Honor",
+    "perspective": "Third Person",
+    "genre": "Fighting",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Battlefield 6",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Black Ops III",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Halo: The Master Chief Collection",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "FragPunk",
+    "perspective": "First Person",
+    "genre": "Hero Shooter",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Outlast Trials",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Nuclear Nightmare",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Hunter: Call of the Wild",
+    "perspective": "First Person",
+    "genre": "Hunting Sim",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Destiny 2",
+    "perspective": "First Person",
+    "genre": "Shooter",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Borderlands 3",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Co-op",
+    "process_name": "Borderlands3.exe",
+    "process_source": "exact(Borderlands 3)"
+  },
+  {
+    "game": "Borderlands 2",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Co-op",
+    "process_name": "Borderlands2.exe",
+    "process_source": "exact(Borderlands 2)"
+  },
+  {
+    "game": "Armored Core VI: Fires of Rubicon",
+    "perspective": "Third Person",
+    "genre": "Action",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Chivalry 2",
+    "perspective": "First Person",
+    "genre": "Action",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Squad",
+    "perspective": "First Person",
+    "genre": "Tactical Shooter",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Hell Let Loose",
+    "perspective": "First Person",
+    "genre": "Tactical Shooter",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Portal 2",
+    "perspective": "First Person",
+    "genre": "Puzzle",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Asphalt 9: Legends",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Forza Horizon 5",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Need for Speed: Heat",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Teardown",
+    "perspective": "First Person",
+    "genre": "Sandbox",
+    "mode": "Singleplayer",
+    "process_name": "teardown.exe",
+    "process_source": "exact(Teardown)"
+  },
+  {
+    "game": "Star Wars Battlefront II",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "American Truck Simulator",
+    "perspective": "First Person",
+    "genre": "Driving Sim",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Remnant 2",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "No Man's Sky",
+    "perspective": "First Person",
+    "genre": "Exploration",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Star Citizen",
+    "perspective": "First Person",
+    "genre": "Exploration",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Hitman 3",
+    "perspective": "Third Person",
+    "genre": "Stealth",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "The Isle",
+    "perspective": "Third Person",
+    "genre": "Survival",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Subnautica",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "ICARUS",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Sons of the Forest",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Enshrouded",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Ready or Not",
+    "perspective": "First Person",
+    "genre": "Tactical Shooter",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Elden Ring",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": "eldenring.exe",
+    "process_source": "exact(Elden Ring)"
+  },
+  {
+    "game": "Elden Ring: Shadow of the Erdtree",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "The Elder Scrolls V: Skyrim",
+    "perspective": "First Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": "SkyrimLauncher.exe",
+    "process_source": "exact(The Elder Scrolls V: Skyrim)"
+  },
+  {
+    "game": "The Elder Scrolls Online",
+    "perspective": "Third Person",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Starfield",
+    "perspective": "First Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": "Starfield.exe",
+    "process_source": "exact(Starfield)"
+  },
+  {
+    "game": "Avowed",
+    "perspective": "First Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Outer Worlds",
+    "perspective": "First Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Outer Worlds 2",
+    "perspective": "First Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Dragon's Dogma 2",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Dragon's Dogma: Dark Arisen",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Dragon Age: Inquisition",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": "DragonAgeInquisition.exe",
+    "process_source": "exact(Dragon Age: Inquisition)"
+  },
+  {
+    "game": "Dragon Age: The Veilguard",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Mass Effect Legendary Edition",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Mass Effect Andromeda",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "The Witcher 2: Assassins of Kings",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "GreedFall",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "GreedFall II: The Dying World",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "ELEX II",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Gothic 1 Remake",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Lords of the Fallen",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Surge 2",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Banishers: Ghosts of New Eden",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Clair Obscur: Expedition 33",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Forspoken",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Tales of Arise",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Star Ocean: The Second Story R",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": "SO2R.exe",
+    "process_source": "exact(Star Ocean: The Second Story R)"
+  },
+  {
+    "game": "Ys X: Nordics",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Legend of Heroes: Trails through Daybreak",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Eiyuden Chronicle: Hundred Heroes",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Octopath Traveler II",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Octopath Traveler",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Xenoblade Chronicles 3",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Xenoblade Chronicles X: Definitive Edition",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "The Legend of Zelda: Tears of the Kingdom",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "The Legend of Zelda: Breath of the Wild",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Pokemon Legends: Arceus",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Pokemon Legends: Z-A",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Pokemon Scarlet and Violet",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Monster Hunter Wilds",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Monster Hunter: World",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Wild Hearts",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Dauntless",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Wuchang: Fallen Feathers",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Khazan: The First Berserker",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Phantom Blade Zero",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Crimson Desert",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Witcher IV",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Fable",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Light No Fire",
+    "perspective": "Third Person",
+    "genre": "Survival",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Nioh",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Nioh 2",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Demon's Souls",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Dark Souls II: Scholar of the First Sin",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": "DarkSoulsII.exe",
+    "process_source": "exact(Dark Souls II: Scholar of the First Sin)"
+  },
+  {
+    "game": "Code Vein",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": "CodeVein-Win64-Shipping.exe",
+    "process_source": "exact(Code Vein)"
+  },
+  {
+    "game": "Mortal Shell",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Stranger of Paradise: Final Fantasy Origin",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": "SOPFFO.exe",
+    "process_source": "exact(Stranger of Paradise: Final Fantasy Origin)"
+  },
+  {
+    "game": "Thymesia",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Last Faith",
+    "perspective": "Side-Scrolling",
+    "genre": "Metroidvania",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Nine Sols",
+    "perspective": "Side-Scrolling",
+    "genre": "Metroidvania",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Lies of P: Overture",
+    "perspective": "Third Person",
+    "genre": "Souls-like",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Dishonored",
+    "perspective": "First Person",
+    "genre": "Immersive Sim",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Dishonored 2",
+    "perspective": "First Person",
+    "genre": "Immersive Sim",
+    "mode": "Singleplayer",
+    "process_name": "Dishonored2.exe",
+    "process_source": "exact(Dishonored 2)"
+  },
+  {
+    "game": "Dishonored: Death of the Outsider",
+    "perspective": "First Person",
+    "genre": "Immersive Sim",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Prey",
+    "perspective": "First Person",
+    "genre": "Immersive Sim",
+    "mode": "Singleplayer",
+    "process_name": "prey.exe",
+    "process_source": "exact(Prey)"
+  },
+  {
+    "game": "Deathloop",
+    "perspective": "First Person",
+    "genre": "Immersive Sim",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "BioShock Remastered",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": "BioshockHD.exe",
+    "process_source": "exact(BioShock Remastered)"
+  },
+  {
+    "game": "BioShock 2 Remastered",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "BioShock Infinite",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": "BioShockInfinite.exe",
+    "process_source": "exact(BioShock Infinite)"
+  },
+  {
+    "game": "System Shock (Remake)",
+    "perspective": "First Person",
+    "genre": "Immersive Sim",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Thief",
+    "perspective": "First Person",
+    "genre": "Stealth",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Metro 2033 Redux",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": "metro.exe",
+    "process_source": "exact(Metro 2033 Redux)"
+  },
+  {
+    "game": "Metro: Last Light Redux",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Metro Exodus",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "S.T.A.L.K.E.R. 2: Heart of Chornobyl",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "S.T.A.L.K.E.R.: Shadow of Chernobyl",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Half-Life: Alyx",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Half-Life 2",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Pathologic 2",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Mundaun",
+    "perspective": "First Person",
+    "genre": "Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Assassin's Creed Origins",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Assassin's Creed IV: Black Flag",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "AC4BFSP.exe",
+    "process_source": "exact(Assassin's Creed IV: Black Flag)"
+  },
+  {
+    "game": "Assassin's Creed Unity",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "ACU.exe",
+    "process_source": "exact(Assassin's Creed Unity)"
+  },
+  {
+    "game": "Assassin's Creed Syndicate",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "restart64.exe",
+    "process_source": "exact(Assassin's Creed Syndicate)"
+  },
+  {
+    "game": "Assassin's Creed II",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "AssassinsCreedIIGame.exe",
+    "process_source": "exact(Assassin's Creed II)"
+  },
+  {
+    "game": "Assassin's Creed Brotherhood",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Assassin's Creed Revelations",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Assassin's Creed III Remastered",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "ACIII.exe",
+    "process_source": "exact(Assassin's Creed III Remastered)"
+  },
+  {
+    "game": "Far Cry 3",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": "Gibbed.Dunia2.Unpack.EXE",
+    "process_source": "exact(Far Cry 3)"
+  },
+  {
+    "game": "Far Cry 4",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": "Gibbed.Dunia2.Unpack.exe",
+    "process_source": "exact(Far Cry 4)"
+  },
+  {
+    "game": "Far Cry Primal",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Far Cry New Dawn",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": "Unlock_FOV.exe",
+    "process_source": "exact(Far Cry New Dawn)"
+  },
+  {
+    "game": "Avatar: Frontiers of Pandora",
+    "perspective": "First Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "afop.exe",
+    "process_source": "exact(Avatar: Frontiers of Pandora)"
+  },
+  {
+    "game": "Star Wars Outlaws",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "Outlaws_Plus.exe",
+    "process_source": "exact(Star Wars Outlaws)"
+  },
+  {
+    "game": "Ghost Recon Wildlands",
+    "perspective": "Third Person",
+    "genre": "Tactical Shooter",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Ghost Recon Breakpoint",
+    "perspective": "Third Person",
+    "genre": "Tactical Shooter",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Tom Clancy's The Division",
+    "perspective": "Third Person",
+    "genre": "Shooter",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Tom Clancy's The Division 2",
+    "perspective": "Third Person",
+    "genre": "Shooter",
+    "mode": "Multiplayer",
+    "process_name": "TheDivision2.exe",
+    "process_source": "exact(Tom Clancy's The Division 2)"
+  },
+  {
+    "game": "Just Cause 2",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "L.A. Noire",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "LANoire.exe",
+    "process_source": "exact(L.A. Noire)"
+  },
+  {
+    "game": "Saints Row IV",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Saints Row: The Third Remastered",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Burnout Paradise Remastered",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Grand Theft Auto V",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "restart64.exe",
+    "process_source": "exact(Grand Theft Auto V)"
+  },
+  {
+    "game": "Grand Theft Auto IV",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "GTAIV.exe",
+    "process_source": "exact(Grand Theft Auto IV)"
+  },
+  {
+    "game": "Grand Theft Auto: The Trilogy - Definitive Edition",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Grand Theft Auto VI",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Bully: Scholarship Edition",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Red Dead Redemption",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "RDR.exe",
+    "process_source": "exact(Red Dead Redemption)"
+  },
+  {
+    "game": "Mafia: The Old Country",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Batman: Arkham Knight",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Batman: Arkham City",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Batman: Arkham Asylum",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "ShippingPC-BmGame.exe",
+    "process_source": "exact(Batman: Arkham Asylum)"
+  },
+  {
+    "game": "Gotham Knights",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Suicide Squad: Kill the Justice League",
+    "perspective": "Third Person",
+    "genre": "Shooter",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Marvel's Guardians of the Galaxy",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Marvel's Avengers",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Marvel 1943: Rise of Hydra",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Marvel's Wolverine",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Hellblade: Senua's Sacrifice",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Death Stranding 2: On the Beach",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Metal Gear Solid V: The Phantom Pain",
+    "perspective": "Third Person",
+    "genre": "Stealth",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Metal Gear Solid Delta: Snake Eater",
+    "perspective": "Third Person",
+    "genre": "Stealth",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Alan Wake Remastered",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Uncharted: The Nathan Drake Collection",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Elite Dangerous",
+    "perspective": "First Person",
+    "genre": "Simulation",
+    "mode": "Multiplayer",
+    "process_name": "USS.exe",
+    "process_source": "exact(Elite Dangerous)"
+  },
+  {
+    "game": "EVE Online",
+    "perspective": "Third Person",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Everspace 2",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Chorus",
+    "perspective": "Third Person",
+    "genre": "Action",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Pathless",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Cities: Skylines",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": "Cities.exe",
+    "process_source": "exact(Cities: Skylines)"
+  },
+  {
+    "game": "Anno 1800",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Anno 117: Pax Romana",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Manor Lords",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Frostpunk",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Frostpunk 2",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Workers & Resources: Soviet Republic",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Tropico 6",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "SimCity",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Surviving Mars",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Foundation",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Going Medieval",
+    "perspective": "Top-Down",
+    "genre": "Colony Sim",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Farthest Frontier",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Ostriv",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Timberborn",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Against the Storm",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Songs of Syx",
+    "perspective": "Top-Down",
+    "genre": "Colony Sim",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Banished",
+    "perspective": "Top-Down",
+    "genre": "City Builder",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Old World",
+    "perspective": "Top-Down",
+    "genre": "4X Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Sid Meier's Civilization VI",
+    "perspective": "Top-Down",
+    "genre": "4X Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Sid Meier's Civilization VII",
+    "perspective": "Top-Down",
+    "genre": "4X Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Crusader Kings III",
+    "perspective": "Top-Down",
+    "genre": "Grand Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Europa Universalis IV",
+    "perspective": "Top-Down",
+    "genre": "Grand Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Europa Universalis V",
+    "perspective": "Top-Down",
+    "genre": "Grand Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Victoria 3",
+    "perspective": "Top-Down",
+    "genre": "Grand Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Total War: Warhammer III",
+    "perspective": "Top-Down",
+    "genre": "Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Total War: Pharaoh Dynasties",
+    "perspective": "Top-Down",
+    "genre": "Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Total War: Three Kingdoms",
+    "perspective": "Top-Down",
+    "genre": "Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Total War: Rome II",
+    "perspective": "Top-Down",
+    "genre": "Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Age of Empires IV",
+    "perspective": "Top-Down",
+    "genre": "RTS",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Age of Empires II: Definitive Edition",
+    "perspective": "Top-Down",
+    "genre": "RTS",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Company of Heroes 3",
+    "perspective": "Top-Down",
+    "genre": "RTS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "They Are Billions",
+    "perspective": "Top-Down",
+    "genre": "RTS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Stellaris",
+    "perspective": "Top-Down",
+    "genre": "4X Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Endless Space 2",
+    "perspective": "Top-Down",
+    "genre": "4X Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Distant Worlds 2",
+    "perspective": "Top-Down",
+    "genre": "4X Strategy",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Subnautica: Below Zero",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "7 Days to Die",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Conan Exiles",
+    "perspective": "Third Person",
+    "genre": "Survival",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Nightingale",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Once Human",
+    "perspective": "Third Person",
+    "genre": "Survival",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Soulmask",
+    "perspective": "Third Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Smalland: Survive the Wilds",
+    "perspective": "Third Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Medieval Dynasty",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Bellwright",
+    "perspective": "Third Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Lightyear Frontier",
+    "perspective": "First Person",
+    "genre": "Farming Sim",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Long Dark",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Green Hell",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Project Zomboid",
+    "perspective": "Isometric",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "State of Decay 2",
+    "perspective": "Third Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "State of Decay 3",
+    "perspective": "Third Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Lord of the Rings: Return to Moria",
+    "perspective": "Third Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Palworld",
+    "perspective": "Third Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": "Palworld-Win64-Shipping.exe",
+    "process_source": "exact(Palworld)"
+  },
+  {
+    "game": "Aloft",
+    "perspective": "Third Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Abiotic Factor",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Empyrion: Galactic Survival",
+    "perspective": "First Person",
+    "genre": "Survival",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Resident Evil 2 (Remake)",
+    "perspective": "Third Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Resident Evil 3 (Remake)",
+    "perspective": "Third Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Resident Evil 7: Biohazard",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": "re7.exe",
+    "process_source": "exact(Resident Evil 7: Biohazard)"
+  },
+  {
+    "game": "Dead Space (Remake)",
+    "perspective": "Third Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "The Callisto Protocol",
+    "perspective": "Third Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Alien: Isolation",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Amnesia: The Bunker",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Amnesia: Rebirth",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "SOMA",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Layers of Fear",
+    "perspective": "First Person",
+    "genre": "Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Visage",
+    "perspective": "First Person",
+    "genre": "Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Casting of Frank Stone",
+    "perspective": "Third Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Until Dawn",
+    "perspective": "Third Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Quarry",
+    "perspective": "Third Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Dark Pictures Anthology: Man of Medan",
+    "perspective": "Third Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Dark Pictures Anthology: Little Hope",
+    "perspective": "Third Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Dark Pictures Anthology: House of Ashes",
+    "perspective": "Third Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "The Dark Pictures Anthology: The Devil in Me",
+    "perspective": "Third Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Little Nightmares",
+    "perspective": "Third Person",
+    "genre": "Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Little Nightmares II",
+    "perspective": "Third Person",
+    "genre": "Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Little Nightmares III",
+    "perspective": "Third Person",
+    "genre": "Horror",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Silent Hill f",
+    "perspective": "Third Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Tormented Souls",
+    "perspective": "Third Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Crow Country",
+    "perspective": "Third Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Mouthwashing",
+    "perspective": "First Person",
+    "genre": "Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Martha is Dead",
+    "perspective": "First Person",
+    "genre": "Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Routine",
+    "perspective": "First Person",
+    "genre": "Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Cronos: The New Dawn",
+    "perspective": "Third Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Outlast",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Outlast II",
+    "perspective": "First Person",
+    "genre": "Survival Horror",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Hades",
+    "perspective": "Isometric",
+    "genre": "Roguelike",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Hades II",
+    "perspective": "Isometric",
+    "genre": "Roguelike",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Cuphead",
+    "perspective": "Side-Scrolling",
+    "genre": "Action",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Sable",
+    "perspective": "Third Person",
+    "genre": "Exploration",
+    "mode": "Singleplayer",
+    "process_name": "Sable.exe",
+    "process_source": "exact(Sable)"
+  },
+  {
+    "game": "Disco Elysium",
+    "perspective": "Isometric",
+    "genre": "RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Hi-Fi Rush",
+    "perspective": "Third Person",
+    "genre": "Action",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "It Takes Two",
+    "perspective": "Third Person",
+    "genre": "Platformer",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Tunic",
+    "perspective": "Isometric",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "Tunic.exe",
+    "process_source": "exact(Tunic)"
+  },
+  {
+    "game": "Death's Door",
+    "perspective": "Isometric",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "DeathsDoor.exe",
+    "process_source": "exact(Death's Door)"
+  },
+  {
+    "game": "Solar Ash",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Cocoon",
+    "perspective": "Isometric",
+    "genre": "Puzzle",
+    "mode": "Singleplayer",
+    "process_name": "universe.exe",
+    "process_source": "exact(Cocoon)"
+  },
+  {
+    "game": "Planet of Lana",
+    "perspective": "Side-Scrolling",
+    "genre": "Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Neva",
+    "perspective": "Side-Scrolling",
+    "genre": "Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Gris",
+    "perspective": "Side-Scrolling",
+    "genre": "Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Spiritfarer",
+    "perspective": "Side-Scrolling",
+    "genre": "Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Sayonara Wild Hearts",
+    "perspective": "Third Person",
+    "genre": "Action",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "The Witness",
+    "perspective": "First Person",
+    "genre": "Puzzle",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "The Talos Principle",
+    "perspective": "First Person",
+    "genre": "Puzzle",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "The Talos Principle 2",
+    "perspective": "First Person",
+    "genre": "Puzzle",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Manifold Garden",
+    "perspective": "First Person",
+    "genre": "Puzzle",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Superliminal",
+    "perspective": "First Person",
+    "genre": "Puzzle",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Lorelei and the Laser Eyes",
+    "perspective": "Top-Down",
+    "genre": "Puzzle",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Plucky Squire",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "Storybook.exe",
+    "process_source": "exact(The Plucky Squire)"
+  },
+  {
+    "game": "Pentiment",
+    "perspective": "Side-Scrolling",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Eastward",
+    "perspective": "Top-Down",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Ori and the Will of the Wisps",
+    "perspective": "Side-Scrolling",
+    "genre": "Metroidvania",
+    "mode": "Singleplayer",
+    "process_name": "oriwotw.exe",
+    "process_source": "exact(Ori and the Will of the Wisps)"
+  },
+  {
+    "game": "Ori and the Blind Forest",
+    "perspective": "Side-Scrolling",
+    "genre": "Metroidvania",
+    "mode": "Singleplayer",
+    "process_name": "ori.exe",
+    "process_source": "exact(Ori and the Blind Forest)"
+  },
+  {
+    "game": "Hollow Knight",
+    "perspective": "Side-Scrolling",
+    "genre": "Metroidvania",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Hollow Knight: Silksong",
+    "perspective": "Side-Scrolling",
+    "genre": "Metroidvania",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Blasphemous",
+    "perspective": "Side-Scrolling",
+    "genre": "Metroidvania",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Blasphemous II",
+    "perspective": "Side-Scrolling",
+    "genre": "Metroidvania",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "ENDER LILIES: Quietus of the Knights",
+    "perspective": "Side-Scrolling",
+    "genre": "Metroidvania",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "ENDER MAGNOLIA: Bloom in the Mist",
+    "perspective": "Side-Scrolling",
+    "genre": "Metroidvania",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Animal Well",
+    "perspective": "Side-Scrolling",
+    "genre": "Metroidvania",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Stray Gods: The Roleplaying Musical",
+    "perspective": "Third Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": "StrayGods-Win64-Shipping.exe",
+    "process_source": "exact(Stray Gods: The Roleplaying Musical)"
+  },
+  {
+    "game": "Venba",
+    "perspective": "Top-Down",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": "Venba.exe",
+    "process_source": "exact(Venba)"
+  },
+  {
+    "game": "Firewatch",
+    "perspective": "First Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "What Remains of Edith Finch",
+    "perspective": "First Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Gone Home",
+    "perspective": "First Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Tacoma",
+    "perspective": "First Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Vanishing of Ethan Carter",
+    "perspective": "First Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Everybody's Gone to the Rapture",
+    "perspective": "First Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Stanley Parable: Ultra Deluxe",
+    "perspective": "First Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "ABZU",
+    "perspective": "Third Person",
+    "genre": "Exploration",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Journey",
+    "perspective": "Third Person",
+    "genre": "Exploration",
+    "mode": "Singleplayer",
+    "process_name": "Journey.exe",
+    "process_source": "exact(Journey)"
+  },
+  {
+    "game": "Sky: Children of the Light",
+    "perspective": "Third Person",
+    "genre": "Exploration",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Flower",
+    "perspective": "Third Person",
+    "genre": "Exploration",
+    "mode": "Singleplayer",
+    "process_name": "Flower.exe",
+    "process_source": "exact(Flower)"
+  },
+  {
+    "game": "RiME",
+    "perspective": "Third Person",
+    "genre": "Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Brothers: A Tale of Two Sons Remake",
+    "perspective": "Third Person",
+    "genre": "Adventure",
+    "mode": "Singleplayer",
+    "process_name": "Brothers-Win64-Shipping.exe",
+    "process_source": "exact(Brothers: A Tale of Two Sons Remake)"
+  },
+  {
+    "game": "Lake",
+    "perspective": "First Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Botany Manor",
+    "perspective": "First Person",
+    "genre": "Puzzle",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Strange Horticulture",
+    "perspective": "Top-Down",
+    "genre": "Puzzle",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Mythwrecked: Ambrosia Island",
+    "perspective": "Third Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Season: A Letter to the Future",
+    "perspective": "Third Person",
+    "genre": "Narrative Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Citizen Sleeper",
+    "perspective": "Top-Down",
+    "genre": "RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Citizen Sleeper 2: Starward Vector",
+    "perspective": "Top-Down",
+    "genre": "RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Persona 3 Reload",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Persona 4 Golden",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Persona 5 Tactica",
+    "perspective": "Isometric",
+    "genre": "Tactics",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Ni no Kuni II: Revenant Kingdom",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Ni no Kuni: Wrath of the White Witch Remastered",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Granblue Fantasy: Relink",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Scarlet Nexus",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": "ScarletNexus-Win64-Shipping.exe",
+    "process_source": "exact(Scarlet Nexus)"
+  },
+  {
+    "game": "Tales of Berseria",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Tales of Zestiria",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Sand Land",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": "SANDLAND.exe",
+    "process_source": "exact(Sand Land)"
+  },
+  {
+    "game": "One Piece Odyssey",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Dragon Ball Z: Kakarot",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Dragon Ball: Sparking! Zero",
+    "perspective": "Third Person",
+    "genre": "Fighting",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Naruto X Boruto Ultimate Ninja Storm Connections",
+    "perspective": "Third Person",
+    "genre": "Fighting",
+    "mode": "Multiplayer",
+    "process_name": "NSUNSC.exe",
+    "process_source": "search→Naruto X Boruto: Ultimate Ninja Storm Connections"
+  },
+  {
+    "game": "Demon Slayer: The Hinokami Chronicles 2",
+    "perspective": "Third Person",
+    "genre": "Fighting",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Final Fantasy XV",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Final Fantasy VII Remake Intergrade",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "World of Warcraft: The War Within",
+    "perspective": "Third Person",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "World of Warcraft Classic",
+    "perspective": "Third Person",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Guild Wars 2",
+    "perspective": "Third Person",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "New World: Aeternum",
+    "perspective": "Third Person",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Throne and Liberty",
+    "perspective": "Third Person",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Black Desert Online",
+    "perspective": "Third Person",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Star Wars: The Old Republic",
+    "perspective": "Third Person",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Old School RuneScape",
+    "perspective": "Third Person",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": "RuneLite.exe",
+    "process_source": "exact(Old School RuneScape)"
+  },
+  {
+    "game": "RuneScape",
+    "perspective": "Third Person",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Albion Online",
+    "perspective": "Top-Down",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Genshin Impact",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Honkai: Star Rail",
+    "perspective": "Third Person",
+    "genre": "JRPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Honkai Impact 3rd",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Tower of Fantasy",
+    "perspective": "Third Person",
+    "genre": "MMORPG",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Infinity Nikki",
+    "perspective": "Third Person",
+    "genre": "Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Snowbreak: Containment Zone",
+    "perspective": "Third Person",
+    "genre": "Shooter",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Strinova",
+    "perspective": "Third Person",
+    "genre": "Hero Shooter",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "DOOM (2016)",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "DOOM Eternal",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "DOOM: The Dark Ages",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Wolfenstein: The New Order",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Wolfenstein II: The New Colossus",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Wolfenstein: Youngblood",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Co-op",
+    "process_name": "Youngblood_x64vk.exe",
+    "process_source": "exact(Wolfenstein: Youngblood)"
+  },
+  {
+    "game": "Borderlands 4",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Tiny Tina's Wonderlands",
+    "perspective": "First Person",
+    "genre": "FPS",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "The Crew 2",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Test Drive Unlimited Solar Crown",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Riders Republic",
+    "perspective": "Third Person",
+    "genre": "Sports",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Trials Rising",
+    "perspective": "Third Person",
+    "genre": "Racing",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Ride 5",
+    "perspective": "Third Person",
+    "genre": "Racing Sim",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "EA Sports WRC",
+    "perspective": "Third Person",
+    "genre": "Racing Sim",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Risk of Rain 2",
+    "perspective": "Third Person",
+    "genre": "Roguelike Shooter",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Curse of the Dead Gods",
+    "perspective": "Isometric",
+    "genre": "Roguelike",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Children of Morta",
+    "perspective": "Top-Down",
+    "genre": "Roguelike",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Roboquest",
+    "perspective": "First Person",
+    "genre": "Roguelike Shooter",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Gunfire Reborn",
+    "perspective": "First Person",
+    "genre": "Roguelike Shooter",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Ravenswatch",
+    "perspective": "Isometric",
+    "genre": "Roguelike",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Cult of the Lamb",
+    "perspective": "Isometric",
+    "genre": "Roguelike",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Diablo IV",
+    "perspective": "Isometric",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Diablo IV: Vessel of Hatred",
+    "perspective": "Isometric",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Path of Exile 2",
+    "perspective": "Isometric",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Last Epoch",
+    "perspective": "Isometric",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Wayfinder",
+    "perspective": "Third Person",
+    "genre": "Action RPG",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Astro Bot",
+    "perspective": "Third Person",
+    "genre": "Platformer",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Astro's Playroom",
+    "perspective": "Third Person",
+    "genre": "Platformer",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": null
+  },
+  {
+    "game": "Ratchet & Clank: Rift Apart",
+    "perspective": "Third Person",
+    "genre": "Platformer",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Sackboy: A Big Adventure",
+    "perspective": "Third Person",
+    "genre": "Platformer",
+    "mode": "Co-op",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Kena: Bridge of Spirits",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": "Kena-Win64-Shipping.exe",
+    "process_source": "exact(Kena: Bridge of Spirits)"
+  },
+  {
+    "game": "A Hat in Time",
+    "perspective": "Third Person",
+    "genre": "Platformer",
+    "mode": "Co-op",
+    "process_name": "HatinTimeGame.exe",
+    "process_source": "exact(A Hat in Time)"
+  },
+  {
+    "game": "Psychonauts 2",
+    "perspective": "Third Person",
+    "genre": "Platformer",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "Hytale",
+    "perspective": "Third Person",
+    "genre": "Sandbox",
+    "mode": "Multiplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  },
+  {
+    "game": "007 First Light",
+    "perspective": "Third Person",
+    "genre": "Action Adventure",
+    "mode": "Singleplayer",
+    "process_name": null,
+    "process_source": "exact_no_exe"
+  }
+]

@@ -23,7 +23,7 @@ GREEN   = "#4caf50"
 LINK    = "#9c8fe0"
 
 WIN_W = 580
-WIN_H = 630
+WIN_H = 720
 
 PAGES = [
     {
@@ -59,30 +59,43 @@ PAGES = [
             "2.  Hacé doble clic en el ícono  Pleiada Recorder  del escritorio.\n"
             "     Aparece una pequeña ventana flotante — podés moverla\n"
             "     arrastrando el encabezado.\n\n"
-            "3.  Hacé clic en el botón  Iniciar grabación  para comenzar.\n"
+            "3.  En el Recorder, seleccioná de la lista el juego que vas a grabar.\n"
+            "     Tiene que coincidir con el juego que ya tenés capturado en OBS.\n"
+            "     Sin seleccionar el juego, la grabación no va a iniciar.\n\n"
+            "4.  Hacé clic en el botón  Iniciar grabación  para comenzar.\n"
             "     El botón cambia a  Detener grabación  y el contador empieza a correr.\n\n"
-            "4.  Jugá unos 60 segundos y luego hacé clic en  Detener grabación.\n\n"
-            "5.  Los archivos quedan guardados automáticamente en:\n"
-            "     Documentos  ›  Pleiada Recordings"
+            "5.  Jugá unos 60 segundos y luego hacé clic en  Detener grabación\n"
+            "     desde el Recorder — nunca detengas la grabación desde OBS,\n"
+            "     para que los archivos queden sincronizados correctamente.\n\n"
+            "6.  Si la grabación fue exitosa, los archivos quedan guardados en:\n"
+            "     Documentos  ›  Pleiada Recordings\n"
+            "     Podés revisarlos para verificar que no haya información personal.\n"
+            "     ⚠ Si modificás algún archivo, la sesión va a ser rechazada."
         ),
     },
     {
         "step": "3 / 3",
-        "title": "SYNCH CHECKER — Verificar sincronización",
+        "title": "SYNCH CHECKER — Verificar y enviar sesión",
         "body": (
-            "Después de cada sesión, verificá que el video y los logs\n"
-            "quedaron bien sincronizados.\n\n"
-            "1.  Hacé doble clic en el ícono  Synch Checker  del escritorio.\n\n"
-            "2.  Hacé clic en  Seleccionar carpeta  y elegí la carpeta de la\n"
-            "     sesión (por ejemplo:  2026-04-25 13-09-07 recording ).\n\n"
-            "3.  Hacé clic en  Verificar Sync.\n\n"
-            "Resultados posibles:\n"
-            "  ✅  SINCRONIZADOS  →  la sesión está bien, podés entregarla.\n"
-            "  ⚠   OFFSET          →  desfase detectado, la sesión puede no ser usable.\n\n"
+            "Después de cada sesión de juego, el Recorder verifica automáticamente\n"
+            "que el video y los logs quedaron bien sincronizados.\n\n"
+            "1.  Al terminar la grabación, el Recorder analiza la sesión\n"
+            "     automáticamente. No tenés que hacer nada.\n\n"
+            "2.  Si el resultado es  ✅ SINCRONIZADOS,  la sesión queda lista\n"
+            "     para enviar a Pleiada — no necesitás hacer nada más.\n\n"
+            "3.  Si el resultado es  ⚠ OFFSET  o  ✗ ERROR,  la sesión se\n"
+            "     descarta automáticamente. Los datos con errores nunca se\n"
+            "     envían — iniciá una nueva grabación.\n\n"
+            "📌  NOTA FINAL\n\n"
+            "Es tu responsabilidad no compartir información privada o que te identifique.\n"
+            "Si eso ocurre, el dataset generado va a ser descartado.\n\n"
+            "Buscamos gameplay continuo con la menor cantidad de cutscenes posibles.\n"
+            "El audio debe incluir la música y los FX del juego, pero sin voces humanas —\n"
+            "ni la tuya ni la de otros jugadores.\n\n"
             "¿Dudas? Visitá  "
         ),
-        "link": "https://www.pleiada.ai/faqs",
-        "link_text": "www.pleiada.ai/faqs",
+        "link": "https://www.gameplayalliance.gg",
+        "link_text": "www.gameplayalliance.gg",
     },
 ]
 

@@ -750,6 +750,8 @@ class App(tk.Tk):
         result_frame.columnconfigure(0, weight=1)
         result_frame.rowconfigure(0, weight=1)
 
+        result_frame.columnconfigure(1, minsize=20)   # PLE-19: columna scrollbar con ancho mínimo garantizado
+
         _vbar = tk.Scrollbar(
             result_frame,
             bg=BG_TITLEBAR,
@@ -760,7 +762,7 @@ class App(tk.Tk):
             bd=0,
             highlightthickness=0
         )
-        _vbar.grid(row=0, column=1, sticky="ns", padx=(0, 4), pady=4)
+        _vbar.grid(row=0, column=1, sticky="ns", padx=(0, 8), pady=4)  # PLE-19: más margen derecho
 
         self.output = tk.Text(
             result_frame,
@@ -924,5 +926,44 @@ class App(tk.Tk):
 
 
 if __name__ == "__main__":
+    # PLE-27: Single-instance guard — impide abrir dos Synch Checkers en paralelo.
+    _mutex = None
+    try:
+        import ctypes as _ct2
+        _mutex   = _ct2.windll.kernel32.CreateMutexW(None, True, "PleiadaSynchCheckerMutex_v032")
+        _last_err = _ct2.windll.kernel32.GetLastError()
+        if _last_err == 183:   # ERROR_ALREADY_EXISTS
+            import tkinter as _tk2
+            import tkinter.messagebox as _mb
+            _r = _tk2.Tk(); _r.withdraw()
+            _mb.showwarning(
+                "Pleiada Synch Checker",
+                "Synch Checker ya está abierto.\n\nCerrá la ventana existente antes de abrir una nueva."
+            )
+            _r.destroy()
+            import sys as _sys2; _sys2.exit(0)
+    except Exception:
+        pass   # si falla el mutex, continuar igual
+
+    # PLE-19: DPI awareness — evita que Windows clipee el scrollbar en pantallas escaladas.
+    try:
+        import ctypes as _ct_dpi
+        try:
+            _ct_dpi.windll.shcore.SetProcessDpiAwareness(2)   # PROCESS_PER_MONITOR_DPI_AWARE
+        except Exception:
+            _ct_dpi.windll.user32.SetProcessDPIAware()        # fallback Windows < 8.1
+    except Exception:
+        pass
+
     app = App()
+
+    # Liberar mutex al salir
+    if _mutex:
+        try:
+            import ctypes as _ct3
+            _ct3.windll.kernel32.ReleaseMutex(_mutex)
+            _ct3.windll.kernel32.CloseHandle(_mutex)
+        except Exception:
+            pass
+
     app.mainloop()
