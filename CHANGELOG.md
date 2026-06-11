@@ -1,5 +1,31 @@
 # Changelog — Pleiada Recorder
 
+## V7.0 — 10/06/2026
+
+### Auto-grabación de demos POV (Team Fortress 2 / Left 4 Dead 2)
+- **El recorder dispara y corta el demo del juego solo.** Para juegos Source 1 (TF2 y L4D2)
+  lanzados con la consola TCP habilitada (`-netconport 2121`, lo deja el setup wizard), al
+  empezar a grabar (F9) el recorder manda `record` por la consola y al parar (F10) manda
+  `stop`. El miembro **no toca la consola**. El demo aporta la trayectoria de cámara que estos
+  juegos no exponen de otra forma.
+- **El demo queda dentro de la carpeta de sesión.** Al parar, el recorder copia el `.dem`
+  (`pleiada_<anchor_ts>.dem`, nombrado con el anchor para correlación exacta con el video)
+  desde la carpeta del juego a la de sesión → el miembro sube **una sola carpeta**. Best-effort:
+  si el juego no usa netcon (CS2 va por GOTV server-side, u otros), no pasa nada y la grabación
+  sigue normal.
+
+### Protección e integridad de los archivos de sesión
+- **Archivos de solo-lectura:** al finalizar una grabación que pasó el sync check, los 4 CSV,
+  el MP4, el `session_metadata.json` **y el demo `.dem`** quedan marcados como **solo-lectura**.
+  El usuario puede abrirlos y revisarlos (transparencia total) y descartar la sesión completa si
+  no quiere compartirla, pero no editarlos. Las sesiones rechazadas no se protegen (se descartan).
+- **Manifiesto de integridad (SHA-256):** el `session_metadata.json` incluye un bloque nuevo
+  `integrity` con el hash de cada archivo del dataset (4 CSV + MP4 + demo `.dem` si existe).
+  Certifica el original en el momento de captura: cualquier edición posterior cambia el hash y
+  la sesión se rechaza en el upload. Los derivados/preprocesamiento del AI Lab no afectan este registro.
+- **Schema de metadata `1.1`** (antes `1.0`): cambio **aditivo** (solo se agregó `integrity`,
+  no se renombró nada). Compatible hacia atrás con los consumidores existentes.
+
 ## V6.0 — 31/05/2026
 
 ### Metadata de sesión — key mapping y actividad

@@ -5,13 +5,13 @@ Aplicación unificada: login, selección de juego, grabación, sync check, empaq
 
 import tkinter as tk
 from tkinter import font as tkfont
-import json, os, sys, time, threading, subprocess, struct, glob, re, shutil, zipfile, io
+import json, os, sys, stat, time, threading, subprocess, struct, glob, re, shutil, zipfile, io
 import csv as _csv_mod, hashlib as _hashlib, platform as _platform
 import ctypes, ctypes.wintypes
 from pathlib import Path
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.6.0"
+VERSION = "v0.7.0"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -753,6 +753,22 @@ def _first_moof_duration_ms(path, timescale):
     except Exception:
         pass
     return None
+
+# Auto-record de demos POV para juegos Source 1 (TF2/L4D2): dispara record/stop por la consola
+# TCP del juego (-netconport 2121). No bloquea la grabación si falla (juego sin netcon → no-op).
+def _source_console(cmd, port=2121, timeout=4.0):
+    import socket
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=timeout) as s:
+            s.sendall((cmd + "\n").encode("utf-8")); time.sleep(0.15)
+        return True
+    except Exception:
+        return False
+
+def _autodemo_game(selected_game):
+    """True si el juego usa demo POV con auto-record (TF2/L4D2). CS2 NO (va por GOTV server-side)."""
+    t = ((selected_game or {}).get("game") or "").lower()
+    return ("team fortress" in t) or ("left 4 dead" in t)
 
 def compute_anchor_ts(rec_dir_str, existing_set):
     new_file = None
@@ -2023,6 +2039,79 @@ def _meta_key_mapping(exe_path, engine, game_name=""):
     return None, "unknown"  # Unity y otros: sin parser → se infiere del gameplay
 
 
+# ─── Integridad y protección de archivos (v0.7 / schema 1.1) ──────────────────
+
+def _sha256_file(path):
+    """SHA-256 de un archivo, leyendo en bloques de 1 MB (soporta MP4 grandes)."""
+    h = _hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _build_integrity(session_dir):
+    """
+    Bloque de integridad: SHA-256 de los 4 CSV + el MP4 + el demo .dem (POV de TF2/L4D2,
+    si existe), sobre los bytes finales (todo ya cerrado por el AHK y movido por OBS, y el
+    demo ya copiado a la carpeta de sesión). Certifica el ORIGINAL en el momento de captura;
+    cualquier edición posterior cambia el hash → la sesión se rechaza en el upload. No incluye
+    al propio session_metadata.json (no puede hashearse a sí mismo).
+    """
+    files = {}
+    names = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv", "video_timeline.csv"]
+    targets = ([session_dir / n for n in names] + sorted(session_dir.glob("*.mp4"))
+               + sorted(session_dir.glob("*.dem")))   # incluir el demo POV (TF2/L4D2) en el hash
+    for p in targets:
+        try:
+            if p.is_file():
+                files[p.name] = _sha256_file(p)
+        except Exception as e:
+            _obs_dbg(f"_build_integrity: {p.name}: {e}")
+    return {
+        "algorithm": "sha256",
+        "note": ("Hashes of the dataset as recorded by Pleiada Recorder. They certify the "
+                 "ORIGINAL files at capture time; any later edit changes the hash and the "
+                 "session is rejected at upload. AI Lab derivatives/preprocessing do not "
+                 "affect this record."),
+        "files": files,
+    }
+
+
+def _protect_session_files(session_dir):
+    """
+    Marca CSVs + MP4 + JSON + demo .dem (POV de TF2/L4D2) como solo-lectura. Disuasivo y señal de finalidad: el usuario
+    puede leerlos y descartar la sesión entera, pero no editarlos accidentalmente. Es
+    removible por el dueño del equipo — la garantía real de no-edición la da el manifiesto
+    de integridad (`integrity` en el metadata), verificable en el upload.
+    """
+    try:
+        names = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv",
+                 "video_timeline.csv", "session_metadata.json"]
+        targets = ([session_dir / n for n in names] + list(session_dir.glob("*.mp4"))
+                   + list(session_dir.glob("*.dem")))   # incluir el demo POV (TF2/L4D2) como solo-lectura
+        for p in targets:
+            try:
+                if p.is_file():
+                    os.chmod(str(p), stat.S_IREAD)
+            except Exception:
+                pass
+    except Exception as e:
+        _obs_dbg(f"_protect_session_files: {e}")
+
+
+def _unprotect_session_files(session_dir):
+    """Revierte el read-only de una sesión (para flujos que necesiten reescribir/borrar)."""
+    try:
+        for p in session_dir.iterdir():
+            try:
+                os.chmod(str(p), stat.S_IWRITE)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
 def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""):
     """
     Escribe session_metadata.json en session_dir.
@@ -2108,8 +2197,11 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
         sys_lang     = _meta_system_language()
         activity     = _meta_activity(session_dir, start_ms, end_ms)
 
+        # Manifiesto de integridad (SHA-256 de CSVs + MP4) — schema 1.1.
+        integrity = _build_integrity(session_dir)
+
         metadata = {
-            "schema_version":   "1.0",
+            "schema_version":   "1.1",
             "session_id":       session_id,
             "source_id":        source_id,
             "recorder_version": VERSION,
@@ -2193,6 +2285,8 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 "monitor_refresh_hz": hw.get("monitor_refresh_hz"),
                 "window_mode":        window_mode,
             },
+
+            "integrity": integrity,
         }
 
         out = session_dir / "session_metadata.json"
@@ -3225,6 +3319,8 @@ class PleiadaApp:
             return
         self._we_stopped = True   # le decimos al listener que NOSOTROS paramos
         self.recording = False
+        if getattr(self, "_demo_name", ""):   # cortar el demo POV (TF2/L4D2) si se estaba grabando
+            _source_console("stop")
         if self._cd_timer_id:
             self.root.after_cancel(self._cd_timer_id)
             self._cd_timer_id = None
@@ -3266,6 +3362,25 @@ class PleiadaApp:
                     break
                 time.sleep(0.5)
 
+            # 4b. Copiar el demo POV (TF2/L4D2) a la carpeta de sesión → el miembro sube UNA sola
+            #     carpeta. Best-effort: si no se encuentra el .dem, no rompe nada (queda en el juego).
+            dn   = getattr(self, "_demo_name", "")
+            exep = getattr(self, "_recording_exe_path", "")
+            if dn and exep:
+                try:
+                    gd = os.path.dirname(exep)
+                    src = None
+                    for _ in range(20):   # esperar a que el juego finalice el .dem tras `stop`
+                        hits = (glob.glob(os.path.join(gd, dn + ".dem")) +
+                                glob.glob(os.path.join(gd, "*", dn + ".dem")))
+                        if hits:
+                            src = hits[0]; break
+                        time.sleep(0.5)
+                    if src:
+                        shutil.copy2(src, str(sdir / (dn + ".dem")))
+                except Exception:
+                    pass
+
             # 5. Correr sync check — acumular statuses por archivo para mostrarlos en resultado
             _keys = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv", "video_timeline.csv", "video"]
             self._last_sync_statuses = {}
@@ -3286,6 +3401,12 @@ class PleiadaApp:
             # Bug 2: registrar el check del metadata json para mostrarlo en el análisis
             self._last_sync_statuses["metadata"] = ("ok"
                 if (sdir / "session_metadata.json").exists() else "err")
+
+            # 6c. Protección read-only — SOLO si la sesión pasó el sync check. Las
+            #     rechazadas se descartan (el usuario borra la carpeta), así que no se
+            #     protegen → evita conflictos con cualquier borrado posterior.
+            if results.get("session_ok"):
+                _protect_session_files(sdir)
 
             # 7. Mostrar resultado
             self.root.after(0, lambda: self._show_result(results["session_ok"], results, None))
@@ -3446,6 +3567,12 @@ class PleiadaApp:
             ANCHOR_FILE.write_text(str(anchor_ts), encoding="utf-8")
         except Exception:
             pass
+
+        # c.bis Auto-record del demo POV (TF2/L4D2) por netcon — el miembro no toca la consola.
+        self._demo_name = ""
+        if _autodemo_game(self.selected_game):
+            self._demo_name = f"pleiada_{anchor_ts}"
+            _source_console(f"record {self._demo_name}")
 
         # d. Resolver el exe del juego ANTES de lanzar AHK (el filtro de ventana lo usa).
         #    BUGFIX v0.5: antes start_ahk_logger se llamaba con el _recording_exe de la
