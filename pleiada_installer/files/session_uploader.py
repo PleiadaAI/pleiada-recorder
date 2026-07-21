@@ -16,6 +16,25 @@ import pleiada_api
 
 _EXCLUDE = {"pleiada_stop.txt", ".pleiada_upload.json"}
 
+# Reintentos por archivo (v0.8.8): redes hogareñas (router/AV/ISP) a veces matan
+# conexiones TLS largas a mitad del PUT — el síntoma clásico es
+# "<urlopen error EOF occurred in violation of protocol>". Un PUT interrumpido
+# no deja nada en S3 (es atómico), así que reintentar con conexión nueva es seguro.
+UPLOAD_RETRIES  = 3        # intentos por archivo
+RETRY_BACKOFF_S = (2, 5)   # espera antes del 2º y 3º intento
+
+_DIAG_LOG = Path.home() / "Documents" / "Pleiada Logs" / "upload.log"
+
+def _diag(text):
+    """Log de diagnóstico de subidas (misma carpeta visible que el crash log)."""
+    try:
+        _DIAG_LOG.parent.mkdir(parents=True, exist_ok=True)
+        ts = time.strftime("%Y-%m-%d %H:%M:%S")
+        with open(_DIAG_LOG, "a", encoding="utf-8") as f:
+            f.write(f"{ts}  {text}\n")
+    except Exception:
+        pass
+
 
 def session_info(session_dir: Path) -> dict:
     """Metadatos de la sesión para mostrar en el dialog de confirmación."""
@@ -137,7 +156,26 @@ def upload_session(session_dir: Path, token: str, call_id: str = "",
                 _check_cancel()   # corta el PUT en curso (aborta el body)
                 _report(_sb + file_sent, _fn)
 
-            _put_file(url, f, _cb)
+            # v0.8.8: hasta UPLOAD_RETRIES intentos por archivo, con backoff.
+            # La cancelación NO se reintenta; el resto de los errores sí.
+            size_mb = f.stat().st_size / (1024 * 1024)
+            for intento in range(1, UPLOAD_RETRIES + 1):
+                t0 = time.monotonic()
+                try:
+                    _put_file(url, f, _cb)
+                    if intento > 1:
+                        _diag(f"OK  {f.name} ({size_mb:.1f} MB) en intento {intento}")
+                    break
+                except UploadCancelled:
+                    raise
+                except Exception as e:
+                    elapsed = time.monotonic() - t0
+                    _diag(f"FALLO  {f.name} ({size_mb:.1f} MB) intento {intento}/"
+                          f"{UPLOAD_RETRIES} tras {elapsed:.0f}s: {e!r}")
+                    if intento >= UPLOAD_RETRIES:
+                        raise
+                    time.sleep(RETRY_BACKOFF_S[min(intento - 1, len(RETRY_BACKOFF_S) - 1)])
+                    _check_cancel()
             sent_before += f.stat().st_size
 
         if on_progress:

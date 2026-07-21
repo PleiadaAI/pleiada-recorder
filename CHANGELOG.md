@@ -5,6 +5,15 @@
 - Se retira el preset TEMPORAL de 5 minutos de Ajustes → GRABACIÓN (era solo para QA).
   Presets finales: 30 min / 1 h.
 
+### Subidas resistentes a cortes de red (reporte QA: "EOF occurred in violation of protocol")
+- **Reintentos automáticos por archivo** (hasta 3, con espera progresiva y conexión
+  nueva): las redes hogareñas a veces matan conexiones TLS largas a mitad de un archivo
+  grande — antes eso tiraba toda la subida con un error críptico; ahora se reintenta
+  solo. Un PUT interrumpido no deja nada en S3, así que reintentar es seguro.
+- **Log de diagnóstico de subidas** en `Documentos\Pleiada Logs\upload.log`: cada fallo
+  registra archivo, tamaño, intento, segundos transcurridos y el error exacto — si una
+  subida sigue fallando, ese log dice dónde y por qué.
+
 ## v0.8.7 — 21/07/2026
 
 ### Fix: entrar a Ajustes durante una subida la "cancelaba" y los reintentos morían con error SSL
