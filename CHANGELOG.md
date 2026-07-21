@@ -5,6 +5,15 @@
 - Se retira el preset TEMPORAL de 5 minutos de Ajustes → GRABACIÓN (era solo para QA).
   Presets finales: 30 min / 1 h.
 
+### Multipart: los datasets grandes ya no chocan contra el límite de S3
+- **Causa raíz del "EOF occurred in violation of protocol" con sesiones largas:** S3
+  rechaza subidas simples de más de 5 GiB (`EntityTooLarge`), y el MP4 de una sesión de
+  30 min supera eso de sobra. Ahora los archivos de más de 200 MB se suben en **partes
+  de 100 MB**, cada una con sus propios reintentos: no hay más límite de tamaño, y un
+  corte de red repite una parte de 100 MB en vez de tirar gigas ya subidos.
+- Cancelar (o un fallo definitivo) libera las partes ya subidas en S3 automáticamente.
+- Requiere backend `2026-07-22.2` + permiso IAM `s3:AbortMultipartUpload`.
+
 ### Subidas resistentes a cortes de red (reporte QA: "EOF occurred in violation of protocol")
 - **Reintentos automáticos por archivo** (hasta 3, con espera progresiva y conexión
   nueva): las redes hogareñas a veces matan conexiones TLS largas a mitad de un archivo
