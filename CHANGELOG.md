@@ -1,5 +1,115 @@
 # Changelog — Pleiada Recorder
 
+## v0.8.6 — 20/07/2026 (sin compilar)
+
+### El listado de juegos del Recorder ahora es EXACTAMENTE el del catálogo público
+- **Causa raíz del reporte de QA "no me aparece Metro 2033":** el Recorder
+  filtraba la lista de Airtable por la columna `active` (438 juegos) en vez de
+  `Publicado` (222) — la columna autoritativa que usa
+  `catalogo.gameplayalliance.gg`. Además, el fallback bundleado en el
+  instalador era una lista vieja de 536 juegos sin Metro 2033: en un install
+  fresco sin conexión a Airtable (o buscando antes de que termine el sync),
+  el buscador mostraba esa lista vieja.
+- El sync ahora filtra por `Publicado` (regla: lo que se ve en el catálogo es
+  lo que se puede grabar). El caché local pasa a `games_list_cache_v2.json`
+  para invalidar caches viejos con el filtro anterior.
+- Nuevo paso de build: `update_games_list.py` regenera el bundle desde
+  Airtable con el mismo filtro y el mismo código de descarga de la app
+  (documentado en INSTRUCCIONES_PARA_COMPILAR.md). Bundle regenerado:
+  222 juegos publicados con metadata completa (incluye default_key_mapping).
+- OJO dato: los juegos con órdenes activas deben tener el tilde Publicado en
+  Airtable — al momento de este cambio, Elden Ring (GA-2026-003) NO lo tiene.
+
+## v0.8.5 — 20/07/2026 (sin compilar)
+
+### Grabación crash-safe: fragmented MP4 (caso L4D2 20/07)
+- **Causa raíz del dataset perdido de L4D2 (20/07):** OBS grababa MP4 clásico, cuyo
+  índice (`moov`) se escribe recién al finalizar. OBS murió/fue cerrado sin finalizar
+  → 30 min de video (705 MB) quedaron ilegibles, sin resolución/fps/duración
+  (`video.*: null`, `truncated: true`).
+- El perfil Pleiada de OBS ahora graba **fragmented MP4** (`RecFormat2=fragmented_mp4`):
+  cada fragmento es autosuficiente, así que un crash de OBS pierde como mucho el último
+  GOP y el archivo sigue siendo reproducible y verificable. Migración triple:
+  perfil nuevo del instalador + migración del `basic.ini` existente en el instalador +
+  la app fuerza el formato vía WebSocket antes de CADA `StartRecord` (cubre perfiles
+  tocados a mano). Si el usuario dejó otro perfil activo en OBS, el Recorder
+  activa el perfil "Pleiada" antes de grabar (garantiza 1080p60 + bitrate +
+  formato); nunca se escribe sobre los perfiles propios del usuario — solo se
+  cambia cuál está activo.
+- El sync check ya soportaba fMP4 (duración vía scan de `moof`); verificado con
+  fMP4 sano, fMP4 truncado al 60% (usable hasta el último fragmento) y el MP4
+  clásico roto de L4D2 (detectado como truncado).
+
+### Gate AFK: sesiones con más de 10 min seguidos sin inputs no son válidas
+- El sync check ahora mide el idle continuo máximo (mismo cálculo que el bloque
+  `activity` del metadata) y rechaza la sesión si supera `MAX_CONT_IDLE_MS`
+  (10 minutos). La pantalla de resultado explica el motivo y la pantalla de
+  inicio avisa la regla ANTES de grabar — ambos textos hablan de "períodos
+  largos" sin revelar el umbral exacto, a propósito. El metadata registra
+  `sync.afk_rejected`. Solo en el Recorder por ahora (el backend no lo valida).
+- Origen: la sesión L4D2 del 20/07 grabó 30 min con el jugador alt-tabbeado
+  desde el segundo 3 (705 MB de pantalla estática).
+
+### TEMPORAL QA: preset de duración de 5 min
+- Ajustes → GRABACIÓN suma el preset `5m` junto a 30m/1h, para que QA pruebe
+  ciclos completos rápido. **Sacarlo antes de pasar a producción.**
+
+### Stop de grabación graceful: esperar a que OBS finalice el archivo
+- `StopRecord` responde al instante, pero OBS sigue escribiendo el archivo varios
+  segundos más. Antes el Recorder intentaba mover el MP4 inmediatamente (con
+  reintentos ciegos de 10 s): con archivos grandes o discos lentos podía capturar
+  un video a medio finalizar.
+- Ahora el stop espera el evento `RecordStateChanged → OUTPUT_STOPPED` (hasta 30 s,
+  con fallback a poll de `GetRecordStatus`) antes de buscar/mover el video, y al
+  moverlo verifica que tenga índice (`moov`/`moof`) — si no lo tiene, lo deja
+  logueado para diagnóstico y el sync check marca la sesión como no válida.
+- Además en v0.8.5 (ya commiteado antes): la pantalla de error de subida muestra
+  el motivo real del servidor.
+
+## v0.8.4 — 18/07/2026
+
+### Vuelve: duración máxima de sesión configurable + auto-reinicio (rescatado de v0.7.1)
+- **Ajustes → GRABACIÓN:** presets de duración máxima (30 min / 1 h — el máximo que el
+  Recorder permite grabar). La grabación se corta sola al llegar al límite; el contador
+  de la pantalla de grabación y el "SESIÓN MÁX" del inicio reflejan el valor configurado.
+- **Reinicio automático (toggle, OFF por defecto):** tras un corte por tiempo con sesión
+  válida, muestra una cuenta regresiva de 10 s y arranca una sesión nueva en su propia
+  carpeta (cancelable). Si la sesión no pasa el sync check, el ciclo se detiene y avisa.
+- Este feature existía solo como cambios sin commitear en el worktree v0.7.1 (nunca se
+  mergeó); se rescató (commit 1ceff25 en rama v0.7.1) y se re-implementó sobre v0.8.x.
+
+### Vuelve: crash logging (rescatado de v0.7.1)
+- Excepciones no manejadas (main + threads), errores de callbacks de la GUI y crashes
+  nativos (faulthandler) quedan en `Documentos\Pleiada Logs\` — una carpeta fácil de
+  encontrar para mandarla a soporte.
+
+### El tutorial ahora es web
+- Al terminar la instalación ya no se abren las ventanas del wizard local: se abre el
+  browser en `https://recorder.gameplayalliance.gg/`. El link "Ver tutorial de
+  configuración" de la app abre la misma URL.
+
+## v0.8.3 — 18/07/2026
+
+### Fix: "Cancelar" durante la subida no cancelaba de verdad (issue 7 QA)
+- **Causa raíz:** el botón Cancelar solo silenciaba la UI; el thread de subida seguía
+  corriendo en background, terminaba de subir los archivos y registraba la subida igual
+  (por eso el Data Set "cancelado" aparecía en el dashboard). Ahora la cancelación
+  aborta el PUT en curso y el registro (`finalize_upload`) no se llama nunca.
+- Del lado del backend (deploy aparte), `finalize_upload` ahora verifica contra S3 que
+  todos los archivos del dataset existan con tamaño > 0 antes de registrar la subida:
+  una subida incompleta no puede quedar registrada, haga lo que haga el cliente.
+
+## v0.8.2 — 18/07/2026
+
+### Fix: los uploads a Órdenes abiertas fallaban con "No se pudo subir la sesión"
+- **Causa raíz:** el uploader leía la duración de la sesión en la clave equivocada del
+  metadata (`session.duration_ms` en vez de `timing.duration_ms`, schema 1.1), así que
+  mandaba `duration_seconds=0` y el backend rechazaba la subida con un 400. Afectaba a
+  todos los uploads. Ahora lee `timing.duration_ms` (con fallback a `end-start`).
+- **Inscripciones frescas antes de subir:** el Recorder refresca la lista de órdenes
+  inscriptas justo antes del flujo de subida (antes solo al iniciar sesión), por si el
+  usuario se inscribe en el dashboard con el Recorder ya abierto.
+
 ## V7.0 — 10/06/2026
 
 ### Auto-grabación de demos POV (Team Fortress 2 / Left 4 Dead 2)

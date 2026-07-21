@@ -29,6 +29,15 @@ Si no tenes los archivos .bmp, en setup.iss comentar las lineas:
 3. Build -> Compile (o presionar F9)
 4. El archivo PleiadaRecorder_Setup.exe se genera en la carpeta Output\
 
+## Paso previo obligatorio — Refrescar la lista de juegos bundleada
+Antes de CADA compilacion, correr:
+```
+python update_games_list.py
+```
+Regenera `files\games_list.json` desde Airtable con el filtro "Publicado"
+(la misma lista del catalogo publico). Si falla por falta de conexion, el
+bundle anterior queda intacto — pero el instalador saldria con lista vieja.
+
 ## Estructura de carpetas esperada
 pleiada_installer\
 ├── setup.iss

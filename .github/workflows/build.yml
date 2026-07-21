@@ -17,6 +17,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ── 1.5. Version unica: el tag es la fuente de verdad ─────────
+      #    Falla el build si el tag vX.Y.Z no coincide con VERSION en
+      #    pleiada_app.pyw. Exporta APP_VERSION (sin la "v") para que
+      #    ISCC la inyecte en ambos instaladores y el manifiesto.
+      - name: Validate version consistency
+        shell: pwsh
+        run: |
+          $content = Get-Content "pleiada_installer\files\pleiada_app.pyw" -Raw
+          if ($content -notmatch '(?m)(?-i)^VERSION\s*=\s*"v([0-9]+\.[0-9]+(\.[0-9]+)?)"') {
+            Write-Error "No se encontro VERSION en pleiada_app.pyw"
+            exit 1
+          }
+          $fileVer = $Matches[1]
+          Write-Host "VERSION en pleiada_app.pyw: v$fileVer"
+          if ("${{ github.ref }}".StartsWith("refs/tags/")) {
+            $tagVer = "${{ github.ref_name }}".TrimStart("v")
+            if ($tagVer -ne $fileVer) {
+              Write-Error "El tag (v$tagVer) no coincide con VERSION en pleiada_app.pyw (v$fileVer). Alinear antes de publicar."
+              exit 1
+            }
+            Write-Host "OK: tag y VERSION coinciden (v$tagVer)"
+          }
+          echo "APP_VERSION=$fileVer" >> $env:GITHUB_ENV
+
       # ── 2. Create deps directory ──────────────────────────────────
       - name: Create deps directory
         shell: pwsh
@@ -83,8 +107,8 @@ jobs:
           choco install innosetup --yes --no-progress
           Write-Host "Inno Setup installed."
 
-      # ── 7. Compile the installer ──────────────────────────────────
-      - name: Compile installer with ISCC
+      # ── 7. Compile the installers (completo + updater LITE) ───────
+      - name: Compile installers with ISCC
         shell: pwsh
         run: |
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
@@ -92,9 +116,16 @@ jobs:
             $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
           }
           Write-Host "Using ISCC: $iscc"
-          & $iscc "pleiada_installer\setup.iss"
+          Write-Host "Compilando instalador completo (v$env:APP_VERSION)..."
+          & $iscc "/DAppVersion=$env:APP_VERSION" "pleiada_installer\setup.iss"
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "ISCC exited with code $LASTEXITCODE"
+            Write-Error "ISCC (full) exited with code $LASTEXITCODE"
+            exit 1
+          }
+          Write-Host "Compilando updater LITE (v$env:APP_VERSION)..."
+          & $iscc "/DLITE" "/DAppVersion=$env:APP_VERSION" "pleiada_installer\setup.iss"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "ISCC (LITE) exited with code $LASTEXITCODE"
             exit 1
           }
 
@@ -102,20 +133,49 @@ jobs:
       - name: Verify output
         shell: pwsh
         run: |
-          $exe = Get-ChildItem "pleiada_installer\Output\*.exe" | Select-Object -First 1
-          if (-not $exe) { Write-Error "No .exe found in Output\"; exit 1 }
-          $mb = [math]::Round($exe.Length / 1MB, 1)
-          Write-Host "Built: $($exe.Name) ($mb MB)"
-          echo "EXE_PATH=$($exe.FullName)" >> $env:GITHUB_ENV
-          echo "EXE_NAME=$($exe.Name)" >> $env:GITHUB_ENV
+          $full = "pleiada_installer\Output\PleiadaRecorder_Setup.exe"
+          $lite = "pleiada_installer\Output\PleiadaRecorder_Update.exe"
+          foreach ($exe in @($full, $lite)) {
+            if (-not (Test-Path $exe)) { Write-Error "No se genero $exe"; exit 1 }
+            $mb = [math]::Round((Get-Item $exe).Length / 1MB, 1)
+            Write-Host "Built: $exe ($mb MB)"
+          }
+          echo "EXE_PATH=$((Resolve-Path $full).Path)" >> $env:GITHUB_ENV
+          echo "LITE_PATH=$((Resolve-Path $lite).Path)" >> $env:GITHUB_ENV
 
       # ── 9. Upload as workflow artifact (versioned, for internal use) ─
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: PleiadaRecorder_Setup_${{ github.ref_name }}
-          path: ${{ env.EXE_PATH }}
+          path: |
+            ${{ env.EXE_PATH }}
+            ${{ env.LITE_PATH }}
           retention-days: 30
+
+      # ── 9.5. Manifiesto de auto-update (latest.json) ───────────────
+      #    El cliente instalado lo lee desde
+      #    releases/latest/download/latest.json para saber si hay una
+      #    version nueva, de donde bajarla y su SHA-256.
+      - name: Generate update manifest (latest.json)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $tag  = "${{ github.ref_name }}"
+          $repo = "${{ github.repository }}"
+          $minVersion = (Get-Content "pleiada_installer\min_version.txt" -TotalCount 1).Trim()
+          $manifest = [ordered]@{
+            version          = $tag
+            min_version      = $minVersion
+            update_url       = "https://github.com/$repo/releases/download/$tag/PleiadaRecorder_Update.exe"
+            update_sha256    = (Get-FileHash $env:LITE_PATH -Algorithm SHA256).Hash.ToLower()
+            installer_url    = "https://github.com/$repo/releases/download/$tag/PleiadaRecorder_Setup.exe"
+            installer_sha256 = (Get-FileHash $env:EXE_PATH -Algorithm SHA256).Hash.ToLower()
+            published_at     = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+          }
+          $json = $manifest | ConvertTo-Json
+          [System.IO.File]::WriteAllText("latest.json", $json)
+          Write-Host $json
 
       # ── 10. Extraer notas de la version desde CHANGELOG.md ──────────
       - name: Extract release notes from CHANGELOG
@@ -143,11 +203,14 @@ jobs:
         with:
           name: Pleiada Recorder ${{ github.ref_name }}
           body_path: release_notes.txt
-          files: ${{ env.EXE_PATH }}
+          files: |
+            ${{ env.EXE_PATH }}
+            ${{ env.LITE_PATH }}
+            latest.json
           draft: false
           prerelease: false
 
-      # ── 12. Borrar .exe de releases anteriores ────────────────────────
+      # ── 12. Borrar .exe y manifiestos de releases anteriores ──────────
       - name: Remove exe from previous releases
         if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
@@ -160,7 +223,7 @@ jobs:
             if ($tag -ne $currentTag) {
               $assets = gh release view $tag --repo ${{ github.repository }} --json assets | ConvertFrom-Json | Select-Object -ExpandProperty assets
               foreach ($asset in $assets) {
-                if ($asset.name -like "*.exe") {
+                if (($asset.name -like "*.exe") -or ($asset.name -eq "latest.json")) {
                   Write-Host "Eliminando $($asset.name) de release $tag..."
                   gh release delete-asset $tag $asset.name --yes --repo ${{ github.repository }}
                 }

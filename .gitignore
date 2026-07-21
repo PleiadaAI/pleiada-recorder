@@ -27,3 +27,6 @@ $RECYCLE.BIN/
 *.log
 pleiada_obs_debug.txt
 pleiada_obs_error.txt
+
+# Backend (Lambda + IAM) vive en el repo PRIVADO PleiadaAI/pleiada-backend
+backend/

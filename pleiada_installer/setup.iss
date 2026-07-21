@@ -1,18 +1,36 @@
 ﻿; Pleiada Recorder - Inno Setup Script
-; Genera: PleiadaRecorder_Setup.exe
+; Genera dos instaladores a partir del mismo script:
+;   - PleiadaRecorder_Setup.exe   (completo: app + Python + AHK + OBS)      → iscc setup.iss
+;   - PleiadaRecorder_Update.exe  (LITE: solo archivos de la app, updater)  → iscc /DLITE setup.iss
+; La version se inyecta desde CI con /DAppVersion=X.Y.Z (fallback abajo para builds locales).
 
 #define AppName    "Pleiada Recorder"
-#define AppVersion "0.7.0"
+#ifndef AppVersion
+  #define AppVersion "0.7.0"
+#endif
 #define AppPublisher "Pleiada"
 #define AppDir     "{autopf}\Pleiada Recorder"
+; Paquetes pip de la app — mantener UNA sola lista para full y update
+#define PipPackages "websocket-client Pillow opencv-python"
 
 [Setup]
+; AppId explicito (= AppName, el default historico) para que el updater LITE
+; actualice la MISMA entrada instalada y no cree una instalacion paralela.
+AppId={#AppName}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
 DefaultDirName={#AppDir}
 DefaultGroupName={#AppName}
+#ifdef LITE
+OutputBaseFilename=PleiadaRecorder_Update
+; El updater no pregunta nada: directo a copiar (ademas se lanza /SILENT desde la app)
+DisableDirPage=yes
+DisableReadyPage=yes
+DisableFinishedPage=yes
+#else
 OutputBaseFilename=PleiadaRecorder_Setup
+#endif
 OutputDir=Output
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -41,17 +59,21 @@ spanish.AllDone=Instalacion completada. Ya podes usar Pleiada Recorder.
 [Files]
 ; Scripts principales
 Source: "files\pleiada_app.pyw";          DestDir: "{app}"; Flags: ignoreversion
+Source: "files\session_uploader.py";      DestDir: "{app}"; Flags: ignoreversion
+Source: "files\pleiada_api.py";           DestDir: "{app}"; Flags: ignoreversion
 Source: "files\input_logger.ahk";         DestDir: "{app}"; Flags: ignoreversion
 Source: "files\obs_control.py";           DestDir: "{app}"; Flags: ignoreversion
 Source: "files\pleiada_setup_wizard.pyw"; DestDir: "{app}"; Flags: ignoreversion
 Source: "files\pleiada_check.pyw";        DestDir: "{app}"; Flags: ignoreversion
 Source: "files\games_list.json";          DestDir: "{app}"; Flags: ignoreversion
-; Instaladores de dependencias
+#ifndef LITE
+; Instaladores de dependencias (solo instalador completo)
 Source: "deps\python-3.12.8-amd64.exe";                       DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "deps\AutoHotkey_2.0.24_setup.exe";                   DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "deps\OBS-Studio-32.1.2-Windows-x64-Installer.exe";   DestDir: "{tmp}"; Flags: deleteafterinstall
 ; Script de configuracion de OBS WebSocket
 Source: "files\configure_obs.py"; DestDir: "{tmp}"; Flags: deleteafterinstall
+#endif
 ; Iconos
 Source: "assets\pleiada.ico";        DestDir: "{app}"; Flags: ignoreversion
 Source: "assets\synch_checker.ico";  DestDir: "{app}"; Flags: ignoreversion
@@ -69,6 +91,7 @@ Name: "{commondesktop}\Pleiada Recorder"; \
 ; Nota: el Synch Checker se ejecuta automáticamente desde el Recorder (sin shortcut en escritorio)
 
 [Run]
+#ifndef LITE
 ; 1. Instalar Python (silencioso, solo si no esta instalado)
 Filename: "{tmp}\python-3.12.8-amd64.exe"; \
     Parameters: "/quiet InstallAllUsers=0 PrependPath=1 Include_test=0"; \
@@ -97,25 +120,38 @@ Filename: "{sys}\taskkill.exe"; \
     Parameters: "/F /IM obs64.exe"; \
     Flags: runhidden; \
     Check: OBSNeedsInstall
+#endif
 
 ; 5. Instalar dependencias Python via pip (ruta absoluta para evitar problemas de PATH)
+;    Tambien corre en el updater LITE: si una version nueva suma un paquete a
+;    PipPackages, la base instalada lo recibe con el update (no-op si ya estan).
 Filename: "{code:FindPythonExe}"; \
-    Parameters: "-m pip install websocket-client Pillow opencv-python --quiet"; \
+    Parameters: "-m pip install {#PipPackages} --quiet"; \
     StatusMsg: "{cm:InstallingDeps}"; \
     Flags: runhidden waituntilterminated
 
+#ifndef LITE
 ; 6. Configurar OBS WebSocket automaticamente
 Filename: "{code:FindPythonExe}"; \
     Parameters: """{tmp}\configure_obs.py"""; \
     StatusMsg: "{cm:ConfiguringOBS}"; \
     Flags: runhidden waituntilterminated
 
-; 7. Wizard de configuracion inicial — se lanza automaticamente (sin checkbox)
-Filename: "{code:FindPythonW}"; \
-    Parameters: """{app}\pleiada_setup_wizard.pyw"""; \
-    WorkingDir: "{app}"; \
+; 7. Tutorial web — v0.8.4: reemplaza a las ventanas del wizard local.
+;    Se abre en el browser por defecto del usuario (runasoriginaluser: sin elevar).
+Filename: "https://recorder.gameplayalliance.gg/"; \
     StatusMsg: "{cm:AllDone}"; \
-    Flags: nowait shellexec
+    Flags: nowait shellexec runasoriginaluser
+#endif
+
+#ifdef LITE
+; LITE: relanzar el Recorder al terminar de actualizar, con las credenciales
+; ORIGINALES del usuario (no elevado — el updater corre con UAC/admin).
+Filename: "{code:FindPythonW}"; \
+    Parameters: """{app}\pleiada_app.pyw"""; \
+    WorkingDir: "{app}"; \
+    Flags: nowait shellexec runasoriginaluser
+#endif
 
 [UninstallRun]
 ; Cerrar Pleiada Recorder si está abierto al desinstalar.
@@ -127,6 +163,20 @@ Filename: "{sys}\taskkill.exe"; \
 
 [Code]
 
+{ Cerrar el Pleiada Recorder si esta abierto, justo antes de copiar archivos.
+  Necesario en el updater (la app se cierra sola antes de lanzarlo, esto es
+  cinturon y tiradores) y util en el instalador completo al hacer upgrades. }
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  RC: Integer;
+begin
+  if CurStep = ssInstall then
+    Exec(ExpandConstant('{sys}\taskkill.exe'),
+         '/F /FI "WINDOWTITLE eq Pleiada Recorder"', '',
+         SW_HIDE, ewWaitUntilTerminated, RC);
+end;
+
+#ifndef LITE
 var
   ConsentPage:  TWizardPage;
   ConsentMemo:  TNewMemo;
@@ -225,6 +275,7 @@ begin
   if not Result then
     Result := RegKeyExists(HKLM, 'Software\Python\PythonCore\3.12');
 end;
+#endif
 
 { Devuelve la ruta completa a python.exe para ejecutar pip y scripts }
 function FindPythonExe(Param: String): String;
@@ -288,6 +339,7 @@ begin
   end;
 end;
 
+#ifndef LITE
 function OBSInstalled: Boolean;
 begin
   Result := FileExists(ExpandConstant('{autopf}\obs-studio\bin\64bit\obs64.exe'));
@@ -323,6 +375,7 @@ begin
        ewWaitUntilTerminated, RC);
   Result := (RC = 0);
 end;
+#endif
 
 
 

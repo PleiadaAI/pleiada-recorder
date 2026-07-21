@@ -2,7 +2,7 @@
 configure_obs.py
 Configura OBS automaticamente durante la instalacion de Pleiada Recorder:
   1. Activa el WebSocket (sin password, puerto 4455)
-  2. Crea el perfil "Pleiada" (MP4, 1080p, 30fps)
+  2. Crea el perfil "Pleiada" (fragmented MP4, 1080p, 60fps)
   3. Crea la coleccion de escenas "Pleiada":
        - Captura del monitor principal
        - Audio del escritorio (juego)
@@ -61,7 +61,7 @@ def configure_profile():
         "Mode=Simple\n"
         "\n"
         "[SimpleOutput]\n"
-        "RecFormat2=mp4\n"
+        "RecFormat2=fragmented_mp4\n"
         "VBitrate=2500\n"
         "ABitrate=160\n"
         "RecRB=false\n"
@@ -83,6 +83,52 @@ def configure_profile():
     if not os.path.exists(ini_path):
         with open(ini_path, "w", encoding="utf-8") as f:
             f.write(basic_ini)
+    else:
+        _migrate_rec_format(ini_path)
+
+
+def _migrate_rec_format(ini_path):
+    """
+    Fuerza RecFormat2=fragmented_mp4 en un perfil Pleiada preexistente,
+    preservando el resto de la configuracion del usuario.
+
+    Un MP4 clasico escribe su indice (moov) recien al finalizar la grabacion:
+    si OBS muere antes, el archivo entero queda ilegible. Con fragmented MP4
+    cada fragmento es autosuficiente y una grabacion interrumpida sigue siendo
+    reproducible hasta el ultimo GOP escrito.
+    """
+    try:
+        with open(ini_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        out          = []
+        in_simple    = False
+        format_fixed = False
+        for line in lines:
+            s = line.strip()
+            if s.startswith("[") and s.endswith("]"):
+                if in_simple and not format_fixed:
+                    out.append("RecFormat2=fragmented_mp4\n")
+                    format_fixed = True
+                in_simple = (s == "[SimpleOutput]")
+                out.append(line)
+                continue
+            if in_simple and s.split("=")[0].strip() in ("RecFormat2", "RecFormat"):
+                if not format_fixed:
+                    out.append("RecFormat2=fragmented_mp4\n")
+                    format_fixed = True
+                continue   # descartar el valor viejo (mp4 clasico)
+            out.append(line)
+        if in_simple and not format_fixed:
+            out.append("RecFormat2=fragmented_mp4\n")
+            format_fixed = True
+        if not format_fixed:
+            out.append("\n[SimpleOutput]\nRecFormat2=fragmented_mp4\n")
+
+        with open(ini_path, "w", encoding="utf-8") as f:
+            f.writelines(out)
+    except Exception:
+        pass   # best-effort: el Recorder tambien fuerza el formato al grabar
 
 
 # ── 3. Coleccion de escenas ───────────────────────────────────────

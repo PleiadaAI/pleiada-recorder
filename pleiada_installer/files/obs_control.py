@@ -470,6 +470,32 @@ def main():
             except Exception as e:
                 dbg(f"Verificacion de audio error (continuando): {e}")
 
+            # ── Forzar formato crash-safe (fragmented MP4) ─────────
+            # Un MP4 clasico escribe el indice (moov) recien al finalizar:
+            # si OBS muere antes, todo el archivo queda ilegible. Con fMP4
+            # cada fragmento es autosuficiente.
+            # Primero activar el perfil "Pleiada" si el usuario dejo otro
+            # activo (nunca se escribe sobre perfiles propios del usuario;
+            # solo se cambia cual esta activo). Si Pleiada fue borrado, se
+            # fuerza el formato sobre el activo (integridad del dataset).
+            try:
+                plist    = send(ws, "GetProfileList").get("d", {}).get("responseData", {})
+                cur      = plist.get("currentProfileName", "")
+                profiles = plist.get("profiles", [])
+                if cur != "Pleiada":
+                    if "Pleiada" in profiles:
+                        send(ws, "SetCurrentProfile", {"profileName": "Pleiada"})
+                        dbg(f"Perfil activo era '{cur}' — cambiado a Pleiada")
+                    else:
+                        dbg(f"Perfil Pleiada no existe (activo: '{cur}')")
+                send(ws, "SetProfileParameter", {
+                    "parameterCategory": "SimpleOutput",
+                    "parameterName":     "RecFormat2",
+                    "parameterValue":    "fragmented_mp4",
+                })
+            except Exception as e:
+                dbg(f"Forzado de perfil/RecFormat2 error (continuando): {e}")
+
             # ── Obtener nombre del juego capturado en OBS ─────────────
             game_name = ""
             try:
@@ -607,11 +633,31 @@ def main():
         try:
             ws   = connect_and_auth()
             resp = send(ws, "StopRecord")
-            ws.close()
             output_path = (resp.get("d", {})
                               .get("responseData", {})
                               .get("outputPath", ""))
             dbg(f"outputPath WebSocket: '{output_path}'")
+
+            # Esperar OUTPUT_STOPPED (= OBS termino de finalizar el archivo)
+            # antes de moverlo. StopRecord responde de inmediato pero OBS
+            # sigue escribiendo el archivo varios segundos mas.
+            ws.settimeout(2)
+            deadline = time.time() + 30
+            while time.time() < deadline:
+                try:
+                    parsed = json.loads(ws.recv())
+                except Exception:
+                    continue
+                if parsed.get("op") == 5:
+                    ed = parsed.get("d", {})
+                    if (ed.get("eventType") == "RecordStateChanged" and
+                            ed.get("eventData", {}).get("outputState") == "OBS_WEBSOCKET_OUTPUT_STOPPED"):
+                        ev_path = ed.get("eventData", {}).get("outputPath", "")
+                        if ev_path:
+                            output_path = ev_path
+                        dbg("OUTPUT_STOPPED recibido — archivo finalizado")
+                        break
+            ws.close()
         except Exception as e:
             dbg(f"WebSocket stop fallo: {e} — usando fallback")
 

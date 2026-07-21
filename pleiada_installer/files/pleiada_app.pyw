@@ -4,14 +4,16 @@ Aplicación unificada: login, selección de juego, grabación, sync check, empaq
 """
 
 import tkinter as tk
-from tkinter import font as tkfont
+from tkinter import font as tkfont, ttk
 import json, os, sys, stat, time, threading, subprocess, struct, glob, re, shutil, zipfile, io
 import csv as _csv_mod, hashlib as _hashlib, platform as _platform
 import ctypes, ctypes.wintypes
 from pathlib import Path
+import session_uploader
+import pleiada_api
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.7.0"
+VERSION = "v0.8.6"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -20,12 +22,58 @@ APPDATA    = Path(os.environ.get("APPDATA", Path.home()))
 AUTH_FILE  = APPDATA / "Pleiada" / "auth.json"
 SETTINGS_FILE = APPDATA / "Pleiada" / "settings.json"   # v0.5: hotkeys y prefs
 GAMES_FILE = APP_DIR / "games_list.json"
-GAMES_CACHE = APPDATA / "Pleiada" / "games_list_cache.json"   # v0.4: caché de Airtable
+# v0.8.6: renombrado a _v2 para invalidar caches viejos — el filtro cambió de
+# "active" a "Publicado" y un caché previo con la misma list_version nunca se
+# re-descargaría (sync_games_list compara versiones, no contenido).
+GAMES_CACHE = APPDATA / "Pleiada" / "games_list_cache_v2.json"   # v0.4: caché de Airtable
 TEMP_DIR   = Path(os.environ.get("TEMP", "C:\\Temp"))
 ANCHOR_FILE = TEMP_DIR / "pleiada_anchor_ts.txt"
 GAME_FILE   = TEMP_DIR / "pleiada_game_name.txt"
 BASE_DIR    = Path.home() / "Documents" / "Pleiada Recordings"
 AHK_SCRIPT  = APP_DIR / "input_logger.ahk"
+
+# ─── Crash / error logging (v0.7.1, ubicación v0.8.4) ────────────────────────
+# Captura crashes, excepciones no manejadas (main + threads), errores de callbacks
+# de Tkinter (que de otro modo se tragan en un .exe windowed) y crashes nativos
+# (faulthandler). Vive en Documentos\Pleiada Logs: una carpeta que el usuario
+# puede encontrar fácil y mandar a soporte (AppData está oculto para la mayoría).
+import faulthandler, traceback
+LOG_DIR = Path.home() / "Documents" / "Pleiada Logs"
+_fault_fp = None
+
+def _crashlog(text):
+    try:
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        ts = time.strftime("%Y-%m-%d %H:%M:%S")
+        with open(LOG_DIR / "crash.log", "a", encoding="utf-8") as f:
+            f.write(f"\n===== {ts}  ({VERSION}) =====\n{text}\n")
+    except Exception:
+        pass
+
+def _install_crash_logging():
+    global _fault_fp
+    try:
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        _fault_fp = open(LOG_DIR / "faulthandler.log", "a", encoding="utf-8")
+        faulthandler.enable(file=_fault_fp, all_threads=True)
+    except Exception:
+        pass
+    def _excepthook(et, ev, tb):
+        _crashlog("UNHANDLED (main):\n" + "".join(traceback.format_exception(et, ev, tb)))
+        try: sys.__excepthook__(et, ev, tb)
+        except Exception: pass
+    sys.excepthook = _excepthook
+    def _threadhook(args):
+        _crashlog(f"UNHANDLED (thread {getattr(args.thread,'name','?')}):\n" +
+                  "".join(traceback.format_exception(args.exc_type, args.exc_value, args.exc_traceback)))
+    try:
+        threading.excepthook = _threadhook
+    except Exception:
+        pass
+
+def _tk_callback_excepthook(exc, val, tb):
+    """report_callback_exception de Tkinter: errores en handlers de la GUI."""
+    _crashlog("GUI callback exception:\n" + "".join(traceback.format_exception(exc, val, tb)))
 
 # ─── Design tokens ────────────────────────────────────────────────────────────
 BG      = "#0d0d18"
@@ -45,7 +93,12 @@ BORDER2 = "#1f1d3d"
 WIN_W, WIN_H = 420, 640
 MAX_SECONDS  = 3900   # 1 h 5 min
 
-# ─── Credenciales (login falso — v0.3) ────────────────────────────────────────
+# Gate AFK: una sesión con más de este tiempo CONTINUO sin inputs (teclado/
+# mouse) se marca como no válida para subir. Caso real 20/07/26: 30 min
+# grabados con el jugador alt-tabbeado desde el segundo 3.
+MAX_CONT_IDLE_MS = 600_000   # 10 minutos
+
+# ─── Credenciales (login OTP — v0.8) ──────────────────────────────────────────
 
 def load_auth():
     try:
@@ -54,16 +107,79 @@ def load_auth():
     except Exception:
         return None
 
-def save_auth(email, remember):
+def save_auth(email, token):
+    """Guarda email + token de sesión. Si token es vacío, borra el archivo."""
     AUTH_FILE.parent.mkdir(parents=True, exist_ok=True)
-    if remember:
+    if token:
         with open(AUTH_FILE, "w", encoding="utf-8") as f:
-            json.dump({"email": email, "remember": True}, f)
+            json.dump({"email": email, "token": token}, f)
     else:
         AUTH_FILE.unlink(missing_ok=True)
 
-def validate_login(email, password):
-    return "@" in email and "." in email and len(password) >= 4
+# ─── Estado de subida por sesión (v0.8) ───────────────────────────────────────
+UPLOAD_STATE_FILE = ".pleiada_upload.json"   # sidecar; NO se sube (ver session_uploader._EXCLUDE)
+
+def _session_state_path(sdir):
+    return Path(sdir) / UPLOAD_STATE_FILE
+
+def read_session_state(sdir):
+    try:
+        with open(_session_state_path(sdir), encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def write_session_state(sdir, **kw):
+    st = read_session_state(sdir)
+    st.update(kw)
+    p = _session_state_path(sdir)
+    try:
+        if p.exists():
+            os.chmod(p, stat.S_IWRITE)   # por si quedó read-only
+    except Exception:
+        pass
+    try:
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump(st, f)
+    except Exception:
+        pass
+
+def _fmt_eta(s):
+    if not s or s <= 0:
+        return ""
+    s = int(s)
+    if s < 60:
+        return f"~{s}s restantes"
+    return f"~{s // 60}m {s % 60:02d}s restantes"
+
+def list_local_sessions():
+    """Devuelve [(Path, {status, size_label})] de sesiones locales, más nuevas primero."""
+    out = []
+    try:
+        dirs = [d for d in BASE_DIR.iterdir() if d.is_dir()]
+    except Exception:
+        return out
+    for d in sorted(dirs, key=lambda d: d.stat().st_mtime, reverse=True):
+        try:
+            files = [f for f in d.iterdir() if f.is_file()]
+        except Exception:
+            continue
+        has_mp4  = any(f.suffix.lower() == ".mp4" for f in files)
+        has_meta = any(f.name == "session_metadata.json" for f in files)
+        st = read_session_state(d)
+        total = sum(f.stat().st_size for f in files if f.name != UPLOAD_STATE_FILE)
+        size_label = (f"{total / 1024**2:.1f} MB" if total >= 1024**2
+                      else f"{total / 1024:.0f} KB")
+        if st.get("uploaded"):
+            status = "uploaded"
+        elif not (has_mp4 and has_meta):
+            status = "incomplete"
+        elif st.get("valid") is False:
+            status = "invalid"
+        else:
+            status = "pending"
+        out.append((d, {"status": status, "size_label": size_label}))
+    return out
 
 # ─── Settings / hotkeys (v0.5) ────────────────────────────────────────────────
 
@@ -71,6 +187,8 @@ def validate_login(email, password):
 DEFAULT_SETTINGS = {
     "hotkey_start": {"vk": 0x78, "label": "F9"},
     "hotkey_stop":  {"vk": 0x79, "label": "F10"},
+    "max_session_minutes": 60,    # v0.7.1: duración máx de sesión, clamp [1, 60] min
+    "auto_restart":        False, # v0.7.1: reiniciar grabación tras auto-stop por tiempo
 }
 
 def load_settings():
@@ -80,6 +198,12 @@ def load_settings():
         # Completar claves faltantes con defaults
         out = json.loads(json.dumps(DEFAULT_SETTINGS))
         out.update({k: v for k, v in s.items() if k in DEFAULT_SETTINGS})
+        # v0.7.1: clamp/coerción de los valores nuevos
+        try:
+            out["max_session_minutes"] = max(1, min(60, int(out["max_session_minutes"])))
+        except Exception:
+            out["max_session_minutes"] = 60
+        out["auto_restart"] = bool(out.get("auto_restart", False))
         return out
     except Exception:
         return json.loads(json.dumps(DEFAULT_SETTINGS))
@@ -191,7 +315,11 @@ def _airtable_download_games():
         page = _airtable_get(AIRTABLE_GAMES_TID, params)
         for rec in page.get("records", []):
             f = rec.get("fields", {})
-            if str(f.get("active", "")).lower() not in ("true", "1", "checked", ""):
+            # Solo juegos con el tilde "Publicado" en Airtable — la MISMA regla
+            # que el catálogo público (catalogo.gameplayalliance.gg). Publicado
+            # es la columna autoritativa de visibilidad (decisión Martín
+            # 20/07/26); "active" ya no gobierna el listado del Recorder.
+            if not f.get("Publicado"):
                 continue
             name = (f.get("Name") or "").strip()
             if not name:
@@ -289,6 +417,60 @@ def fuzzy_search(query, max_results=None):
                     key=lambda g: g["game"].lower())
     out = exact + starts + rest
     return out[:max_results] if max_results else out
+
+# ─── Auto-update (v0.8) ───────────────────────────────────────────────────────
+#
+# El CI publica en cada release un manifiesto latest.json junto a los .exe:
+#   { version, min_version, update_url, update_sha256, ... }
+# La app lo chequea al arrancar (en background) y ofrece actualizar con el
+# updater liviano PleiadaRecorder_Update.exe. Si la versión instalada es menor
+# que min_version, la grabación queda bloqueada hasta actualizar.
+
+UPDATE_MANIFEST_URL = ("https://github.com/PleiadaAI/pleiada-recorder"
+                       "/releases/latest/download/latest.json")
+
+def _parse_version(v):
+    """'v0.7.0' / '0.7' → (0, 7, 0). None si no parsea."""
+    try:
+        parts = str(v).strip().lstrip("vV").split(".")
+        nums = []
+        for p in parts[:3]:
+            m = re.match(r"\d+", p.strip())
+            if not m:
+                return None
+            nums.append(int(m.group()))
+        if not nums:
+            return None
+        while len(nums) < 3:
+            nums.append(0)
+        return tuple(nums)
+    except Exception:
+        return None
+
+def check_for_update():
+    """
+    Lee el manifiesto de updates del último release. Nunca lanza excepción.
+    Retorna el manifiesto (dict) con dos claves calculadas:
+      _newer  → hay una versión más nueva que la instalada
+      _forced → la instalada es menor que min_version (bloquear grabación)
+    o None si no hay red / manifiesto inválido.
+    """
+    try:
+        import urllib.request as _ur
+        req = _ur.Request(UPDATE_MANIFEST_URL,
+                          headers={"User-Agent": f"PleiadaRecorder/{VERSION}"})
+        with _ur.urlopen(req, timeout=8) as r:
+            manifest = json.loads(r.read().decode("utf-8"))
+        remote = _parse_version(manifest.get("version"))
+        local  = _parse_version(VERSION)
+        if not remote or not local:
+            return None
+        manifest["_newer"]  = remote > local
+        min_v = _parse_version(manifest.get("min_version"))
+        manifest["_forced"] = bool(min_v) and local < min_v
+        return manifest
+    except Exception:
+        return None
 
 # ─── OBS helpers (inlined desde obs_control.py) ───────────────────────────────
 
@@ -563,6 +745,41 @@ def _obs_do_start():
         except Exception as e:
             _obs_dbg(f"audio setup error: {e}")
 
+        # Forzar formato de grabación crash-safe (fragmented MP4).
+        # Un MP4 clásico escribe el índice (moov) recién al finalizar: si OBS
+        # muere o lo matan antes de ese paso, TODO el archivo queda ilegible
+        # (caso real 20/07/26: sesión de 30 min → 705 MB sin moov). Con fMP4
+        # cada fragmento es autosuficiente y una grabación interrumpida sigue
+        # siendo reproducible hasta el último GOP escrito.
+        # Se fuerza acá (y no solo en el instalador) para cubrir perfiles
+        # creados por instaladores viejos o modificados a mano en OBS.
+        # SetProfileParameter escribe sobre el perfil ACTIVO de OBS, así que
+        # primero se activa el perfil "Pleiada" si el usuario dejó otro activo
+        # (usar OBS por fuera de Pleiada no debe degradar el dataset: el perfil
+        # Pleiada garantiza 1080p60 + bitrate + formato). Nunca se escribe
+        # sobre los perfiles propios del usuario — solo se cambia cuál está
+        # activo. Único caso borde: si el perfil Pleiada fue borrado, se
+        # fuerza el formato sobre el perfil activo (la integridad del dataset
+        # gana) y queda logueado.
+        try:
+            _plist    = obs_send(ws, "GetProfileList").get("d", {}).get("responseData", {})
+            _cur      = _plist.get("currentProfileName", "")
+            _profiles = _plist.get("profiles", [])
+            if _cur != "Pleiada":
+                if "Pleiada" in _profiles:
+                    obs_send(ws, "SetCurrentProfile", {"profileName": "Pleiada"})
+                    _obs_dbg(f"Perfil activo era '{_cur}' — cambiado a Pleiada")
+                else:
+                    _obs_dbg(f"Perfil Pleiada no existe (activo: '{_cur}') — "
+                             "se fuerza RecFormat2 sobre el perfil activo")
+            obs_send(ws, "SetProfileParameter", {
+                "parameterCategory": "SimpleOutput",
+                "parameterName":     "RecFormat2",
+                "parameterValue":    "fragmented_mp4",
+            })
+        except Exception as e:
+            _obs_dbg(f"Forzado de perfil/RecFormat2 error (continuando): {e}")
+
         # StartRecord
         started = False
         for _ in range(20):
@@ -610,17 +827,60 @@ def obs_start_recording():
     return _obs_do_start()
 
 def obs_stop_recording(session_dir=None):
-    """Detiene la grabación en OBS y mueve el archivo al session_dir."""
+    """Detiene la grabación en OBS, ESPERA a que termine de finalizar el
+    archivo y recién entonces lo mueve al session_dir.
+
+    Mover el video sin esperar el evento OUTPUT_STOPPED puede capturar un
+    MP4 a medio finalizar (sin el índice completo): el StopRecord del
+    WebSocket responde de inmediato, pero OBS sigue escribiendo el archivo
+    en background durante varios segundos más."""
     output_path = None
+    stopped     = False
     session_start = (os.path.getmtime(str(session_dir))
                      if session_dir and session_dir.exists() else time.time() - 300)
     try:
         ws   = obs_connect()
         resp = obs_send(ws, "StopRecord")
-        ws.close()
         output_path = resp.get("d", {}).get("responseData", {}).get("outputPath", "")
+
+        # Esperar RecordStateChanged → OUTPUT_STOPPED (= archivo finalizado).
+        # El evento además trae el outputPath definitivo.
+        ws.settimeout(2)
+        deadline = time.time() + 30
+        while time.time() < deadline:
+            try:
+                parsed = json.loads(ws.recv())
+            except Exception:
+                continue   # timeout de recv → reintentar hasta el deadline
+            if parsed.get("op") == 5:
+                ed = parsed.get("d", {})
+                if (ed.get("eventType") == "RecordStateChanged" and
+                        ed.get("eventData", {}).get("outputState") == "OBS_WEBSOCKET_OUTPUT_STOPPED"):
+                    ev_path = ed.get("eventData", {}).get("outputPath", "")
+                    if ev_path:
+                        output_path = ev_path
+                    stopped = True
+                    _obs_dbg("OUTPUT_STOPPED recibido — archivo finalizado por OBS")
+                    break
+        ws.close()
     except Exception as e:
         _obs_dbg(f"obs_stop_recording ws error: {e}")
+
+    if not stopped:
+        # Fallback: poll GetRecordStatus hasta que la grabación no esté activa.
+        _obs_dbg("Sin OUTPUT_STOPPED — fallback a poll de GetRecordStatus")
+        for _ in range(15):
+            try:
+                ws2    = obs_connect()
+                status = obs_send(ws2, "GetRecordStatus")
+                ws2.close()
+                if not (status.get("d", {}).get("responseData", {})
+                              .get("outputActive", False)):
+                    stopped = True
+                    break
+            except Exception:
+                pass
+            time.sleep(1)
 
     if not output_path or not os.path.isfile(output_path):
         time.sleep(2)
@@ -636,6 +896,11 @@ def obs_stop_recording(session_dir=None):
             try:
                 shutil.move(output_path, dest)
                 _obs_dbg(f"Video movido a: {dest}")
+                if _mp4_is_truncated(str(dest)):
+                    # Sin moov NI moof: OBS murió sin finalizar. Se deja el
+                    # archivo para diagnóstico; el sync check lo marcará
+                    # como truncado y la sesión quedará como no válida.
+                    _obs_dbg("ADVERTENCIA: el video movido no tiene índice (moov/moof)")
                 return str(dest)
             except (PermissionError, OSError):
                 time.sleep(0.5)
@@ -1083,6 +1348,8 @@ def run_sync_check(session_dir, progress_cb=None):
         "csv_dur":      None,
         "session_ok":   False,
         "short_session": False,   # PLE-41: True si la sesión fue < 30 s
+        "afk":           False,   # True si hubo > MAX_CONT_IDLE_MS seguidos sin inputs
+        "longest_idle_s": None,
     }
 
     csv_names   = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv", "video_timeline.csv"]
@@ -1161,7 +1428,21 @@ def run_sync_check(session_dir, progress_cb=None):
         result["video_ok"] = True
         if progress_cb: progress_cb(4, "ok")
 
-    result["session_ok"] = result["csvs_ok"] and result["video_ok"]
+    # — Gate AFK: rechazar sesiones con demasiado tiempo continuo sin inputs —
+    # (mismo cálculo de idle que el bloque activity del metadata)
+    try:
+        _starts = [s for s, e in csv_anchors if s]
+        _ends   = [e for s, e in csv_anchors if e]
+        if _starts and _ends:
+            _act = _meta_activity(session_dir, min(_starts), max(_ends))
+            if _act:
+                result["longest_idle_s"] = _act.get("longest_idle_seconds")
+                if (_act.get("longest_idle_seconds") or 0) * 1000 >= MAX_CONT_IDLE_MS:
+                    result["afk"] = True
+    except Exception:
+        pass   # si el cálculo falla, no bloquear la sesión por esto
+
+    result["session_ok"] = result["csvs_ok"] and result["video_ok"] and not result["afk"]
     return result
 
 # ─── Packager ─────────────────────────────────────────────────────────────────
@@ -2266,6 +2547,7 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 "video_dur_ms":   sync_results.get("video_dur"),
                 "short_session":  sync_results.get("short_session", False),
                 "truncated":      sync_results.get("truncated", False),
+                "afk_rejected":   sync_results.get("afk", False),
             },
 
             # Actividad de input: separa juego activo de cutscenes/menús/AFK.
@@ -2327,6 +2609,7 @@ class PleiadaApp:
 
     def __init__(self):
         self.root = tk.Tk()
+        self.root.report_callback_exception = _tk_callback_excepthook   # v0.7.1: log de errores GUI
         self.root.title("Pleiada Recorder")
         self.root.overrideredirect(True)
         self.root.resizable(False, False)
@@ -2381,6 +2664,8 @@ class PleiadaApp:
         # Estado de la sesión
         self.logged_in     = False
         self.user_email    = ""
+        self.auth_token    = ""
+        self.open_calls    = []     # inscripciones a Open Calls (my_calls del backend)
         self.selected_game = None   # dict con game/perspective/genre/mode
         self.session_dir   = None   # Path
         self.recording     = False
@@ -2391,6 +2676,9 @@ class PleiadaApp:
         self._obs_prep     = ("", set())  # (rec_dir_str, existing_vids) preparado antes del countdown
         self._pkg_anim_id  = None   # after-id de la animación de packaging
         self._we_stopped   = False  # True cuando NOSOTROS detenemos OBS (para ignorar el evento)
+        self._auto_stopped = False  # v0.7.1: True si el último stop fue por llegar al límite de tiempo
+        self._max_seconds  = MAX_SECONDS  # v0.7.1: se setea por sesión desde settings
+        self._auto_restart_cancelled = False  # v0.7.1: cancelar el ciclo durante la cuenta regresiva
         self._recording_exe      = ""   # PLE-37: exe del juego capturado (ej: "Borderlands3.exe")
         self._recording_exe_path = ""   # v0.4 Fase 2: ruta completa del exe (para metadata)
         self._ahk_proc     = None
@@ -2403,11 +2691,19 @@ class PleiadaApp:
         self._hotkey_running  = True
         self._capturing_hotkey = None   # "start"/"stop" cuando se reasigna un atajo
 
+        # v0.8: auto-update
+        self._update_manifest = None    # manifiesto si hay una versión nueva
+        self._update_required = False   # True si VERSION < min_version → bloquea grabar
+        self._updating        = False   # descarga del updater en curso
+        self._upd_cancel      = False
+
         self._build_window()
         # v0.4: sincronizar lista de juegos con Airtable en background (no bloquea el arranque)
         threading.Thread(target=sync_games_list, daemon=True).start()
         # v0.5: listener de hotkeys globales (iniciar/detener grabación sin foco)
         threading.Thread(target=self._hotkey_listener, daemon=True).start()
+        # v0.8: chequear si hay una versión nueva (no bloquea el arranque)
+        threading.Thread(target=self._update_check_worker, daemon=True).start()
         self._check_auto_login()
 
     # ── Construcción de la ventana ─────────────────────────────────────────────
@@ -2419,6 +2715,11 @@ class PleiadaApp:
 
         self._build_titlebar(outer)
         _mk_separator(outer, color=BORDER2)
+
+        # v0.8: banner de actualización — vive FUERA de self.content para
+        # sobrevivir a los cambios de pantalla (_clear_content). Oculto hasta
+        # que el chequeo detecte una versión nueva.
+        self._upd_banner = tk.Frame(outer, bg=CARD2)
 
         self.content = tk.Frame(outer, bg=BG)
         self.content.pack(fill="both", expand=True)
@@ -2481,31 +2782,232 @@ class PleiadaApp:
         y = e.y_root - self._drag_y
         self.root.geometry(f"+{x}+{y}")
 
+    # ── Auto-update (v0.8) ─────────────────────────────────────────────────────
+
+    def _update_check_worker(self):
+        """Corre en un thread daemon al arrancar. Nunca lanza excepción."""
+        # Limpiar el updater residual de una actualización anterior
+        try:
+            (TEMP_DIR / "PleiadaRecorder_Update.exe").unlink(missing_ok=True)
+        except Exception:
+            pass
+        m = check_for_update()
+        if not m or not (m.get("_newer") or m.get("_forced")):
+            return
+        self.root.after(0, lambda: self._on_update_available(m))
+
+    def _on_update_available(self, manifest):
+        self._update_manifest = manifest
+        self._update_required = bool(manifest.get("_forced"))
+        self._update_record_btn()
+        self._upd_show_offer()
+
+    def _upd_clear(self):
+        for w in self._upd_banner.winfo_children():
+            w.destroy()
+
+    def _upd_hide(self):
+        self._upd_clear()
+        self._upd_banner.pack_forget()
+
+    def _upd_row(self, text, fg=TEXT):
+        """(Re)arma el banner: texto arriba + fila de botones abajo (retornada)."""
+        self._upd_clear()
+        self._upd_banner.config(highlightthickness=1, highlightbackground=ACCENT)
+        self._upd_banner.pack(fill="x", before=self.content)
+        inner = tk.Frame(self._upd_banner, bg=CARD2)
+        inner.pack(fill="x", padx=12, pady=8)
+        self._upd_text_lbl = tk.Label(inner, text=text, fg=fg, bg=CARD2,
+                                      font=("Segoe UI", 10), wraplength=WIN_W - 60,
+                                      justify="left", anchor="w")
+        self._upd_text_lbl.pack(fill="x")
+        btns = tk.Frame(inner, bg=CARD2)
+        btns.pack(fill="x", pady=(6, 0))
+        return btns
+
+    def _upd_btn(self, parent, text, cmd, primary=False):
+        b = tk.Label(parent, text=text, cursor="hand2",
+                     bg=(ACCENT if primary else CARD2),
+                     fg=("#ffffff" if primary else DIM),
+                     font=("Segoe UI", 9, "bold"), padx=10, pady=3)
+        b.pack(side="right", padx=(8, 0))
+        b.bind("<Button-1>", lambda e: cmd())
+        if not primary:
+            b.bind("<Enter>", lambda e: b.config(fg=TEXT))
+            b.bind("<Leave>", lambda e: b.config(fg=DIM))
+        return b
+
+    def _upd_show_offer(self):
+        m = self._update_manifest or {}
+        if self._update_required:
+            btns = self._upd_row("Esta versión ya no es compatible. "
+                                 "Actualizá para seguir grabando.", fg="#f5d77a")
+        else:
+            btns = self._upd_row(f"Nueva versión disponible ({m.get('version', '')})")
+            self._upd_btn(btns, "Más tarde", self._upd_hide)
+        self._upd_btn(btns, "Actualizar ahora", self._upd_start_download, primary=True)
+
+    def _upd_show_error(self):
+        self._updating = False
+        btns = self._upd_row("No se pudo descargar la actualización. "
+                             "Probá de nuevo más tarde.", fg="#f5d77a")
+        if not self._update_required:
+            self._upd_btn(btns, "Más tarde", self._upd_hide)
+        self._upd_btn(btns, "Reintentar", self._upd_start_download, primary=True)
+
+    def _upd_start_download(self):
+        if self._updating:
+            return
+        if self.recording:
+            import tkinter.messagebox as _mb
+            _mb.showwarning("Pleiada Recorder",
+                            "Terminá la grabación antes de actualizar.")
+            return
+        url = (self._update_manifest or {}).get("update_url")
+        if not url:
+            self._upd_show_error()
+            return
+        self._updating   = True
+        self._upd_cancel = False
+        btns = self._upd_row("Descargando actualización... 0%")
+        self._upd_btn(btns, "Cancelar", self._upd_cancel_download)
+        threading.Thread(
+            target=self._upd_download_worker,
+            args=(url, (self._update_manifest or {}).get("update_sha256")),
+            daemon=True).start()
+
+    def _upd_cancel_download(self):
+        self._upd_cancel = True
+
+    def _upd_set_progress(self, pct):
+        if self._updating and self._upd_text_lbl.winfo_exists():
+            self._upd_text_lbl.config(text=f"Descargando actualización... {pct}%")
+
+    def _upd_download_worker(self, url, sha256_expected):
+        """Descarga el updater a %TEMP% verificando SHA-256. Thread daemon."""
+        import urllib.request as _ur
+        dest = TEMP_DIR / "PleiadaRecorder_Update.exe"
+        ok = False
+        try:
+            req = _ur.Request(url, headers={"User-Agent": f"PleiadaRecorder/{VERSION}"})
+            h = _hashlib.sha256()
+            with _ur.urlopen(req, timeout=30) as r, open(dest, "wb") as f:
+                total = int(r.headers.get("Content-Length") or 0)
+                done, last_pct = 0, -1
+                while not self._upd_cancel:
+                    chunk = r.read(65536)
+                    if not chunk:
+                        ok = True
+                        break
+                    f.write(chunk)
+                    h.update(chunk)
+                    done += len(chunk)
+                    if total:
+                        pct = min(int(done * 100 / total), 100)
+                        if pct != last_pct:
+                            last_pct = pct
+                            self.root.after(0, lambda p=pct: self._upd_set_progress(p))
+            # Integridad: el hash del manifiesto lo publicó el CI junto al .exe
+            if ok and sha256_expected and \
+                    h.hexdigest().lower() != str(sha256_expected).strip().lower():
+                _obs_dbg("update: SHA-256 no coincide — descarga descartada")
+                ok = False
+        except Exception as e:
+            _obs_dbg(f"update: error de descarga: {e}")
+            ok = False
+
+        self._updating = False
+        if self._upd_cancel or not ok:
+            try:
+                dest.unlink(missing_ok=True)
+            except Exception:
+                pass
+            self.root.after(0, self._upd_show_offer if self._upd_cancel
+                            else self._upd_show_error)
+            return
+        self.root.after(0, lambda: self._upd_launch(dest))
+
+    def _upd_launch(self, exe_path):
+        """Lanza el updater (dispara UAC) y cierra la app."""
+        self._upd_row("El Recorder se va a cerrar para actualizarse. "
+                      "Se abre solo al terminar.")
+        try:
+            # El .exe pide admin en su manifest → ShellExecute dispara UAC solo.
+            # Si el usuario rechaza el UAC, startfile lanza OSError.
+            os.startfile(str(exe_path),
+                         arguments="/SILENT /NORESTART /SUPPRESSMSGBOXES")
+        except OSError:
+            self._upd_show_error()
+            return
+        # El updater cierra la app igual (taskkill) — esto es el camino prolijo.
+        self.root.after(800, self.root.destroy)
+
     # ── Login ──────────────────────────────────────────────────────────────────
 
     def _check_auto_login(self):
+        # Login optimista: si hay token guardado, entramos. Si el token venció,
+        # el upload devuelve "auth" y ahí forzamos re-login con OTP.
         auth = load_auth()
-        if auth and auth.get("remember") and auth.get("email"):
+        if auth and auth.get("token") and auth.get("email"):
             self.logged_in  = True
             self.user_email = auth["email"]
-            _uname = auth["email"].split('@')[0]
-            _uname = (_uname[:20] + "…") if len(_uname) > 20 else _uname  # PLE-36
-            self._signout_lbl.config(text=f"  {_uname}")
-            self._signout_lbl.pack(side="right", padx=(0, 14))
+            self.auth_token = auth["token"]
+            self._set_signout_label(auth["email"])
+            self._refresh_open_calls()
             self._show_idle()
         else:
             self._show_login()
 
-    def _show_login(self):
-        self._clear_content()
-        self._signout_lbl.pack_forget()
-        frame = tk.Frame(self.content, bg=BG)
-        frame.pack(fill="both", expand=True, padx=36, pady=0)
+    def _refresh_open_calls(self):
+        """Trae las inscripciones a Open Calls en background (no bloquea la UI).
+        Es solo para UX (matching y mensajes): el gate real vive en el backend."""
+        if not self.auth_token:
+            return
+        def _worker(token=self.auth_token):
+            try:
+                calls = pleiada_api.my_calls(token)
+            except Exception:
+                return   # sin red / token viejo: se reintenta en el próximo evento
+            def _apply():
+                self.open_calls = calls
+            self.root.after(0, _apply)
+        threading.Thread(target=_worker, daemon=True).start()
 
-        # Espaciador superior
+    def _calls_for_game(self, game_title):
+        """Inscripciones activas cuyo Open Call acepta este juego (matching local,
+        espejo del criterio del backend: lista de juegos o genre ∈ categorías)."""
+        t = (game_title or "").strip().lower()
+        if not t:
+            return []
+        genre = ""
+        for g in load_games():
+            if (g.get("game") or "").strip().lower() == t:
+                genre = (g.get("genre") or "").strip().lower()
+                break
+        out = []
+        for c in self.open_calls or []:
+            if c.get("status") != "activa" or not c.get("call_activo", True):
+                continue
+            rem = c.get("remaining_seconds")
+            if rem is not None and rem <= 0:
+                continue   # cupo personal agotado en ese call
+            if c.get("targeting_mode") == "juegos_especificos":
+                if t in {(j or "").strip().lower() for j in c.get("juegos", [])}:
+                    out.append(c)
+            else:
+                cats = {(x or "").strip().lower() for x in c.get("categorias", [])}
+                if genre and genre in cats:
+                    out.append(c)
+        return out
+
+    def _set_signout_label(self, email):
+        _uname = email.split('@')[0]
+        _uname = (_uname[:20] + "…") if len(_uname) > 20 else _uname  # PLE-36
+        self._signout_lbl.config(text=f"  {_uname}")
+        self._signout_lbl.pack(side="right", padx=(0, 14))
+
+    def _login_header(self, frame):
         tk.Frame(frame, bg=BG, height=30).pack()
-
-        # Logo area
         tk.Label(frame, text="✦", fg=ACCENT, bg=BG,
                  font=("Segoe UI", 28)).pack()
         tk.Label(frame, text="Pleiada Recorder", fg=TEXT, bg=BG,
@@ -2513,93 +3015,164 @@ class PleiadaApp:
         tk.Label(frame, text="Gameplay Alliance — sesión de grabación", fg=DIM, bg=BG,
                  font=("Segoe UI", 11)).pack(pady=(4, 32))
 
-        # Email
+    # ── Login paso 1: pedir el código ───────────────────────────────────────────
+
+    def _show_login(self):
+        self._clear_content()
+        self._signout_lbl.pack_forget()
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=36, pady=0)
+        self._login_header(frame)
+
+        tk.Label(frame, text="Iniciá sesión", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x")
+        tk.Label(frame, text="Ingresá el email con el que te registraste al programa.",
+                 fg=DIM, bg=BG, font=("Segoe UI", 10), anchor="w",
+                 justify="left", wraplength=WIN_W - 80).pack(fill="x", pady=(4, 22))
+
         tk.Label(frame, text="EMAIL", fg=DIM, bg=BG,
                  font=("Segoe UI", 9, "bold"), anchor="w").pack(fill="x", pady=(0, 5))
-        email_var = tk.StringVar()
+        email_var = tk.StringVar(value=self.user_email or "")
         email_entry = tk.Entry(frame, textvariable=email_var, bg=CARD, fg=TEXT,
                                insertbackground=ACCENT, relief="flat",
                                font=("Segoe UI", 12), bd=0)
         email_entry.pack(fill="x", ipady=10)
         _mk_separator(frame, color=BORDER, height=1, pady=0)
 
-        tk.Frame(frame, bg=BG, height=14).pack()
+        tk.Frame(frame, bg=BG, height=18).pack()
 
-        # Password
-        tk.Label(frame, text="CONTRASEÑA", fg=DIM, bg=BG,
-                 font=("Segoe UI", 9, "bold"), anchor="w").pack(fill="x", pady=(0, 5))
-        pwd_var = tk.StringVar()
-        pwd_entry = tk.Entry(frame, textvariable=pwd_var, bg=CARD, fg=TEXT,
-                             insertbackground=ACCENT, show="●", relief="flat",
-                             font=("Segoe UI", 12), bd=0)
-        pwd_entry.pack(fill="x", ipady=10)
-        _mk_separator(frame, color=BORDER, height=1, pady=0)
-
-        tk.Frame(frame, bg=BG, height=12).pack()
-
-        # Remember me — custom toggle (Checkbutton nativo no funciona bien en dark theme)
-        remember_var  = tk.BooleanVar(value=True)
-        rem_frame     = tk.Frame(frame, bg=BG)
-        rem_frame.pack(fill="x", pady=(4, 18))
-
-        rem_box_lbl = tk.Label(rem_frame, text="✓", width=2,
-                                font=("Segoe UI", 10, "bold"),
-                                fg="#fff", bg=ACCENT, cursor="hand2",
-                                relief="flat")
-        rem_box_lbl.pack(side="left")
-        rem_txt_lbl = tk.Label(rem_frame, text="  Mantenerme conectado",
-                                fg=TEXT, bg=BG, font=("Segoe UI", 11),
-                                cursor="hand2")
-        rem_txt_lbl.pack(side="left")
-
-        def _toggle_remember(e=None):
-            remember_var.set(not remember_var.get())
-            if remember_var.get():
-                rem_box_lbl.config(text="✓", bg=ACCENT, fg="#fff")
-            else:
-                rem_box_lbl.config(text="", bg=CARD, fg=DIM)
-
-        rem_box_lbl.bind("<Button-1>", _toggle_remember)
-        rem_txt_lbl.bind("<Button-1>", _toggle_remember)
-
-        # Error label
-        err_lbl = tk.Label(frame, text="", fg=RED, bg=BG, font=("Segoe UI", 10))
+        err_lbl = tk.Label(frame, text="", fg=RED, bg=BG, font=("Segoe UI", 10),
+                           wraplength=WIN_W - 80, justify="left")
         err_lbl.pack(pady=(0, 6))
 
-        # Login button
-        def on_login():
-            email = email_var.get().strip()
-            pwd   = pwd_var.get()
-            if not validate_login(email, pwd):
-                err_lbl.config(text="Email o contraseña inválidos.")
-                return
-            self.logged_in  = True
-            self.user_email = email
-            save_auth(email, remember_var.get())
-            _uname = email.split('@')[0]
-            _uname = (_uname[:20] + "…") if len(_uname) > 20 else _uname  # PLE-36
-            self._signout_lbl.config(text=f"  {_uname}")
-            self._signout_lbl.pack(side="right", padx=(0, 14))
-            self._show_idle()
-
-        btn = tk.Button(frame, text="Entrar", fg="#fff", bg=ACCENT,
-                         relief="flat", bd=0, cursor="hand2",
-                         font=("Segoe UI", 12, "bold"),
-                         activebackground="#9080e0", activeforeground="#fff",
-                         command=on_login)
+        btn = tk.Button(frame, text="Enviar código", fg="#fff", bg=ACCENT,
+                        relief="flat", bd=0, cursor="hand2",
+                        font=("Segoe UI", 12, "bold"),
+                        activebackground="#9080e0", activeforeground="#fff")
         btn.pack(fill="x", ipady=12)
 
-        email_entry.bind("<Return>", lambda e: pwd_entry.focus())
-        pwd_entry.bind("<Return>",   lambda e: on_login())
+        def on_send():
+            email = email_var.get().strip().lower()
+            if "@" not in email or "." not in email:
+                err_lbl.config(text="Ingresá un email válido.")
+                return
+            err_lbl.config(text="")
+            btn.config(text="Enviando…", state="disabled")
+
+            def _worker():
+                try:
+                    pleiada_api.request_otp(email)
+                    self.root.after(0, lambda: self._show_otp_step(email))
+                except pleiada_api.ApiError as e:
+                    msg = str(e)
+                    self.root.after(0, lambda: (
+                        btn.config(text="Enviar código", state="normal"),
+                        err_lbl.config(text=msg)))
+            threading.Thread(target=_worker, daemon=True).start()
+
+        btn.config(command=on_send)
+        email_entry.bind("<Return>", lambda e: on_send())
         email_entry.focus()
+
+    # ── Login paso 2: ingresar el código ─────────────────────────────────────────
+
+    def _show_otp_step(self, email):
+        self._clear_content()
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=36, pady=0)
+        self._login_header(frame)
+
+        tk.Label(frame, text="Revisá tu email", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x")
+        tk.Label(frame, text=f"Te enviamos un código de 6 dígitos a\n{email}",
+                 fg=DIM, bg=BG, font=("Segoe UI", 10), anchor="w",
+                 justify="left", wraplength=WIN_W - 80).pack(fill="x", pady=(4, 22))
+
+        tk.Label(frame, text="CÓDIGO", fg=DIM, bg=BG,
+                 font=("Segoe UI", 9, "bold"), anchor="w").pack(fill="x", pady=(0, 5))
+        code_var = tk.StringVar()
+        code_entry = tk.Entry(frame, textvariable=code_var, bg=CARD, fg=TEXT,
+                              insertbackground=ACCENT, relief="flat",
+                              font=("Cascadia Code", 18), bd=0, justify="center")
+        code_entry.pack(fill="x", ipady=10)
+        _mk_separator(frame, color=BORDER, height=1, pady=0)
+
+        tk.Frame(frame, bg=BG, height=18).pack()
+
+        err_lbl = tk.Label(frame, text="", fg=RED, bg=BG, font=("Segoe UI", 10),
+                           wraplength=WIN_W - 80, justify="left")
+        err_lbl.pack(pady=(0, 6))
+
+        btn = tk.Button(frame, text="Ingresar", fg="#fff", bg=ACCENT,
+                        relief="flat", bd=0, cursor="hand2",
+                        font=("Segoe UI", 12, "bold"),
+                        activebackground="#9080e0", activeforeground="#fff")
+        btn.pack(fill="x", ipady=12)
+
+        def on_verify():
+            code = code_var.get().strip()
+            if len(code) < 6:
+                err_lbl.config(text="El código tiene 6 dígitos.")
+                return
+            err_lbl.config(text="")
+            btn.config(text="Verificando…", state="disabled")
+
+            def _worker():
+                try:
+                    token = pleiada_api.verify_otp(email, code)
+                    def _ok():
+                        self.logged_in  = True
+                        self.user_email = email
+                        self.auth_token = token
+                        save_auth(email, token)
+                        self._set_signout_label(email)
+                        self._refresh_open_calls()
+                        self._show_idle()
+                    self.root.after(0, _ok)
+                except pleiada_api.ApiError as e:
+                    msg = str(e)
+                    self.root.after(0, lambda: (
+                        btn.config(text="Ingresar", state="normal"),
+                        err_lbl.config(text=msg)))
+            threading.Thread(target=_worker, daemon=True).start()
+
+        btn.config(command=on_verify)
+        code_entry.bind("<Return>", lambda e: on_verify())
+        code_entry.focus()
+
+        # Acciones secundarias: reenviar / cambiar email
+        links = tk.Frame(frame, bg=BG)
+        links.pack(fill="x", pady=(16, 0))
+
+        resend_lbl = tk.Label(links, text="Reenviar código", fg=ACCENT, bg=BG,
+                              font=("Segoe UI", 10), cursor="hand2")
+        resend_lbl.pack(side="left")
+
+        def on_resend(e=None):
+            resend_lbl.config(text="Reenviando…", fg=DIM)
+            def _worker():
+                try:
+                    pleiada_api.request_otp(email)
+                    self.root.after(0, lambda: resend_lbl.config(
+                        text="Código reenviado", fg=GREEN))
+                except pleiada_api.ApiError:
+                    self.root.after(0, lambda: resend_lbl.config(
+                        text="Reenviar código", fg=ACCENT))
+            threading.Thread(target=_worker, daemon=True).start()
+        resend_lbl.bind("<Button-1>", on_resend)
+
+        change_lbl = tk.Label(links, text="Cambiar email", fg=DIM, bg=BG,
+                             font=("Segoe UI", 10), cursor="hand2")
+        change_lbl.pack(side="right")
+        change_lbl.bind("<Button-1>", lambda e: self._show_login())
 
     def _sign_out(self):
         if self.recording:
             return  # no sign out during recording
         self.logged_in  = False
-        self.user_email = ""
+        self.auth_token = ""
         self.selected_game = None
-        save_auth("", False)
+        save_auth("", "")
         self._signout_lbl.pack_forget()
         self._show_login()
 
@@ -2614,6 +3187,14 @@ class PleiadaApp:
         self._clear_content()
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
+
+        # Back arriba — siempre visible (v0.7.1)
+        _back = tk.Label(frame, text="←  Volver", fg=DIM, bg=BG,
+                         font=("Segoe UI", 10), cursor="hand2", anchor="w")
+        _back.pack(fill="x", pady=(0, 10))
+        _back.bind("<Button-1>", lambda e: self._show_idle())
+        _back.bind("<Enter>", lambda e: _back.config(fg=TEXT))
+        _back.bind("<Leave>", lambda e: _back.config(fg=DIM))
 
         _mk_section_label(frame, "AJUSTES")
 
@@ -2652,8 +3233,55 @@ class PleiadaApp:
 
         _mk_separator(frame, color=BORDER2, pady=(14, 12))
 
-        # — Cuenta —
-        _mk_section_label(frame, "CUENTA")
+        # — Grabación (v0.7.1) —
+        _mk_section_label(frame, "GRABACIÓN")
+
+        tk.Label(frame, text="Duración máxima de sesión", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 10), anchor="w").pack(fill="x", pady=(2, 2))
+        self._maxdur_lbl = tk.Label(frame, text="", fg=ACCENT, bg=BG,
+                                    font=("Cascadia Code", 12, "bold"), anchor="w")
+        self._maxdur_lbl.pack(fill="x")
+
+        presets_row = tk.Frame(frame, bg=BG)
+        presets_row.pack(fill="x", pady=(6, 0))
+        self._maxdur_preset_btns = {}
+        # TEMPORAL QA: el preset de 5 min es para el equipo de QA — sacarlo
+        # antes de pasar a producción (dejar solo 30/60).
+        for _mins in (5, 30, 60):
+            _b = tk.Label(presets_row, text=f"{_mins}m", bg=CARD, fg=TEXT,
+                          font=("Segoe UI", 10), cursor="hand2", padx=11, pady=5,
+                          highlightthickness=1, highlightbackground=BORDER)
+            _b.pack(side="left", padx=(0, 6))
+            _b.bind("<Button-1>", lambda e, m=_mins: self._set_max_minutes(m))
+            self._maxdur_preset_btns[_mins] = _b
+
+        tk.Label(frame, text="La grabación se detiene automáticamente al alcanzar este tiempo. "
+                             "Máximo 1 hora.",
+                 fg=DIM, bg=BG, font=("Segoe UI", 9), justify="left",
+                 wraplength=WIN_W - 60, anchor="w").pack(fill="x", pady=(6, 0))
+        self._refresh_maxdur_ui()
+
+        ar_row = tk.Frame(frame, bg=BG)
+        ar_row.pack(fill="x", pady=(14, 0))
+        tk.Label(ar_row, text="Reiniciar grabación automáticamente", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 10), anchor="w").pack(side="left")
+        self._autorestart_btn = tk.Label(ar_row, text="", bg=CARD, fg=DIM,
+                                          font=("Segoe UI", 9, "bold"), cursor="hand2",
+                                          padx=12, pady=4, highlightthickness=1,
+                                          highlightbackground=BORDER)
+        self._autorestart_btn.pack(side="right")
+        self._autorestart_btn.bind("<Button-1>", lambda e: self._toggle_auto_restart())
+        self._refresh_autorestart_ui()
+
+        tk.Label(frame, text="Cuando una grabación se detiene por alcanzar la duración máxima, "
+                             "espera 10 segundos e inicia una nueva sesión automáticamente. "
+                             "Cada sesión se guarda en su propia carpeta — no se sobrescriben.",
+                 fg=DIM, bg=BG, font=("Segoe UI", 9), justify="left",
+                 wraplength=WIN_W - 60, anchor="w").pack(fill="x", pady=(6, 0))
+
+        _mk_separator(frame, color=BORDER2, pady=(14, 12))
+
+        # — Cuenta (sin título, v0.7.1) —
         tk.Label(frame, text=self.user_email or "—", fg=DIM, bg=BG,
                  font=("Segoe UI", 10), anchor="w").pack(fill="x")
         tk.Button(frame, text="Cerrar sesión", fg=TEXT, bg=CARD,
@@ -2663,13 +3291,43 @@ class PleiadaApp:
                   highlightthickness=1, highlightbackground=BORDER).pack(
             fill="x", ipady=8, pady=(8, 0))
 
-        # spacer + Volver
+        # spacer al fondo (el back vive arriba ahora)
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
-        tk.Button(frame, text="←  Volver", fg=DIM, bg=BG,
-                  relief="flat", bd=0, cursor="hand2",
-                  font=("Segoe UI", 10), activebackground=BG,
-                  activeforeground=TEXT, command=self._show_idle).pack(
-            fill="x", ipady=8)
+
+    # ── Settings: duración máxima y auto-reinicio (v0.7.1) ─────────────────────
+
+    def _set_max_minutes(self, mins):
+        try:
+            mins = max(1, min(60, int(mins)))
+        except Exception:
+            return
+        self._settings["max_session_minutes"] = mins
+        save_settings(self._settings)
+        self._refresh_maxdur_ui()
+
+    def _refresh_maxdur_ui(self):
+        m = int(self._settings.get("max_session_minutes", 60))
+        try:
+            self._maxdur_lbl.config(text=f"{m} min")
+            for mins, b in self._maxdur_preset_btns.items():
+                on = (mins == m)
+                b.config(bg=ACCENT if on else CARD, fg="#ffffff" if on else TEXT)
+        except Exception:
+            pass
+
+    def _toggle_auto_restart(self):
+        self._settings["auto_restart"] = not self._settings.get("auto_restart", False)
+        save_settings(self._settings)
+        self._refresh_autorestart_ui()
+
+    def _refresh_autorestart_ui(self):
+        on = bool(self._settings.get("auto_restart", False))
+        try:
+            self._autorestart_btn.config(text="ACTIVADO" if on else "DESACTIVADO",
+                                          bg=GREEN if on else CARD,
+                                          fg="#06140d" if on else DIM)
+        except Exception:
+            pass
 
     def _begin_capture_hotkey(self, key):
         """Entra en modo captura: el próximo KeyPress define el atajo."""
@@ -2827,8 +3485,18 @@ class PleiadaApp:
         session_row.pack(fill="x", pady=(14, 0))
         tk.Label(session_row, text="SESIÓN MÁX", fg=DIM, bg=BG,
                   font=("Segoe UI", 8, "bold"), anchor="w").pack(side="left")
-        tk.Label(session_row, text="01:05:00", fg=TEXT, bg=BG,
+        # v0.7.1: refleja la duración configurada en Ajustes (antes 01:05:00 fijo)
+        _mx = int(self._settings.get("max_session_minutes", 60)) * 60
+        tk.Label(session_row, text=f"{_mx // 3600:02d}:{(_mx % 3600) // 60:02d}:{_mx % 60:02d}",
+                  fg=TEXT, bg=BG,
                   font=("Cascadia Code", 11), anchor="e").pack(side="right")
+
+        # Aviso del gate AFK — el jugador tiene que saberlo ANTES de grabar.
+        # A propósito NO se menciona el umbral exacto (pedido de Martín 20/7).
+        tk.Label(frame, text="Grabá jugando activamente: las sesiones con períodos largos "
+                             "sin actividad de teclado o mouse no son válidas para subir.",
+                  fg=DIM, bg=BG, font=("Segoe UI", 9), justify="left",
+                  wraplength=WIN_W - 60, anchor="w").pack(fill="x", pady=(6, 0))
 
         # spacer
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
@@ -2843,6 +3511,15 @@ class PleiadaApp:
         )
         self._rec_btn_idle.pack(fill="x", ipady=14, pady=(0, 2))
         self._update_record_btn()
+
+        # — Acceso a "Mis grabaciones" (subir sesiones grabadas antes) ——————
+        sessions_btn = tk.Label(frame, text="📤  Subir grabaciones",
+                                fg=ACCENT, bg=BG, font=("Segoe UI", 10),
+                                cursor="hand2", anchor="center")
+        sessions_btn.pack(fill="x", pady=(8, 0))
+        sessions_btn.bind("<Enter>", lambda e: sessions_btn.config(fg="#9d8fe8"))
+        sessions_btn.bind("<Leave>", lambda e: sessions_btn.config(fg=ACCENT))
+        sessions_btn.bind("<Button-1>", lambda e: self._show_sessions_list())
 
         # — Footer ————————————————————————————————————
         _mk_separator(frame, color=BORDER2, pady=(12, 0))
@@ -3122,7 +3799,8 @@ class PleiadaApp:
             return
         can_record = (
             self.selected_game is not None and
-            self._obs_status == "ok"   # PLE-31: botón solo habilitado cuando OBS confirmado
+            self._obs_status == "ok" and   # PLE-31: botón solo habilitado cuando OBS confirmado
+            not self._update_required      # v0.8: bloqueado si VERSION < min_version
         )
         if can_record:
             self._rec_btn_idle.config(
@@ -3141,6 +3819,10 @@ class PleiadaApp:
 
     def _start_recording(self):
         if not self.selected_game or self._obs_status == "mismatch":
+            return
+        # v0.8: min_version — el hotkey global llega directo acá, sin pasar por
+        # el estado del botón, así que el bloqueo se repite en este punto.
+        if self._update_required:
             return
 
         # PLE-42: validar que el juego esté en ejecución antes de iniciar.
@@ -3402,14 +4084,28 @@ class PleiadaApp:
             self._last_sync_statuses["metadata"] = ("ok"
                 if (sdir / "session_metadata.json").exists() else "err")
 
+            # 6b. Estado de subida (para la lista "Mis grabaciones"): válida/no válida,
+            #     todavía no subida.
+            write_session_state(sdir, valid=bool(results.get("session_ok")),
+                                uploaded=False,
+                                game=(self.selected_game or {}).get("game", ""))
+
             # 6c. Protección read-only — SOLO si la sesión pasó el sync check. Las
             #     rechazadas se descartan (el usuario borra la carpeta), así que no se
             #     protegen → evita conflictos con cualquier borrado posterior.
             if results.get("session_ok"):
                 _protect_session_files(sdir)
 
-            # 7. Mostrar resultado
-            self.root.after(0, lambda: self._show_result(results["session_ok"], results, None))
+            # 7. Mostrar resultado — o encadenar el auto-reinicio (v0.7.1)
+            _auto = self._auto_stopped and self._settings.get("auto_restart")
+            self._auto_stopped = False
+            if _auto and results.get("session_ok"):
+                self.root.after(0, self._begin_auto_restart)   # → cuenta regresiva → nueva sesión
+            else:
+                # auto-stop con sesión rechazada → cortar el ciclo y avisar (decisión del usuario)
+                _note = "auto_restart_halted" if _auto else None
+                self.root.after(0, lambda n=_note: self._show_result(
+                    results["session_ok"], results, None, n))
 
         threading.Thread(target=_worker, daemon=True).start()
 
@@ -3898,6 +4594,9 @@ class PleiadaApp:
     def _show_recording_active(self, anchor_ts):
         self._clear_content()
         self.rec_seconds = 0
+        # v0.7.1: duración máxima de ESTA sesión desde settings (clamp ya aplicado al cargar)
+        self._max_seconds  = int(self._settings.get("max_session_minutes", 60)) * 60
+        self._auto_stopped = False
         game = (self.selected_game or {}).get("game", "—")
 
         frame = tk.Frame(self.content, bg=BG)
@@ -3907,7 +4606,8 @@ class PleiadaApp:
         status_row = tk.Frame(frame, bg=BG)
         status_row.pack(fill="x")
         # Derecha: límite + countdown (se packean antes para reservar espacio)
-        self._countdown_lbl = tk.Label(status_row, text="01:05:00", fg=DIM, bg=BG,
+        _mh, _mm, _ms = self._max_seconds // 3600, (self._max_seconds % 3600) // 60, self._max_seconds % 60
+        self._countdown_lbl = tk.Label(status_row, text=f"{_mh:02d}:{_mm:02d}:{_ms:02d}", fg=DIM, bg=BG,
                                         font=("Cascadia Code", 11))
         self._countdown_lbl.pack(side="right")
         tk.Label(status_row, text="límite  ", fg=DIMMER, bg=BG,
@@ -3959,14 +4659,15 @@ class PleiadaApp:
         self._timer_lbl.config(text=f"{h:02d}:{m:02d}:{s:02d}")
 
         # Update countdown
-        rem = max(0, MAX_SECONDS - self.rec_seconds)
+        rem = max(0, self._max_seconds - self.rec_seconds)
         rh  = rem // 3600
         rm  = (rem % 3600) // 60
         rs  = rem % 60
         col = YELLOW if rem <= 300 else DIM
         self._countdown_lbl.config(text=f"{rh:02d}:{rm:02d}:{rs:02d}", fg=col)
 
-        if self.rec_seconds >= MAX_SECONDS:
+        if self.rec_seconds >= self._max_seconds:
+            self._auto_stopped = True   # v0.7.1: distinguir auto-stop por tiempo del stop manual
             self._stop_recording()
             return
 
@@ -3978,6 +4679,53 @@ class PleiadaApp:
         cur = self._rec_dot.cget("fg")
         self._rec_dot.config(fg=RED if cur == BG else BG)
         self.root.after(700, self._pulse_dot)
+
+    # ── Auto-reinicio de grabación (v0.7.1) ────────────────────────────────────
+
+    def _begin_auto_restart(self):
+        """Tras un auto-stop por tiempo con sesión OK: cuenta regresiva de 10 s → nueva sesión."""
+        self._auto_restart_cancelled = False
+        self._auto_restart_left = 10
+        self._clear_content()
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
+        tk.Label(frame, text="✓ Sesión guardada", fg=GREEN, bg=BG,
+                 font=("Segoe UI", 12, "bold")).pack()
+        tk.Label(frame, text="Reiniciando grabación en", fg=DIM, bg=BG,
+                 font=("Segoe UI", 11)).pack(pady=(12, 0))
+        self._restart_big = tk.Label(frame, text="10", fg=TEXT, bg=BG,
+                                     font=("Cascadia Code", 52, "normal"))
+        self._restart_big.pack()
+        tk.Label(frame, text="Cada sesión se guarda en su propia carpeta — no se sobrescriben.",
+                 fg=DIMMER, bg=BG, font=("Segoe UI", 9), wraplength=WIN_W - 60).pack(pady=(0, 10))
+        tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
+        _mk_separator(frame, color=BORDER2, pady=(0, 14))
+        tk.Button(frame, text="Cancelar", fg=TEXT, bg=CARD, relief="flat", bd=0,
+                  cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
+                  activeforeground=TEXT, command=self._cancel_auto_restart,
+                  highlightthickness=1, highlightbackground=BORDER).pack(fill="x", ipady=10)
+        self._tick_auto_restart()
+
+    def _tick_auto_restart(self):
+        if self._auto_restart_cancelled:
+            return
+        if self._auto_restart_left <= 0:
+            if not self.selected_game:     # el juego se deseleccionó → no reiniciar
+                self._show_idle(); return
+            self._start_recording()        # crea carpeta nueva con timestamp → no se pisa nada
+            return
+        try:
+            self._restart_big.config(text=str(self._auto_restart_left))
+        except Exception:
+            pass
+        self._auto_restart_left -= 1
+        self.root.after(1000, self._tick_auto_restart)
+
+    def _cancel_auto_restart(self):
+        self._auto_restart_cancelled = True
+        self.session_dir = None
+        self._show_idle()
 
     # ── Pantalla: verificando ──────────────────────────────────────────────────
 
@@ -4077,7 +4825,7 @@ class PleiadaApp:
 
     # ── Pantalla: resultado ────────────────────────────────────────────────────
 
-    def _show_result(self, ok, results, out_path):
+    def _show_result(self, ok, results, out_path, note=None):
         self._clear_content()
 
         # PLE-45: botones anclados al fondo — siempre visibles sin importar
@@ -4121,17 +4869,22 @@ class PleiadaApp:
             side="left", fill="x", expand=True, ipady=10, padx=(0, 6) if ok else (0, 0))
 
         if ok:
-            def open_site():
-                import webbrowser
-                webbrowser.open("https://gameplayalliance.gg")
-            tk.Button(btn_row, text="Gameplayalliance.gg ↗", fg="#fff", bg=ACCENT,
+            tk.Button(btn_row, text="Subir Data Set", fg="#fff", bg=ACCENT,
                        relief="flat", bd=0, cursor="hand2",
                        font=("Segoe UI", 11, "bold"), activebackground="#9080e0",
-                       command=open_site).pack(side="right", fill="x", expand=True,
-                                               ipady=10, padx=(6, 0))
+                       command=lambda: self._start_upload_flow(
+                           self.session_dir, self._show_idle)).pack(
+                           side="right", fill="x", expand=True, ipady=10, padx=(6, 0))
 
         inner = tk.Frame(frame, bg=BG)
         inner.pack(fill="both", expand=True, padx=22, pady=16)
+
+        # v0.7.1: aviso si el reinicio automático se detuvo por una sesión rechazada
+        if note == "auto_restart_halted":
+            tk.Label(inner, text="⚠  Reinicio automático detenido — la última grabación no pasó "
+                                 "la verificación de sincronización.",
+                     fg=YELLOW, bg=BG, font=("Segoe UI", 10), justify="left",
+                     wraplength=WIN_W - 80, anchor="w").pack(fill="x", pady=(0, 10))
 
         # ── Notify card ───────────────────────────────────────────────────────
         if ok:
@@ -4152,6 +4905,11 @@ class PleiadaApp:
             if results and results.get("short_session"):
                 # PLE-41: sesión demasiado corta
                 body = "La sesión duró menos de 30 segundos.\nGrabá al menos 30 segundos de gameplay para que los datos sean válidos."
+            elif results and results.get("afk"):
+                # Gate AFK: demasiado tiempo continuo sin inputs.
+                # A propósito NO se menciona el umbral exacto (pedido de Martín 20/7).
+                body = ("La sesión tiene un período largo sin actividad de teclado o mouse "
+                        "(AFK).\nGrabá jugando activamente e iniciá una nueva sesión.")
             else:
                 body = "Los archivos no pasaron el sync check.\nDescartá esta sesión e iniciá una nueva."
 
@@ -4252,10 +5010,382 @@ class PleiadaApp:
 
         # (botones movidos al fondo fijo de self.content — ver inicio de _show_result)
 
+    # ── Upload a S3 (vistas in-window) ─────────────────────────────────────────
+
+    def _start_upload_flow(self, session_dir, return_to):
+        """Punto de entrada del flujo de subida. Refresca las inscripciones ANTES
+        de decidir: el usuario pudo inscribirse en el dashboard después de abrir el
+        Recorder, y si no refrescamos, la lista quedaría vieja y bloquearía la subida.
+        """
+        self._clear_content()
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        tk.Label(frame, text="Verificando tus órdenes…", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 12, "bold")).pack()
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+
+        def _worker(token=self.auth_token):
+            calls = None
+            try:
+                calls = pleiada_api.my_calls(token)
+            except Exception:
+                calls = None   # sin red / token viejo: seguimos con lo que haya
+            def _done():
+                if calls is not None:
+                    self.open_calls = calls
+                self._upload_confirm_view(session_dir, return_to)
+            self.root.after(0, _done)
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _upload_confirm_view(self, session_dir, return_to):
+        self._clear_content()
+        info = session_uploader.session_info(session_dir)
+        meta = session_uploader.session_meta(session_dir)
+        matches = self._calls_for_game(meta["game_title"])
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+
+        # ── Sin call elegible: el upload está bloqueado (el backend lo
+        #    rechazaría igual — esto solo se lo explica al usuario antes). ──
+        if not matches:
+            tk.Label(frame, text="Subir Data Set", fg=TEXT, bg=BG,
+                     font=("Segoe UI", 14, "bold"), anchor="w").pack(fill="x", pady=(0, 12))
+            card_bg, card_brd = "#140e06", "#7a5a20"
+            notify = tk.Frame(frame, bg=card_bg, highlightthickness=1,
+                              highlightbackground=card_brd)
+            notify.pack(fill="x")
+            juego = meta["game_title"] or "este juego"
+            if self.open_calls:
+                body = (f"{juego} no entra en ninguna de tus órdenes activas.\n\n"
+                        "Las subidas solo se habilitan para juegos elegibles de una "
+                        "orden en la que estés inscripto. Revisá las órdenes abiertas "
+                        "en el dashboard de Gameplay Alliance.")
+            else:
+                body = ("No estás inscripto en ninguna orden abierta.\n\n"
+                        "Para subir contenido, primero inscribite en una orden desde "
+                        "el dashboard de Gameplay Alliance y grabá un juego elegible.")
+            tk.Label(notify, text="⚠  Subida no disponible", fg=YELLOW, bg=card_bg,
+                     font=("Segoe UI", 11, "bold"), anchor="w").pack(
+                fill="x", padx=14, pady=(10, 2))
+            tk.Label(notify, text=body, fg=DIM, bg=card_bg, font=("Segoe UI", 10),
+                     anchor="w", justify="left", wraplength=WIN_W - 90).pack(
+                fill="x", padx=14, pady=(0, 12))
+
+            tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+            btns = tk.Frame(frame, bg=BG)
+            btns.pack(fill="x")
+            tk.Button(btns, text="Volver", fg=DIM, bg=CARD, relief="flat", bd=0,
+                      cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
+                      activeforeground=TEXT, command=return_to,
+                      highlightthickness=1, highlightbackground=BORDER).pack(
+                side="left", fill="x", expand=True, ipady=10, padx=(0, 6))
+            def _open_dashboard():
+                import webbrowser
+                webbrowser.open("https://gameplayalliance.gg/dashboard/")
+            tk.Button(btns, text="Ver órdenes abiertas", fg="#fff", bg=ACCENT, relief="flat",
+                      bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
+                      activebackground="#9080e0", command=_open_dashboard).pack(
+                side="right", fill="x", expand=True, ipady=10, padx=(6, 0))
+            return
+
+        tk.Label(frame, text="Subir Data Set", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 14, "bold"), anchor="w").pack(fill="x", pady=(0, 6))
+        tk.Label(frame, text="¿Querés subir esta sesión a Gameplay Alliance?",
+                 fg=DIM, bg=BG, font=("Segoe UI", 11), anchor="w",
+                 justify="left", wraplength=WIN_W - 60).pack(fill="x", pady=(0, 16))
+
+        card = tk.Frame(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+        card.pack(fill="x")
+        dur_min = max(1, meta["duration_seconds"] // 60) if meta["duration_seconds"] else None
+        rows = [("Sesión",   session_dir.name),
+                ("Archivos", f"{info['count']} ({info['size_label']})")]
+        if meta["game_title"]:
+            rows.insert(0, ("Juego", meta["game_title"]))
+        if dur_min:
+            rows.append(("Duración", f"{dur_min} min"))
+        for label, value in rows:
+            row = tk.Frame(card, bg=CARD)
+            row.pack(fill="x", padx=14, pady=8)
+            tk.Label(row, text=label, fg=DIM, bg=CARD, font=("Segoe UI", 9, "bold"),
+                     width=9, anchor="w").pack(side="left")
+            tk.Label(row, text=value, fg=TEXT, bg=CARD, font=("Segoe UI", 10),
+                     anchor="w", justify="left", wraplength=WIN_W - 150).pack(
+                side="left", fill="x", expand=True)
+
+        # ── Open Call de destino (1 match: fijo; varios: selector) ────────────
+        call_var = tk.StringVar(value=matches[0]["call_id"])
+        _mk_section_label(frame, "ORDEN DE DESTINO")
+        sel = tk.Frame(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+        sel.pack(fill="x")
+        for m in matches:
+            row = tk.Frame(sel, bg=CARD)
+            row.pack(fill="x", padx=10, pady=4)
+            rem = m.get("remaining_seconds")
+            extra = f" · te quedan {rem // 3600}h {(rem % 3600) // 60:02d}m" if rem is not None else ""
+            txt = f"{m.get('titulo', m['call_id'])}  ({m['call_id']}){extra}"
+            if len(matches) == 1:
+                tk.Label(row, text="→ " + txt, fg=TEXT, bg=CARD,
+                         font=("Segoe UI", 10), anchor="w", justify="left",
+                         wraplength=WIN_W - 100).pack(fill="x")
+            else:
+                tk.Radiobutton(row, text=txt, variable=call_var, value=m["call_id"],
+                               fg=TEXT, bg=CARD, selectcolor=BG, anchor="w",
+                               activebackground=CARD, activeforeground=TEXT,
+                               font=("Segoe UI", 10), justify="left",
+                               wraplength=WIN_W - 110).pack(fill="x")
+
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+
+        btns = tk.Frame(frame, bg=BG)
+        btns.pack(fill="x")
+        tk.Button(btns, text="Volver", fg=DIM, bg=CARD, relief="flat", bd=0,
+                  cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
+                  activeforeground=TEXT, command=return_to,
+                  highlightthickness=1, highlightbackground=BORDER).pack(
+            side="left", fill="x", expand=True, ipady=10, padx=(0, 6))
+        tk.Button(btns, text="Subir", fg="#fff", bg=ACCENT, relief="flat", bd=0,
+                  cursor="hand2", font=("Segoe UI", 11, "bold"), activebackground="#9080e0",
+                  command=lambda: self._upload_progress_view(
+                      session_dir, return_to, call_var.get())).pack(
+            side="right", fill="x", expand=True, ipady=10, padx=(6, 0))
+
+    def _upload_progress_view(self, session_dir, return_to, call_id=""):
+        self._clear_content()
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+
+        tk.Label(frame, text="Subiendo Data Set", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 14, "bold"), anchor="w").pack(fill="x")
+
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+
+        status_var = tk.StringVar(value="Iniciando…")
+        tk.Label(frame, textvariable=status_var, fg=TEXT, bg=BG,
+                 font=("Segoe UI", 11), anchor="w", justify="left").pack(fill="x")
+        detail_var = tk.StringVar(value="")
+        tk.Label(frame, textvariable=detail_var, fg=DIM, bg=BG,
+                 font=("Cascadia Code", 9), anchor="w").pack(fill="x", pady=(4, 0))
+
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("Pleiada.Horizontal.TProgressbar",
+                         troughcolor=CARD, background=ACCENT, borderwidth=0)
+        pct_var = tk.DoubleVar(value=0)
+        ttk.Progressbar(frame, variable=pct_var, maximum=100,
+                         style="Pleiada.Horizontal.TProgressbar").pack(
+            fill="x", pady=(12, 0))
+
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+
+        cancelled = [False]
+        cancel_event = threading.Event()
+        def _cancel():
+            cancelled[0] = True
+            cancel_event.set()   # corta el thread de subida: aborta el PUT y no finaliza
+            return_to()
+        tk.Button(frame, text="Cancelar", fg=DIM, bg=CARD, relief="flat", bd=0,
+                  cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
+                  activeforeground=TEXT, command=_cancel,
+                  highlightthickness=1, highlightbackground=BORDER).pack(
+            fill="x", ipady=10)
+
+        def on_progress(sent, total, filename, speed, eta):
+            if cancelled[0]:
+                return
+            short = filename if len(filename) <= 28 else "…" + filename[-25:]
+            pct   = (sent / total * 100) if total else 0
+            mb    = 1024 * 1024
+            detail = f"{sent/mb:.1f} / {total/mb:.1f} MB · {pct:.0f}%"
+            if speed:
+                detail += f" · {speed/mb:.1f} MB/s"
+            etatxt = _fmt_eta(eta)
+            if etatxt:
+                detail += f" · {etatxt}"
+            self.root.after(0, lambda: status_var.set(f"Subiendo {short}"))
+            self.root.after(0, lambda: detail_var.set(detail))
+            self.root.after(0, lambda: pct_var.set(pct))
+
+        def on_done(status, msg):
+            if cancelled[0]:
+                return
+            if status == "ok":
+                write_session_state(session_dir, uploaded=True,
+                                    uploaded_at=int(time.time()))
+                self._refresh_open_calls()   # las horas usadas cambiaron
+                self.root.after(0, lambda: self._upload_result_view(
+                    "ok", "", session_dir, return_to))
+            elif status == "already":
+                write_session_state(session_dir, uploaded=True)
+                self.root.after(0, lambda: self._upload_result_view(
+                    "already", "", session_dir, return_to))
+            elif status == "auth":
+                self.root.after(0, self._on_upload_auth_expired)
+            elif status == "gate":
+                # rechazo por reglas del Open Call: no ofrecer "Reintentar" a ciegas
+                self._refresh_open_calls()   # el estado local quedó viejo
+                self.root.after(0, lambda: self._upload_result_view(
+                    "gate", msg, session_dir, return_to))
+            else:
+                self.root.after(0, lambda: self._upload_result_view(
+                    "error", msg, session_dir, return_to, call_id))
+
+        threading.Thread(
+            target=session_uploader.upload_session,
+            args=(session_dir, self.auth_token, call_id, on_progress, on_done,
+                  cancel_event),
+            daemon=True,
+        ).start()
+
+    def _upload_result_view(self, status, msg, session_dir, return_to, call_id=""):
+        self._clear_content()
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+
+        if status in ("ok", "already"):
+            tk.Label(frame, text="✓", fg=GREEN, bg=BG,
+                     font=("Segoe UI", 34, "bold")).pack()
+            text = ("Sesión subida correctamente\na Gameplay Alliance."
+                    if status == "ok" else
+                    "Este Data Set ya estaba subido.")
+            tk.Label(frame, text=text, fg=TEXT, bg=BG, font=("Segoe UI", 12, "bold"),
+                     justify="center").pack(pady=(8, 0))
+        elif status == "gate":
+            # El backend rechazó por reglas del Open Call (cupo, elegibilidad, cierre)
+            tk.Label(frame, text="⚠", fg=YELLOW, bg=BG,
+                     font=("Segoe UI", 34, "bold")).pack()
+            tk.Label(frame, text="La subida no está habilitada.", fg=TEXT, bg=BG,
+                     font=("Segoe UI", 12, "bold")).pack(pady=(8, 0))
+            tk.Label(frame, text=msg or "Este contenido no entra en tus órdenes activas.",
+                     fg=DIM, bg=BG, font=("Segoe UI", 10), justify="center",
+                     wraplength=WIN_W - 60).pack(pady=(4, 0))
+        else:
+            tk.Label(frame, text="✗", fg=RED, bg=BG,
+                     font=("Segoe UI", 34, "bold")).pack()
+            tk.Label(frame, text="No se pudo subir la sesión.", fg=TEXT, bg=BG,
+                     font=("Segoe UI", 12, "bold")).pack(pady=(8, 0))
+            # v0.8.5: mostrar el motivo real del servidor si vino (antes se
+            # tragaba el msg y TODO error parecía "problema de conexión" — bug QA)
+            tk.Label(frame, text=msg or "Revisá tu conexión e intentá de nuevo.",
+                     fg=DIM, bg=BG, font=("Segoe UI", 10), justify="center",
+                     wraplength=WIN_W - 60).pack(pady=(4, 0))
+
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+
+        btns = tk.Frame(frame, bg=BG)
+        btns.pack(fill="x")
+        if status in ("ok", "already", "gate"):
+            tk.Button(btns, text="Listo", fg="#fff", bg=ACCENT, relief="flat", bd=0,
+                      cursor="hand2", font=("Segoe UI", 11, "bold"),
+                      activebackground="#9080e0", command=return_to).pack(
+                fill="x", ipady=10)
+        else:
+            tk.Button(btns, text="Volver", fg=DIM, bg=CARD, relief="flat", bd=0,
+                      cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
+                      activeforeground=TEXT, command=return_to,
+                      highlightthickness=1, highlightbackground=BORDER).pack(
+                side="left", fill="x", expand=True, ipady=10, padx=(0, 6))
+            tk.Button(btns, text="Reintentar", fg="#fff", bg=ACCENT, relief="flat",
+                      bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
+                      activebackground="#9080e0",
+                      command=lambda: self._upload_progress_view(
+                          session_dir, return_to, call_id)).pack(
+                side="right", fill="x", expand=True, ipady=10, padx=(6, 0))
+
+    def _on_upload_auth_expired(self):
+        self._clear_content()
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        tk.Label(frame, text="Tu sesión venció.", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 13, "bold")).pack()
+        tk.Label(frame, text="Volvé a iniciar sesión con tu email para subir la grabación.",
+                 fg=DIM, bg=BG, font=("Segoe UI", 10), justify="center",
+                 wraplength=WIN_W - 60).pack(pady=(6, 0))
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        def _relogin():
+            self.logged_in  = False
+            self.auth_token = ""
+            save_auth("", "")
+            self._signout_lbl.pack_forget()
+            self._show_login()
+        tk.Button(frame, text="Iniciar sesión", fg="#fff", bg=ACCENT, relief="flat",
+                  bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
+                  activebackground="#9080e0", command=_relogin).pack(fill="x", ipady=10)
+
+    # ── Lista de grabaciones (grabar varias, subir por separado) ────────────────
+
+    def _show_sessions_list(self):
+        self._clear_content()
+        outer = tk.Frame(self.content, bg=BG)
+        outer.pack(fill="both", expand=True)
+
+        head = tk.Frame(outer, bg=BG, padx=22, pady=16)
+        head.pack(fill="x")
+        back = tk.Label(head, text="←", fg=ACCENT, bg=BG, font=("Segoe UI", 16),
+                        cursor="hand2")
+        back.pack(side="left")
+        back.bind("<Button-1>", lambda e: self._show_idle())
+        tk.Label(head, text="  Mis grabaciones", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 14, "bold")).pack(side="left")
+
+        canvas = tk.Canvas(outer, bg=BG, bd=0, highlightthickness=0)
+        canvas.pack(side="top", fill="both", expand=True)
+        lst = tk.Frame(canvas, bg=BG)
+        lst_id = canvas.create_window((0, 0), window=lst, anchor="nw")
+        canvas.bind("<Configure>", lambda e: canvas.itemconfig(lst_id, width=e.width))
+        lst.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind_all("<MouseWheel>", lambda e: canvas.yview_scroll(-1 * (e.delta // 120), "units"))
+
+        sessions = list_local_sessions()
+        if not sessions:
+            tk.Label(lst, text="No hay grabaciones todavía.", fg=DIM, bg=BG,
+                     font=("Segoe UI", 11), pady=40).pack()
+            return
+        for sdir, state in sessions:
+            self._session_row(lst, sdir, state)
+
+    def _session_row(self, parent, sdir, state):
+        card = tk.Frame(parent, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+        card.pack(fill="x", padx=18, pady=5)
+        inner = tk.Frame(card, bg=CARD)
+        inner.pack(fill="x", padx=12, pady=10)
+
+        name = sdir.name.replace(" recording", "")
+        tk.Label(inner, text=name, fg=TEXT, bg=CARD, font=("Segoe UI", 10, "bold"),
+                 anchor="w", wraplength=WIN_W - 90, justify="left").pack(fill="x")
+
+        meta = tk.Frame(inner, bg=CARD)
+        meta.pack(fill="x", pady=(6, 0))
+        badge = {
+            "uploaded":   ("✓ Subida",   GREEN),
+            "pending":    ("Pendiente",  YELLOW),
+            "invalid":    ("No válida",  RED),
+            "incomplete": ("Incompleta", DIMMER),
+        }
+        txt, col = badge.get(state.get("status"), ("—", DIMMER))
+        tk.Label(meta, text=txt, fg=col, bg=CARD,
+                 font=("Segoe UI", 9, "bold")).pack(side="left")
+        tk.Label(meta, text=state.get("size_label", ""), fg=DIM, bg=CARD,
+                 font=("Cascadia Code", 9)).pack(side="left", padx=(10, 0))
+
+        if state.get("status") == "pending":
+            tk.Button(meta, text="Subir", fg="#fff", bg=ACCENT, relief="flat", bd=0,
+                      cursor="hand2", font=("Segoe UI", 9, "bold"),
+                      activebackground="#9080e0",
+                      command=lambda d=sdir: self._start_upload_flow(
+                          d, self._show_sessions_list)).pack(side="right", ipady=2, ipadx=12)
+
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def _clear_content(self):
         self._hide_dropdown()
+        # Limpiar binding global de scroll (lo re-crea cada pantalla que lo use)
+        try:
+            self.content.unbind_all("<MouseWheel>")
+        except Exception:
+            pass
         # Cancelar animación de packaging si está corriendo
         if getattr(self, "_pkg_anim_id", None):
             try:
@@ -4267,33 +5397,10 @@ class PleiadaApp:
             w.destroy()
 
     def _open_tutorial(self):
-        """Relanza el wizard de configuración inicial (tutorial post-instalación)."""
-        wizard = APP_DIR / "pleiada_setup_wizard.pyw"
-        if not wizard.exists():
-            return
-        # Buscar pythonw.exe igual que el instalador
-        pythonw = None
+        """Abre el tutorial web (v0.8.4: reemplaza al wizard local de ventanas)."""
         try:
-            import winreg
-            for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
-                try:
-                    key = winreg.OpenKey(hive, r"Software\Python\PythonCore\3.12\InstallPath")
-                    d, _ = winreg.QueryValueEx(key, "")
-                    winreg.CloseKey(key)
-                    candidate = Path(d) / "pythonw.exe"
-                    if candidate.exists():
-                        pythonw = str(candidate)
-                        break
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        if not pythonw:
-            import shutil as _sh
-            pythonw = _sh.which("pythonw") or _sh.which("pythonw.exe") or "pythonw.exe"
-        try:
-            subprocess.Popen([pythonw, str(wizard)], cwd=str(APP_DIR),
-                             creationflags=subprocess.CREATE_NO_WINDOW)
+            import webbrowser
+            webbrowser.open("https://recorder.gameplayalliance.gg/")
         except Exception as e:
             _obs_dbg(f"_open_tutorial: {e}")
 
@@ -4309,6 +5416,8 @@ class PleiadaApp:
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    _install_crash_logging()   # v0.7.1: captura crashes/ANR a %APPDATA%\Pleiada\logs
+
     # PLE-18: DPI awareness — evita que Windows clipee contenido en pantallas escaladas.
     # Debe llamarse ANTES de crear cualquier ventana Tk.
     try:
