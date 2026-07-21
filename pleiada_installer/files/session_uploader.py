@@ -20,8 +20,14 @@ _EXCLUDE = {"pleiada_stop.txt", ".pleiada_upload.json"}
 # conexiones TLS largas a mitad del PUT — el síntoma clásico es
 # "<urlopen error EOF occurred in violation of protocol>". Un PUT interrumpido
 # no deja nada en S3 (es atómico), así que reintentar con conexión nueva es seguro.
-UPLOAD_RETRIES  = 3        # intentos por archivo
+UPLOAD_RETRIES  = 3        # intentos por archivo (o por PARTE, en multipart)
 RETRY_BACKOFF_S = (2, 5)   # espera antes del 2º y 3º intento
+
+# Multipart (v0.8.8): S3 rechaza PUTs simples > 5 GiB (EntityTooLarge) y los MP4
+# de sesiones largas lo superan (30 min ≈ 6,6 GB al bitrate actual). Los archivos
+# grandes van en partes con URL presignada cada una y reintento POR PARTE — un
+# corte de red a los 5 GB ya no tira toda la subida, repite una parte de 100 MB.
+MULTIPART_THRESHOLD = 200 * 1024 * 1024   # archivos > 200 MB van por multipart
 
 _DIAG_LOG = Path.home() / "Documents" / "Pleiada Logs" / "upload.log"
 
@@ -84,6 +90,10 @@ class UploadCancelled(Exception):
     """El usuario canceló la subida: abortar YA, sin finalize."""
 
 
+class _AlreadyFinalized(Exception):
+    """El backend informó que este dataset ya estaba subido."""
+
+
 def upload_session(session_dir: Path, token: str, call_id: str = "",
                    on_progress=None, on_done=None, cancel_event=None):
     """
@@ -144,10 +154,22 @@ def upload_session(session_dir: Path, token: str, call_id: str = "",
             eta = ((total - global_sent) / speed) if speed > 0 else None
             on_progress(global_sent, total, fn, speed, eta)
 
-        # 2. PUT cada archivo directo a S3, reportando bytes globales
+        # 2. PUT cada archivo directo a S3, reportando bytes globales.
+        #    Archivos > MULTIPART_THRESHOLD van por multipart (S3 no acepta
+        #    PUTs simples > 5 GiB); el resto por PUT simple con reintentos.
         sent_before = 0
         for f in files:
             _check_cancel()
+            fsize = f.stat().st_size
+            if fsize > MULTIPART_THRESHOLD:
+                def _mp_report(file_sent, _sb=sent_before, _fn=f.name):
+                    _check_cancel()
+                    _report(_sb + file_sent, _fn)
+                _upload_multipart_file(token, call_id, session_dir, f,
+                                       dataset_hash, meta, _mp_report,
+                                       _check_cancel)
+                sent_before += fsize
+                continue
             url = urls.get(f.name)
             if not url:
                 raise RuntimeError(f"Sin URL para {f.name}")
@@ -200,6 +222,9 @@ def upload_session(session_dir: Path, token: str, call_id: str = "",
     except UploadCancelled:
         if on_done:
             on_done("cancelled", "")
+    except _AlreadyFinalized:
+        if on_done:
+            on_done("already", "")
     except pleiada_api.ApiError as e:
         if cancel_event is not None and cancel_event.is_set():
             if on_done:
@@ -276,6 +301,108 @@ class _ProgressReader:
             self._f.close()
         except Exception:
             pass
+
+
+def _upload_multipart_file(token, call_id, session_dir, f, dataset_hash, meta,
+                           report, check_cancel):
+    """
+    Sube UN archivo grande en partes (multipart de S3) con reintento por parte.
+    report(bytes_del_archivo) reporta progreso; check_cancel() corta el ciclo.
+    Si falla en serio o se cancela, aborta el multipart (libera las partes).
+    """
+    fsize = f.stat().st_size
+    resp = pleiada_api.start_multipart(
+        token, call_id, session_dir.name, f.name, fsize,
+        dataset_hash=dataset_hash or "", game_name=meta["game_title"],
+        duration_seconds=meta["duration_seconds"])
+    if resp.get("already_uploaded"):
+        raise _AlreadyFinalized()
+    part_size    = int(resp["part_size"])
+    s3_upload_id = resp["s3_upload_id"]
+    part_urls    = resp.get("part_urls") or {}
+    n_total      = (fsize + part_size - 1) // part_size
+
+    etags = []
+    try:
+        with open(f, "rb") as fh:
+            n = 0
+            sent_base = 0
+            while True:
+                check_cancel()
+                data = fh.read(part_size)
+                if not data:
+                    break
+                n += 1
+                url = part_urls.get(str(n))
+                if not url:
+                    raise RuntimeError(f"Sin URL para la parte {n} de {f.name}")
+
+                def _cb(part_sent, _b=sent_base):
+                    check_cancel()
+                    report(_b + part_sent)
+
+                for intento in range(1, UPLOAD_RETRIES + 1):
+                    t0 = time.monotonic()
+                    try:
+                        etag = _put_part(url, data, _cb)
+                        if intento > 1:
+                            _diag(f"OK  parte {n}/{n_total} de {f.name} en intento {intento}")
+                        break
+                    except UploadCancelled:
+                        raise
+                    except Exception as e:
+                        elapsed = time.monotonic() - t0
+                        _diag(f"FALLO  parte {n}/{n_total} de {f.name} "
+                              f"({len(data)/(1024*1024):.0f} MB) intento {intento}/"
+                              f"{UPLOAD_RETRIES} tras {elapsed:.0f}s: {e!r}")
+                        if intento >= UPLOAD_RETRIES:
+                            raise
+                        time.sleep(RETRY_BACKOFF_S[min(intento - 1, len(RETRY_BACKOFF_S) - 1)])
+                        check_cancel()
+                etags.append({"part_number": n, "etag": etag})
+                sent_base += len(data)
+                report(sent_base)
+
+        pleiada_api.complete_multipart(token, call_id, session_dir.name,
+                                       f.name, s3_upload_id, etags)
+    except BaseException:
+        # Cancelación o fallo definitivo: liberar las partes ya subidas (best-effort).
+        try:
+            pleiada_api.abort_multipart(token, call_id, session_dir.name,
+                                        f.name, s3_upload_id)
+        except Exception:
+            pass
+        raise
+
+
+class _BytesReader:
+    """Envuelve bytes en memoria y reporta progreso cada ~1 MB (para las partes)."""
+    _STEP = 1024 * 1024
+
+    def __init__(self, data, on_bytes):
+        self._mv   = memoryview(data)
+        self._pos  = 0
+        self._on   = on_bytes
+        self._last = 0
+
+    def read(self, size=-1):
+        if size is None or size < 0:
+            size = len(self._mv) - self._pos
+        chunk = self._mv[self._pos:self._pos + size]
+        self._pos += len(chunk)
+        if self._on and (self._pos - self._last) >= self._STEP:
+            self._last = self._pos
+            self._on(self._pos)
+        return chunk.tobytes()
+
+
+def _put_part(url: str, data: bytes, on_bytes=None) -> str:
+    """PUT de una parte multipart. Devuelve el ETag (S3 lo exige al completar)."""
+    reader = _BytesReader(data, on_bytes)
+    req = urllib.request.Request(url, data=reader, method="PUT")
+    req.add_header("Content-Length", str(len(data)))
+    with urllib.request.urlopen(req, timeout=600) as r:
+        return r.headers.get("ETag", "")
 
 
 def _put_file(url: str, path: Path, on_bytes=None):

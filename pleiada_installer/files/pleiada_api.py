@@ -86,6 +86,38 @@ def get_upload_urls(token, session_name, filenames, dataset_hash=None,
     })
 
 
+def start_multipart(token, call_id, session_name, filename, filesize,
+                    dataset_hash="", game_name="", duration_seconds=0):
+    """
+    Inicia la subida multipart de UN archivo grande (S3 rechaza PUTs > 5 GiB).
+    El backend corre el mismo gate del call y devuelve
+    {s3_upload_id, part_size, part_urls: {"1": url, ...}} — o
+    {already_uploaded: True}. Lanza ApiError si el gate rechaza.
+    """
+    return _call("start_multipart", {
+        "token": token, "call_id": call_id, "session_name": session_name,
+        "filename": filename, "filesize": int(filesize),
+        "dataset_hash": dataset_hash or "", "game_name": game_name,
+        "duration_seconds": duration_seconds,
+    })
+
+
+def complete_multipart(token, call_id, session_name, filename, s3_upload_id, parts):
+    """Ensambla las partes en el objeto final. parts = [{part_number, etag}]."""
+    return _call("complete_multipart", {
+        "token": token, "call_id": call_id, "session_name": session_name,
+        "filename": filename, "s3_upload_id": s3_upload_id, "parts": parts,
+    })
+
+
+def abort_multipart(token, call_id, session_name, filename, s3_upload_id):
+    """Cancela un multipart (libera las partes en S3). Best-effort e idempotente."""
+    return _call("abort_multipart", {
+        "token": token, "call_id": call_id, "session_name": session_name,
+        "filename": filename, "s3_upload_id": s3_upload_id,
+    })
+
+
 def finalize_upload(token, dataset_hash, session_name, call_id="", game_name="",
                     duration_seconds=0, session_id="", files=None, bytes_total=0):
     """
