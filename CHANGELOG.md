@@ -1,5 +1,10 @@
 # Changelog — Pleiada Recorder
 
+## v0.8.8 — 22/07/2026 — build de producción (lanzamiento del Marketplace)
+
+- Se retira el preset TEMPORAL de 5 minutos de Ajustes → GRABACIÓN (era solo para QA).
+  Presets finales: 30 min / 1 h.
+
 ## v0.8.7 — 21/07/2026
 
 ### Fix: entrar a Ajustes durante una subida la "cancelaba" y los reintentos morían con error SSL

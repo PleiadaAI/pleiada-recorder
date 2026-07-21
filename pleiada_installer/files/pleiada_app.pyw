@@ -13,7 +13,7 @@ import session_uploader
 import pleiada_api
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.8.7"
+VERSION = "v0.8.8"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -3251,9 +3251,7 @@ class PleiadaApp:
         presets_row = tk.Frame(frame, bg=BG)
         presets_row.pack(fill="x", pady=(6, 0))
         self._maxdur_preset_btns = {}
-        # TEMPORAL QA: el preset de 5 min es para el equipo de QA — sacarlo
-        # antes de pasar a producción (dejar solo 30/60).
-        for _mins in (5, 30, 60):
+        for _mins in (30, 60):
             _b = tk.Label(presets_row, text=f"{_mins}m", bg=CARD, fg=TEXT,
                           font=("Segoe UI", 10), cursor="hand2", padx=11, pady=5,
                           highlightthickness=1, highlightbackground=BORDER)
