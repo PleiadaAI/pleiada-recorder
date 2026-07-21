@@ -13,7 +13,7 @@ import session_uploader
 import pleiada_api
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.8.6"
+VERSION = "v0.8.7"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -2679,6 +2679,7 @@ class PleiadaApp:
         self._auto_stopped = False  # v0.7.1: True si el último stop fue por llegar al límite de tiempo
         self._max_seconds  = MAX_SECONDS  # v0.7.1: se setea por sesión desde settings
         self._auto_restart_cancelled = False  # v0.7.1: cancelar el ciclo durante la cuenta regresiva
+        self._uploading    = False  # v0.8.7: subida en curso — bloquea nav (⚙/salir) y doble subida
         self._recording_exe      = ""   # PLE-37: exe del juego capturado (ej: "Borderlands3.exe")
         self._recording_exe_path = ""   # v0.4 Fase 2: ruta completa del exe (para metadata)
         self._ahk_proc     = None
@@ -3169,6 +3170,8 @@ class PleiadaApp:
     def _sign_out(self):
         if self.recording:
             return  # no sign out during recording
+        if self._uploading:
+            return  # v0.8.7: cerrar sesión a mitad de subida rompería el finalize
         self.logged_in  = False
         self.auth_token = ""
         self.selected_game = None
@@ -3181,6 +3184,9 @@ class PleiadaApp:
     def _show_settings(self):
         if self.recording:
             return  # no abrir settings durante la grabación
+        if self._uploading:
+            return  # v0.8.7: tampoco durante una subida (destruía la vista de progreso
+                    # y dejaba el thread zombi — la única salida válida es Cancelar)
         if not self.logged_in:
             return  # settings solo con sesión iniciada
         self._capturing_hotkey = None
@@ -5151,6 +5157,13 @@ class PleiadaApp:
             side="right", fill="x", expand=True, ipady=10, padx=(6, 0))
 
     def _upload_progress_view(self, session_dir, return_to, call_id=""):
+        # v0.8.7 (bug QA): nunca dos subidas a la vez. Antes, navegar fuera de esta
+        # vista (⚙ Ajustes) dejaba el thread subiendo en background; un reintento
+        # apilaba OTRO thread sobre los mismos archivos y las conexiones se mataban
+        # entre sí (<urlopen error EOF occurred in violation of protocol>).
+        if self._uploading:
+            return
+        self._uploading = True
         self._clear_content()
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
@@ -5207,6 +5220,7 @@ class PleiadaApp:
             self.root.after(0, lambda: pct_var.set(pct))
 
         def on_done(status, msg):
+            self._uploading = False   # el worker terminó (ok/error/cancelado): se libera la subida
             if cancelled[0]:
                 return
             if status == "ok":

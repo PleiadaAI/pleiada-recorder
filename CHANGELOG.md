@@ -1,5 +1,18 @@
 # Changelog — Pleiada Recorder
 
+## v0.8.7 — 21/07/2026
+
+### Fix: entrar a Ajustes durante una subida la "cancelaba" y los reintentos morían con error SSL
+- **Causa raíz (reporte QA en v0.8.5):** el engranaje ⚙ no tenía guarda durante la subida
+  (solo durante la grabación). Abrir Ajustes destruía la vista de progreso pero el thread
+  de subida seguía vivo en background; al reintentar se apilaba OTRO thread subiendo los
+  mismos archivos en paralelo y las conexiones se mataban entre sí:
+  `<urlopen error EOF occurred in violation of protocol (_ssl.c:2417)>`.
+- **Fix:** (a) nunca puede haber dos subidas a la vez (flag `_uploading`: si hay una en
+  curso, no se lanza otra); (b) durante una subida se bloquean Ajustes y Cerrar sesión —
+  la única salida de la pantalla de subida es su botón Cancelar (que desde v0.8.4 cancela
+  de verdad).
+
 ## v0.8.6 — 20/07/2026 (sin compilar)
 
 ### El listado de juegos del Recorder ahora es EXACTAMENTE el del catálogo público
