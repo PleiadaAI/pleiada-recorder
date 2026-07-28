@@ -1,6 +1,6 @@
 """
-Pleiada Synch Checker  —  UI v2.1
-GUI para verificar la sincronizacion entre video y logs de Pleiada Recorder.
+Gameplay Synch Checker  —  UI v2.1
+GUI para verificar la sincronizacion entre video y logs de Gameplay Recorder.
 Rediseño visual basado en mockup aprobado (mayo 2026).
 """
 
@@ -19,6 +19,11 @@ import csv
 import os
 import glob
 import threading
+
+# Umbrales y gates compartidos con pleiada_app.pyw (run_sync_check), que es el
+# que decide qué se sube. Antes estaban hardcodeados acá con otros valores y el
+# verificador contradecía al uploader sobre la misma sesión.
+import pleiada_sync_limits as sync_limits
 
 # ── Paleta Pleiada v2 ────────────────────────────────────────────────────────
 BG           = "#0d0d18"
@@ -41,10 +46,6 @@ FONT_LABEL   = ("Segoe UI",     8, "bold")
 FONT_MAIN    = ("Segoe UI",    10)
 FONT_MONO    = ("Segoe UI",     9)
 FONT_BTN     = ("Segoe UI",    11, "bold")
-
-# ── Constelación Pleiada — coordenadas para el logo ─────────────────────────
-LOGO_DOTS  = [(17, 6), (27, 12), (24, 22), (10, 20), (9, 29)]
-LOGO_LINES = [(0, 1), (1, 2), (2, 3), (3, 4)]
 
 # ── Lógica de análisis ───────────────────────────────────────────────────────
 
@@ -74,206 +75,19 @@ def check_csv(path, name):
             "duration_ms": duration_ms}
 
 def _mp4_is_truncated(path):
-    """
-    True si el archivo MP4 no contiene un bloque moov legible.
-
-    Recorre los boxes top-level leyendo SOLO los headers (8 bytes cada uno)
-    y saltando el contenido con seek. Funciona para ambos formatos de OBS:
-    · MP4 fragmentado: moov al inicio (pos ~56), encontrado en ~3 iteraciones.
-    · MP4 estándar:   moov al final, después de un mdat de varios GB.
-      El skip por size evita leer el contenido del mdat.
-
-    Caso real de truncación: OBS crasheó antes de escribir el moov final
-    (MP4 estándar sin finalizar).
-    """
-    import struct
-    try:
-        file_size = os.path.getsize(path)
-        with open(path, 'rb') as f:
-            pos = 0
-            while pos + 8 <= file_size:
-                f.seek(pos)
-                raw = f.read(8)
-                if len(raw) < 8:
-                    break
-                size = struct.unpack('>I', raw[:4])[0]
-                btype = raw[4:8]
-                if btype == b'moov':
-                    return False          # moov encontrado → archivo válido
-                if size == 1:            # extended 64-bit size
-                    ext_raw = f.read(8)
-                    if len(ext_raw) < 8:
-                        break
-                    size = struct.unpack('>Q', ext_raw)[0]
-                    if size < 16:
-                        break
-                elif size == 0:          # extends to EOF, no hay más boxes
-                    break
-                elif size < 8:
-                    break
-                if pos + size > file_size:
-                    break                # box declara espacio más allá del EOF
-                pos += size              # saltar contenido completo del box
-        return True                      # sin moov → truncado
-    except Exception:
-        return False
+    """True si el MP4 está truncado/corrupto. Vive en pleiada_sync_limits, que es
+    la misma implementación que usa el uploader."""
+    return sync_limits.mp4_is_truncated(path)
 
 
 def _mp4_frag_duration_ms(path):
-    """
-    Calcula la duración real de un MP4 de OBS.
-    Soporta:
-    · MP4 fragmentado (moof/traf/trun) — formato normal de Pleiada Recorder.
-    · MP4 estándar (moov/mdhd al final) — fallback cuando OBS graba sin fragmentar.
-    Retorna la duración en ms, o None si el archivo no puede ser parseado.
-    """
-    import struct
+    """Duración real del MP4 en ms, desde pleiada_sync_limits.
 
-    def next_box(f, pos, limit):
-        if pos + 8 > limit:
-            return None, None, None
-        f.seek(pos)
-        raw = f.read(8)
-        if len(raw) < 8:
-            return None, None, None
-        size     = struct.unpack('>I', raw[:4])[0]
-        box_type = raw[4:8]
-        if size < 8:
-            return None, None, None
-        return pos + size, box_type, pos + 8
-
-    def find_box(f, start, end, target):
-        """Primer box de tipo `target` dentro de [start, end). Retorna (data_start, box_end)."""
-        pos = start
-        while True:
-            box_end, btype, data_start = next_box(f, pos, end)
-            if box_end is None:
-                return None, None
-            if btype == target:
-                return data_start, box_end
-            pos = box_end
-
-    try:
-        file_size = os.path.getsize(path)
-
-        with open(path, 'rb') as f:
-            # ── 1. Buscar moov: primero en los primeros 128 KB (MP4 fragmentado,
-            #       moov al inicio), luego en los últimos 512 KB (MP4 estándar,
-            #       moov al final). Si no se encuentra en ninguno → archivo truncado.
-            moov_data, moov_end = find_box(f, 0, min(file_size, 131072), b'moov')
-            if moov_data is None:
-                search_start = max(0, file_size - 524288)
-                moov_data, moov_end = find_box(f, search_start, file_size, b'moov')
-            if moov_data is None:
-                return None   # sin moov → archivo truncado o formato desconocido
-
-            trak_data, trak_end = find_box(f, moov_data, moov_end, b'trak')
-            if trak_data is None:
-                return None
-
-            mdia_data, mdia_end = find_box(f, trak_data, trak_end, b'mdia')
-            if mdia_data is None:
-                return None
-
-            mdhd_data, _ = find_box(f, mdia_data, mdia_end, b'mdhd')
-            if mdhd_data is None:
-                return None
-
-            f.seek(mdhd_data)
-            version = struct.unpack('B', f.read(1))[0]
-            f.read(3)                     # flags
-            f.read(16 if version == 1 else 8)  # creation + modification time
-            timescale = struct.unpack('>I', f.read(4))[0]
-            if not timescale:
-                return None
-
-            # mdhd duration: en MP4 estándar (moov al final) contiene la duración
-            # real; en MP4 fragmentado suele ser 0 (se usa moof scan en su lugar).
-            if version == 1:
-                mdhd_duration = struct.unpack('>Q', f.read(8))[0]
-            else:
-                mdhd_duration = struct.unpack('>I', f.read(4))[0]
-            sentinel = 0xFFFFFFFFFFFFFFFF if version == 1 else 0xFFFFFFFF
-            if mdhd_duration and mdhd_duration != sentinel:
-                return round(mdhd_duration / timescale * 1000)
-
-            # ── 2. Escanear todos los moof y acumular tiempo ────────
-            last_end_time = 0
-            pos = 0
-
-            while pos < file_size:
-                box_end, btype, data_start = next_box(f, pos, file_size)
-                if box_end is None:
-                    break
-
-                if btype == b'moof':
-                    traf_data, traf_end = find_box(f, data_start, box_end, b'traf')
-                    if traf_data is None:
-                        pos = box_end
-                        continue
-
-                    # tfhd → default_sample_duration
-                    default_dur = 0
-                    tfhd_data, _ = find_box(f, traf_data, traf_end, b'tfhd')
-                    if tfhd_data is not None:
-                        f.seek(tfhd_data)
-                        f.read(1)  # version
-                        fl = f.read(3)
-                        tfhd_flags = (fl[0] << 16) | (fl[1] << 8) | fl[2]
-                        f.read(4)  # track_ID
-                        if tfhd_flags & 0x000001: f.read(8)  # base-data-offset
-                        if tfhd_flags & 0x000002: f.read(4)  # sample-description-index
-                        if tfhd_flags & 0x000008:
-                            default_dur = struct.unpack('>I', f.read(4))[0]
-
-                    # tfdt → base_decode_time del fragmento
-                    base_decode_time = 0
-                    tfdt_data, _ = find_box(f, traf_data, traf_end, b'tfdt')
-                    if tfdt_data is not None:
-                        f.seek(tfdt_data)
-                        tfdt_ver = struct.unpack('B', f.read(1))[0]
-                        f.read(3)  # flags
-                        if tfdt_ver == 1:
-                            base_decode_time = struct.unpack('>Q', f.read(8))[0]
-                        else:
-                            base_decode_time = struct.unpack('>I', f.read(4))[0]
-
-                    # trun → suma de duraciones de las muestras del fragmento
-                    frag_duration = 0
-                    trun_data, _ = find_box(f, traf_data, traf_end, b'trun')
-                    if trun_data is not None:
-                        f.seek(trun_data)
-                        f.read(1)  # version
-                        fl = f.read(3)
-                        trun_flags   = (fl[0] << 16) | (fl[1] << 8) | fl[2]
-                        sample_count = struct.unpack('>I', f.read(4))[0]
-                        if trun_flags & 0x001: f.read(4)  # data-offset
-                        if trun_flags & 0x004: f.read(4)  # first-sample-flags
-                        has_dur   = bool(trun_flags & 0x100)
-                        has_size  = bool(trun_flags & 0x200)
-                        has_sflags= bool(trun_flags & 0x400)
-                        has_cts   = bool(trun_flags & 0x800)
-                        for _ in range(sample_count):
-                            if has_dur:
-                                frag_duration += struct.unpack('>I', f.read(4))[0]
-                            else:
-                                frag_duration += default_dur
-                            if has_size:   f.read(4)
-                            if has_sflags: f.read(4)
-                            if has_cts:    f.read(4)
-
-                    end_time = base_decode_time + frag_duration
-                    if end_time > last_end_time:
-                        last_end_time = end_time
-
-                pos = box_end
-
-        if last_end_time == 0:
-            return None
-        return round(last_end_time / timescale * 1000)
-
-    except Exception:
-        return None
+    La copia que vivía acá buscaba el moov en los últimos 512 KB, offset que cae
+    dentro del mdat: fallaba en 39 de los 42 MP4 estándar del corpus y caía al
+    conteo de frames de OpenCV, que queda ~1-2 s corto. Resultado: el verificador
+    calculaba un signed_diff distinto al del uploader sobre la misma sesión."""
+    return sync_limits.mp4_duration_ms(path)
 
 
 def check_video(path):
@@ -327,11 +141,17 @@ def run_analysis(video, mouse, delta, key, timeline):
         lines.append((text, color, dot))
 
     # Variables de estado para el resumen final
-    diff_start  = None   # diferencia entre ANCHOR_START de los 4 CSVs
-    signed_diff = None   # vid_dur - csv_dur (+ = video más largo)
-    vinfo       = {}     # resultado de check_video (inicializado defensivamente)
+    diff_start    = None    # diferencia entre ANCHOR_START de los 4 CSVs
+    signed_diff   = None    # vid_dur - csv_dur (+ = video más largo)
+    vinfo         = {}      # resultado de check_video (inicializado defensivamente)
+    csv_dur       = None    # media de los 4 CSV, igual que run_sync_check
+    act           = None    # actividad de input (None si no se pudo medir)
+    short_session = False   # gate PLE-41
+    afk           = False   # gate de inactividad continua
+    still         = None    # medida de imagen quieta (None si no se pudo leer)
+    video_still   = False   # gate de video quieto (negro / congelado)
 
-    add("PLEIADA — Reporte de sincronización", ACCENT)
+    add("GAMEPLAY RECORDER — Reporte de sincronización", ACCENT)
     add()
 
     results = []
@@ -372,6 +192,44 @@ def run_analysis(video, mouse, delta, key, timeline):
     else:
         add("No se pudieron analizar todos los CSVs.", ERR_COLOR, dot=True)
 
+    # ── Duración de sesión y actividad ───────────────────────────────────────
+    # csv_dur: media de los 4 CSV, igual que run_sync_check. Antes se usaba
+    # results[0], que ni siquiera era siempre mouse_log — check_csv() falla y el
+    # archivo no entra en results si falta — así que el verificador podía
+    # calcular un signed_diff distinto al del uploader sobre la misma sesión.
+    csv_dur       = sync_limits.csv_duration_ms(
+        [(r.get("start_ts"), r.get("end_ts")) for r in results]
+    )
+    short_session = sync_limits.is_short_session(csv_dur)
+
+    _folder = next((os.path.dirname(p) for p in (mouse, delta, key, timeline) if p), None)
+    if _folder and starts and ends:
+        act = sync_limits.activity(_folder, min(starts), max(ends))
+    afk = bool(act and sync_limits.is_afk(act.get("longest_idle_seconds"), csv_dur))
+
+    # Gate de video quieto. Mira la IMAGEN, no los inputs: agarra el caso del
+    # juego minimizado o el game capture caído, donde OBS graba negro mientras
+    # el jugador sigue tecleando.
+    if video:
+        still = sync_limits.video_stillness(video)
+    video_still = sync_limits.is_video_still(still)
+
+    add()
+    add("Actividad", ACCENT)
+    if act is None:
+        add("No se pudo evaluar la actividad de input.", WARN_COLOR, dot=True)
+    elif afk:
+        add("Inactividad : se detectó un período demasiado largo", ERR_COLOR, dot=True)
+    else:
+        add("Inactividad : dentro de lo esperado", OK_COLOR, dot=True)
+
+    if still is None:
+        add("Imagen      : no se pudo evaluar", WARN_COLOR, dot=True)
+    elif video_still:
+        add("Imagen      : se detectó un período largo sin cambios en pantalla", ERR_COLOR, dot=True)
+    else:
+        add("Imagen      : dentro de lo esperado", OK_COLOR, dot=True)
+
     add()
     add("Video", ACCENT)
     vinfo = check_video(video)
@@ -388,10 +246,8 @@ def run_analysis(video, mouse, delta, key, timeline):
         add(f"Frames totales : {vinfo['total_frames']}", TEXT, dot=True)
         add(f"Duración       : {fmt_ms(vinfo['duration_ms'])}", TEXT, dot=True)
 
-        if results and results[0].get("duration_ms") and vinfo.get("duration_ms"):
-            csv_dur = results[0]["duration_ms"]
+        if csv_dur and vinfo.get("duration_ms"):
             vid_dur = vinfo["duration_ms"]
-            diff    = abs(csv_dur - vid_dur)
             add()
             add("Comparación CSV vs Video", ACCENT)
             add(f"Duración CSV   : {fmt_ms(csv_dur)}", TEXT, dot=True)
@@ -404,28 +260,61 @@ def run_analysis(video, mouse, delta, key, timeline):
             #   < 0  : video termina antes de ANCHOR_END; puede ser el GOP parcial
             #          final descartado por OBS al detener (hasta ~4-5 s — normal),
             #          o un offset real si la diferencia es mayor.
-            if 0 <= signed_diff <= 10000:
+            if 0 <= signed_diff <= sync_limits.ENCODER_FLUSH_MAX_MS:
                 tail = signed_diff / 1000
                 add(f"SINCRONIZADOS — video extiende {tail:.2f}s post-sesión (flush del encoder, normal)", OK_COLOR, dot=True)
-            elif abs(signed_diff) < 500:
+            elif 0 < signed_diff <= sync_limits.DIFF_MAX_MS:
+                # Franja que antes se mostraba como OFFSET pero el uploader ya aceptaba:
+                # a esta magnitud la causa no es el flush del encoder (≈1-2 s) sino el
+                # anchor_fallback — OBS ya grababa mientras AHK/WebSocket arrancaban.
+                add(f"SINCRONIZADOS — el video incluye {signed_diff/1000:.1f}s fuera de la ventana de sesión (arranque tardío del logger, es normal)", OK_COLOR, dot=True)
+            elif abs(signed_diff) < sync_limits.NEAR_ZERO_MS:
                 add("SINCRONIZADOS — diferencia menor a 500 ms", OK_COLOR, dot=True)
-            elif -4500 <= signed_diff < -500:
+            elif sync_limits.DIFF_MIN_MS <= signed_diff < -sync_limits.NEAR_ZERO_MS:
                 # GOP parcial final descartado al detener OBS — normal con keyframe interval de 4 s
                 add(f"SINCRONIZADOS — el video terminó {abs(signed_diff)/1000:.2f}s antes de ANCHOR_END (GOP parcial final, normal)", OK_COLOR, dot=True)
-            elif signed_diff < -4500:
+            elif signed_diff < sync_limits.DIFF_MIN_MS:
                 add(f"OFFSET — el video inició {abs(signed_diff)/1000:.2f}s tarde respecto al logger", WARN_COLOR, dot=True)
-            elif signed_diff > 10000:
+            elif signed_diff > sync_limits.DIFF_MAX_MS:
                 add(f"OFFSET — el video extiende {signed_diff/1000:.1f}s extra (verificar configuración OBS)", WARN_COLOR, dot=True)
 
     add()
     # ── Resumen final ────────────────────────────────────────────────────────
     csvs_ok       = diff_start  is not None and diff_start == 0
-    video_ok      = signed_diff is not None and -4500 <= signed_diff <= 10000
+    video_ok      = signed_diff is not None and sync_limits.video_in_range(signed_diff)
     video_trouble = vinfo.get("truncated", False)
 
     SEP = "─" * 48
 
-    if csvs_ok and video_ok:
+    if short_session:
+        # Gate PLE-41 del uploader: sin esto el verificador daba "LISTA PARA
+        # ENVIAR" sobre sesiones que run_sync_check rechazaba.
+        add(SEP, ERR_COLOR)
+        add("⚠   SESIÓN NO APTA PARA ENVIAR", ERR_COLOR)
+        add("    La sesión no llegó al mínimo de duración para enviar.", ERR_COLOR)
+        add("    Por favor grabá una sesión más larga.", ERR_COLOR)
+        add(SEP, ERR_COLOR)
+
+    elif video_still:
+        # Gate de video quieto. Va ANTES que el de AFK: si disparan los dos, la
+        # causa real suele ser que OBS no estaba capturando, y decirle "estuviste
+        # inactivo" lo manda a buscar el problema donde no está.
+        add(SEP, ERR_COLOR)
+        add("⚠   SESIÓN NO APTA PARA ENVIAR", ERR_COLOR)
+        add("    Encontramos un período largo donde la imagen no cambió (pantalla negra o congelada).", ERR_COLOR)
+        add("    Descartá esta sesión e iniciá una nueva grabación. Verificá que OBS esté capturando el juego antes de grabar.", ERR_COLOR)
+        add(SEP, ERR_COLOR)
+
+    elif afk:
+        # Gate de inactividad continua del uploader. El límite exacto no se
+        # publica: el mensaje es genérico a propósito.
+        add(SEP, ERR_COLOR)
+        add("⚠   SESIÓN NO APTA PARA ENVIAR", ERR_COLOR)
+        add("    Encontramos un período de inactividad demasiado largo.", ERR_COLOR)
+        add("    Descartá esta sesión e iniciá una nueva grabación. Asegurate de grabar puro gameplay con actividad de teclado y mouse.", ERR_COLOR)
+        add(SEP, ERR_COLOR)
+
+    elif csvs_ok and video_ok:
         # Todo OK: CSVs + video sincronizados
         add(SEP, OK_COLOR)
         add("✅  SESIÓN LISTA PARA ENVIAR", OK_COLOR)
@@ -464,31 +353,6 @@ def run_analysis(video, mouse, delta, key, timeline):
         add(SEP, ERR_COLOR)
 
     return lines
-
-# ── Logo canvas helper ───────────────────────────────────────────────────────
-
-def draw_logo(canvas, size=36):
-    """Dibuja el icono de constelación Pleiada en un Canvas tk."""
-    r = 8
-    s = size
-    # Fondo redondeado via polygon smooth (simula border-radius)
-    canvas.create_polygon(
-        r, 0,   s-r, 0,
-        s, r,   s, s-r,
-        s-r, s, r, s,
-        0, s-r, 0, r,
-        smooth=True, fill="#13132a", outline=ACCENT, width=1
-    )
-    # Líneas de constelación
-    for i, j in LOGO_LINES:
-        x1, y1 = LOGO_DOTS[i]
-        x2, y2 = LOGO_DOTS[j]
-        canvas.create_line(x1, y1, x2, y2,
-                           fill=ACCENT, width=1, stipple="gray50")
-    # Puntos
-    for idx, (x, y) in enumerate(LOGO_DOTS):
-        r2 = 2 if idx < 4 else 1.5
-        canvas.create_oval(x-r2, y-r2, x+r2, y+r2, fill=ACCENT, outline="")
 
 # ── Botón redondeado via Canvas ──────────────────────────────────────────────
 
@@ -580,7 +444,7 @@ class _RoundBtn(tk.Canvas):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Pleiada Synch Checker")
+        self.title("Gameplay Synch Checker")
         self.configure(bg=BG)
         self.resizable(True, True)
         self.minsize(560, 540)
@@ -592,7 +456,7 @@ class App(tk.Tk):
         self._icon_img = None
         ico_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "synch_checker.ico")
         if not os.path.exists(ico_path):
-            ico_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pleiada.ico")
+            ico_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gameplay_recorder.ico")
         if os.path.exists(ico_path):
             try:
                 self.iconbitmap(default=ico_path)
@@ -621,11 +485,12 @@ class App(tk.Tk):
         hdr_inner = tk.Frame(header, bg=BG_TITLEBAR)
         hdr_inner.pack(side="left", padx=16, pady=14)
 
-        # Logo — usa el PNG real si está disponible, sino fallback a canvas
+        # Logo. Si el PNG falta o Pillow falla, el header va sin logo: antes
+        # había un fallback que lo dibujaba en canvas, pero era la constelación
+        # vieja — mostrar la marca anterior es peor que no mostrar ninguna.
         LOGO_SIZE = 40
         logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                 "pleiada_icon.png")
-        logo_shown = False
+                                 "gameplay_recorder_icon.png")
         if os.path.exists(logo_path):
             try:
                 from PIL import Image, ImageTk
@@ -634,19 +499,13 @@ class App(tk.Tk):
                 self._logo_photo = ImageTk.PhotoImage(img)
                 tk.Label(hdr_inner, image=self._logo_photo,
                          bg=BG_TITLEBAR, bd=0).pack(side="left", padx=(0, 14))
-                logo_shown = True
             except Exception:
                 pass
-        if not logo_shown:
-            logo_cv = tk.Canvas(hdr_inner, width=LOGO_SIZE, height=LOGO_SIZE,
-                                bg=BG_TITLEBAR, highlightthickness=0)
-            logo_cv.pack(side="left", padx=(0, 14))
-            draw_logo(logo_cv, size=LOGO_SIZE)
 
         # Texto del header
         hdr_text = tk.Frame(hdr_inner, bg=BG_TITLEBAR)
         hdr_text.pack(side="left")
-        tk.Label(hdr_text, text="Pleiada Synch Checker",
+        tk.Label(hdr_text, text="Gameplay Synch Checker",
                  bg=BG_TITLEBAR, fg=TEXT,
                  font=FONT_TITLE).pack(anchor="w")
         tk.Label(hdr_text, text="Verificador de sync entre logs y video",
@@ -937,7 +796,7 @@ if __name__ == "__main__":
             import tkinter.messagebox as _mb
             _r = _tk2.Tk(); _r.withdraw()
             _mb.showwarning(
-                "Pleiada Synch Checker",
+                "Gameplay Synch Checker",
                 "Synch Checker ya está abierto.\n\nCerrá la ventana existente antes de abrir una nueva."
             )
             _r.destroy()

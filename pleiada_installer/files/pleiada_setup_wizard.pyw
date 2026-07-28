@@ -1,5 +1,5 @@
 ﻿"""
-pleiada_setup_wizard.pyw  V14
+pleiada_setup_wizard.pyw  V14  (Gameplay Recorder)
 Wizard de configuracion inicial — se lanza al finalizar la instalacion.
 3 paginas: OBS setup / Prueba de grabacion / Synch Checker.
 """
@@ -56,7 +56,7 @@ PAGES = [
             "Ahora vamos a hacer una grabación corta para verificar que todo funciona bien.\n\n"
             "1.  Si no iniciaste el juego en los pasos anteriores, hacelo ahora\n"
             "     y dejalo en pausa.\n\n"
-            "2.  Hacé doble clic en el ícono  Pleiada Recorder  del escritorio.\n"
+            "2.  Hacé doble clic en el ícono  Gameplay Recorder  del escritorio.\n"
             "     Aparece una pequeña ventana flotante — podés moverla\n"
             "     arrastrando el encabezado.\n\n"
             "3.  En el Recorder, seleccioná de la lista el juego que vas a grabar.\n"
@@ -82,7 +82,7 @@ PAGES = [
             "1.  Al terminar la grabación, el Recorder analiza la sesión\n"
             "     automáticamente. No tenés que hacer nada.\n\n"
             "2.  Si el resultado es  ✅ SINCRONIZADOS,  la sesión queda lista\n"
-            "     para enviar a Pleiada — no necesitás hacer nada más.\n\n"
+            "     para enviar — no necesitás hacer nada más.\n\n"
             "3.  Si el resultado es  ⚠ OFFSET  o  ✗ ERROR,  la sesión se\n"
             "     descarta automáticamente. Los datos con errores nunca se\n"
             "     envían — iniciá una nueva grabación.\n\n"
@@ -101,15 +101,15 @@ PAGES = [
 
 
 def find_pleiada_ico():
-    """Busca pleiada.ico junto al script, con multiples fallbacks."""
+    """Busca gameplay_recorder.ico junto al script, con multiples fallbacks."""
     candidates = []
     try:
         # __file__ es lo mas confiable cuando Python ejecuta el .pyw directamente
-        candidates.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "pleiada.ico"))
+        candidates.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "gameplay_recorder.ico"))
     except Exception:
         pass
     try:
-        candidates.append(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "pleiada.ico"))
+        candidates.append(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "gameplay_recorder.ico"))
     except Exception:
         pass
     for path in candidates:
@@ -129,7 +129,7 @@ class PleiadaWizard:
 
     def _build_window(self):
         root = self.root
-        root.title("Pleiada Recorder — Configuración inicial")
+        root.title("Gameplay Recorder — Configuración inicial")
         root.configure(bg=BG)
         root.resizable(False, False)
 
@@ -160,7 +160,7 @@ class PleiadaWizard:
             bg=BG, fg=ACCENT
         ).pack(side="left", padx=(0, 10))
         tk.Label(
-            header, text="Pleiada Recorder",
+            header, text="Gameplay Recorder",
             font=("Segoe UI", 14, "bold"), bg=BG, fg=TEXT
         ).pack(side="left")
 

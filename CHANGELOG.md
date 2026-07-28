@@ -1,5 +1,87 @@
 # Changelog — Pleiada Recorder
 
+## v0.8.10 — 28/07/2026 — Gameplay Recorder + un criterio único de validación
+
+> **Actualización obligatoria.** Las versiones anteriores quedan bloqueadas para grabar
+> hasta aplicarla.
+
+### La app pasa a llamarse Gameplay Recorder
+- Nombre nuevo en todo lo que el usuario lee: título de la ventana, header, pantalla de
+  login, acceso directo, textos del instalador y el Synch Checker (ahora **Gameplay Synch
+  Checker**).
+- **Ícono nuevo**: la G de Gameplay Alliance, en un `.ico` multi-resolución de 16 a 256 px
+  para que se vea nítido en la barra de tareas, el escritorio y la vista de iconos grandes.
+- Las imágenes del asistente de instalación se rehicieron con la marca nueva. Las viejas
+  decían "Pleiada Recorder / Gaming Alliance" — con el nombre del programa mal escrito— y
+  "Instalador v1.0" cuando la app iba por v0.8.8. El número de versión se sacó del banner:
+  un dato que hay que acordarse de tocar en cada build siempre termina desactualizado.
+- El logo original y un script que regenera todos los assets a partir de él quedaron dentro
+  del repo (`gen_wizard_art.py`); antes el ícono no tenía fuente versionada.
+
+**Lo que a propósito NO se renombró todavía**, porque tocarlo sin migrar rompe a los
+usuarios actuales: la carpeta `Documentos\Pleiada Recordings` (donde están las sesiones ya
+grabadas), la configuración en `AppData` (renombrarla desloguea a todos), el perfil de OBS
+y la carpeta de logs. Va en una versión propia, con migración.
+
+Dos detalles de la actualización que se contemplaron: el instalador ahora cierra la app
+buscando **los dos** nombres de ventana —si solo buscara el nuevo, no encontraría la
+versión anterior corriendo y los archivos quedarían bloqueados al copiar— y borra el
+acceso directo viejo del escritorio para que no queden dos.
+
+### El Synch Checker y el uploader dejan de contradecirse: un solo criterio de sincronización
+- **Causa raíz:** el uploader (`run_sync_check`) y el Synch Checker tenían sus propios
+  umbrales hardcodeados, con valores distintos. Una sesión cuyo video excedía entre 10 y
+  15 segundos la ventana de sesión **se subía sin problema**, pero el verificador se la
+  mostraba al uploader como "OFFSET": un error reportado sobre algo que sí había entrado.
+- Peor todavía, cada uno calculaba la duración de la sesión sobre una base distinta —el
+  uploader promediaba los 4 CSV, el verificador usaba uno solo— así que podían llegar a
+  cifras de desfase diferentes sobre la misma sesión, y la discrepancia no se limitaba a
+  esa franja de 10-15 s.
+- Ahora ambos leen los umbrales y los gates de `pleiada_sync_limits.py`, un único módulo
+  compartido. Ganó el criterio del uploader, que es el que decide qué se sube.
+- La franja de 10-15 s pasa a explicarse por su causa real (el logger arrancó unos
+  segundos después que OBS, normal en equipos lentos) y no como "flush del encoder", que
+  a esa magnitud no era cierto.
+
+### El Synch Checker ya no aprueba sesiones que el uploader rechaza
+- El verificador **no conocía** el mínimo de duración de sesión ni el límite de
+  inactividad continua, así que podía mostrar "SESIÓN LISTA PARA ENVIAR" sobre una
+  sesión que después el uploader rechazaba. Ahora aplica los dos gates y los explica.
+- Sección **Actividad** nueva en el reporte, que confirma que el chequeo de inactividad
+  corrió.
+
+### El gate AFK ahora también mira la proporción, no solo el tiempo
+- El umbral absoluto solo no alcanzaba: una sesión de 7 minutos que es casi toda un único
+  período sin actividad **pasaba** (no llega a los 10 minutos), mientras que una de 2 horas
+  con el mismo período se rechazaba. Ahora una sesión también se rechaza si el período
+  inactivo ocupa más de la mitad del total.
+- El criterio ya existía en la verificación server-side desde el 24/07; esto lo trae al
+  Recorder, así que la sesión se rechaza **antes de subirla** en vez de marcarse después.
+- Medido sobre 47 sesiones locales: la mediana de la proporción inactiva es 0,000 y el
+  gameplay real más alto llega a 0,398 — la única sesión que cae ya la rechazaba el
+  criterio anterior. No cambia el mensaje que ve el uploader, que sigue sin revelar
+  ningún umbral.
+
+### El lector de MP4 también deja de estar duplicado
+- `_mp4_frag_duration_ms` y `_mp4_is_truncated` existían por duplicado en el uploader y en
+  el Synch Checker, y **las dos copias ya habían divergido**: el uploader ubicaba el índice
+  del MP4 recorriendo el archivo desde el principio, mientras que el verificador lo buscaba
+  en los últimos 512 KB — un punto que cae dentro del bloque de video y no sirve para
+  encontrar nada. Medido sobre los 63 MP4 de prueba: la copia del verificador fallaba en
+  39 de los 42 MP4 estándar, y caía a estimar la duración contando frames con OpenCV, que
+  queda ~1-2 s corto. Resultado: verificador y uploader calculaban un desfase distinto
+  sobre la misma sesión.
+- Ahora las dos leen la misma implementación desde `pleiada_sync_limits.py`, la que ya
+  usaba el uploader. Verificado: idéntica al comportamiento anterior del uploader en los 63
+  archivos, y el verificador pasa de discrepar en 39 a coincidir en todos.
+- Esto **solo afectaba a grabaciones en MP4 estándar**, que desde v0.8.5 no deberían
+  producirse (se fuerza MP4 fragmentado). El uploader nunca estuvo afectado.
+
+### Corrección menor
+- El promedio de duración de los CSV descartaba silenciosamente cualquier archivo cuyo
+  `ANCHOR_START` fuera 0. En la práctica no se disparaba (los anchors son epoch), pero
+  quedaba como trampa latente.
+
 ## v0.8.8 — 22/07/2026 — build de producción (lanzamiento del Marketplace)
 
 - Se retira el preset TEMPORAL de 5 minutos de Ajustes → GRABACIÓN (era solo para QA).

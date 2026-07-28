@@ -1,5 +1,5 @@
 """
-pleiada_app.pyw  —  Pleiada Recorder v0.3
+pleiada_app.pyw  —  Gameplay Recorder
 Aplicación unificada: login, selección de juego, grabación, sync check, empaquetado.
 """
 
@@ -11,9 +11,10 @@ import ctypes, ctypes.wintypes
 from pathlib import Path
 import session_uploader
 import pleiada_api
+import pleiada_sync_limits as sync_limits
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.8.8"
+VERSION = "v0.8.10"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -90,13 +91,20 @@ RED     = "#e05555"
 BORDER  = "#2a2850"
 BORDER2 = "#1f1d3d"
 
-WIN_W, WIN_H = 420, 640
+# Alto: la barra de título propia mide 38 px fijos y la vista de Ajustes pide 681,
+# así que con 640 el botón de Cerrar sesión quedaba FUERA de la ventana (reportado
+# 25/07). 730 deja 692 de contenido: 11 px de margen sobre lo que pide.
+# OJO: no alcanza si además está visible el banner de actualización, que se packea
+# arriba del contenido. Lo que aguanta que Ajustes siga creciendo es hacerlo
+# scrollable — queda en backlog.
+WIN_W, WIN_H = 420, 730
 MAX_SECONDS  = 3900   # 1 h 5 min
 
 # Gate AFK: una sesión con más de este tiempo CONTINUO sin inputs (teclado/
 # mouse) se marca como no válida para subir. Caso real 20/07/26: 30 min
 # grabados con el jugador alt-tabbeado desde el segundo 3.
-MAX_CONT_IDLE_MS = 600_000   # 10 minutos
+# Definido en pleiada_sync_limits para que el Synch Checker aplique el mismo gate.
+MAX_CONT_IDLE_MS = sync_limits.MAX_CONT_IDLE_MS   # 10 minutos
 
 # ─── Credenciales (login OTP — v0.8) ──────────────────────────────────────────
 
@@ -1177,161 +1185,15 @@ def _csv_anchors(path):
     return start_ms, end_ms
 
 def _mp4_is_truncated(path):
-    """True si el archivo MP4 está realmente truncado/corrupto.
-
-    Estrategia: recorre los boxes top-level desde el byte 0 siguiendo
-    tamaños reales. Esto evita el falso-positivo de buscar 'moov' en
-    la mitad del payload del box 'mdat' (que puede ser de 100+ MB).
-    Acepta el archivo si encuentra moov O moof (fragmented MP4 de OBS).
-    """
-    try:
-        fsize = os.path.getsize(path)
-        if fsize < 200:
-            return True
-        with open(path, 'rb') as f:
-            pos = 0
-            while pos + 8 <= fsize:
-                f.seek(pos)
-                raw = f.read(8)
-                if len(raw) < 8:
-                    break
-                size  = struct.unpack('>I', raw[:4])[0]
-                btype = raw[4:8]
-                if btype in (b'moov', b'moof'):
-                    return False          # archivo completo
-                if size == 1:            # tamaño 64-bit
-                    ext = f.read(8)
-                    if len(ext) < 8:
-                        break
-                    size = struct.unpack('>Q', ext)[0]
-                    if size < 16:
-                        break
-                elif size == 0:          # box hasta EOF
-                    break
-                elif size < 8:
-                    break
-                if pos + size > fsize:   # box declara más allá del EOF → truncado
-                    break
-                pos += size
-        return True
-    except Exception:
-        return False
+    """True si el MP4 está truncado/corrupto. Implementado en pleiada_sync_limits
+    para que el Synch Checker aplique exactamente el mismo criterio."""
+    return sync_limits.mp4_is_truncated(path)
 
 def _mp4_frag_duration_ms(path):
-    """Duración real del MP4 en ms.
-
-    Soporta ambos formatos que puede producir OBS:
-    · MP4 estándar (moov al final): lee mdhd.duration directamente.
-    · MP4 fragmentado (moof boxes):  acumula tfdt + trun sample durations.
-
-    Portado desde pleiada_check.pyw v25.5 que resolvió definitivamente
-    este problema.
-    """
-    try:
-        fsize = os.path.getsize(path)
-
-        with open(path, 'rb') as f:
-            # 1. Localizar moov siguiendo la cadena de top-level boxes desde el
-            #    byte 0. Es la única forma confiable cuando moov está al final de
-            #    un mdat de cientos de MB: buscar desde un offset arbitrario dentro
-            #    del payload del mdat produce tamaños basura y nunca llega a moov.
-            moov_data = moov_end = None
-            scan_pos = 0
-            while scan_pos + 8 <= fsize:
-                box_end, btype, data_start = _mp4_next_box(f, scan_pos, fsize)
-                if box_end is None:
-                    break
-                if btype == b'moov':
-                    moov_data, moov_end = data_start, box_end
-                    break
-                scan_pos = box_end
-            if moov_data is None:
-                return None   # sin moov → archivo truncado o formato desconocido
-
-            # 2. Navegar moov → trak → mdia → mdhd para leer timescale y duration
-            trak_d, trak_e = _mp4_find_box(f, moov_data, moov_end, b'trak')
-            if not trak_d: return None
-            mdia_d, mdia_e = _mp4_find_box(f, trak_d, trak_e, b'mdia')
-            if not mdia_d: return None
-            mdhd_d, _ = _mp4_find_box(f, mdia_d, mdia_e, b'mdhd')
-            if not mdhd_d: return None
-
-            f.seek(mdhd_d)
-            version = struct.unpack('B', f.read(1))[0]
-            f.read(3)                              # flags
-            f.read(16 if version == 1 else 8)      # creation + modification time
-            timescale = struct.unpack('>I', f.read(4))[0]
-            if not timescale: return None
-
-            # mdhd.duration: en MP4 estándar tiene la duración real;
-            # en MP4 fragmentado suele ser 0 o el sentinel 0xFFFF…
-            if version == 1:
-                mdhd_dur = struct.unpack('>Q', f.read(8))[0]
-            else:
-                mdhd_dur = struct.unpack('>I', f.read(4))[0]
-            sentinel = 0xFFFFFFFFFFFFFFFF if version == 1 else 0xFFFFFFFF
-            if mdhd_dur and mdhd_dur != sentinel:
-                return round(mdhd_dur / timescale * 1000)
-
-            # 3. Fallback: MP4 fragmentado — acumular tfdt + trun sobre todos los moof
-            last_end_time = 0
-            pos = 0
-            while pos < fsize:
-                box_end, btype, data = _mp4_next_box(f, pos, fsize)
-                if box_end is None: break
-                if btype == b'moof':
-                    traf_d, traf_e = _mp4_find_box(f, data, box_end, b'traf')
-                    if traf_d:
-                        # tfhd → default_sample_duration
-                        default_dur = 0
-                        tfhd_d, _ = _mp4_find_box(f, traf_d, traf_e, b'tfhd')
-                        if tfhd_d:
-                            f.seek(tfhd_d); f.read(1)
-                            fl = f.read(3)
-                            tfhd_flags = (fl[0] << 16) | (fl[1] << 8) | fl[2]
-                            f.read(4)   # track_ID
-                            if tfhd_flags & 0x000001: f.read(8)
-                            if tfhd_flags & 0x000002: f.read(4)
-                            if tfhd_flags & 0x000008:
-                                default_dur = struct.unpack('>I', f.read(4))[0]
-                        # tfdt → base_decode_time
-                        base_dt = 0
-                        tfdt_d, _ = _mp4_find_box(f, traf_d, traf_e, b'tfdt')
-                        if tfdt_d:
-                            f.seek(tfdt_d); tfdt_ver = struct.unpack('B', f.read(1))[0]
-                            f.read(3)
-                            base_dt = struct.unpack('>Q', f.read(8))[0] if tfdt_ver == 1 \
-                                      else struct.unpack('>I', f.read(4))[0]
-                        # trun → suma de duraciones de muestras
-                        frag_dur = 0
-                        trun_d, _ = _mp4_find_box(f, traf_d, traf_e, b'trun')
-                        if trun_d:
-                            f.seek(trun_d); f.read(1)
-                            fl = f.read(3)
-                            trun_flags = (fl[0] << 16) | (fl[1] << 8) | fl[2]
-                            count = struct.unpack('>I', f.read(4))[0]
-                            if trun_flags & 0x001: f.read(4)
-                            if trun_flags & 0x004: f.read(4)
-                            has_dur = bool(trun_flags & 0x100)
-                            has_sz  = bool(trun_flags & 0x200)
-                            has_fl  = bool(trun_flags & 0x400)
-                            has_cts = bool(trun_flags & 0x800)
-                            for _ in range(count):
-                                frag_dur += struct.unpack('>I', f.read(4))[0] if has_dur else default_dur
-                                if has_sz:  f.read(4)
-                                if has_fl:  f.read(4)
-                                if has_cts: f.read(4)
-                        end_time = base_dt + frag_dur
-                        if end_time > last_end_time:
-                            last_end_time = end_time
-                pos = box_end
-
-        if last_end_time == 0:
-            return None
-        return round(last_end_time / timescale * 1000)
-
-    except Exception:
-        return None
+    """Duración real del MP4 en ms. Implementado en pleiada_sync_limits: las dos
+    copias que había (acá y en pleiada_check.pyw) ya habían divergido y daban
+    duraciones distintas sobre el mismo MP4 estándar."""
+    return sync_limits.mp4_duration_ms(path)
 
 def run_sync_check(session_dir, progress_cb=None):
     """
@@ -1350,6 +1212,10 @@ def run_sync_check(session_dir, progress_cb=None):
         "short_session": False,   # PLE-41: True si la sesión fue < 30 s
         "afk":           False,   # True si hubo > MAX_CONT_IDLE_MS seguidos sin inputs
         "longest_idle_s": None,
+        "idle_fraccion": None,    # proporción de la sesión que ocupa ese hueco
+        "video_still":       False,  # True si la imagen estuvo quieta demasiado tiempo
+        "video_still_ms":    None,   # corrida continua más larga de imagen quieta
+        "video_still_ratio": None,   # proporción de la sesión con imagen quieta
     }
 
     csv_names   = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv", "video_timeline.csv"]
@@ -1372,15 +1238,13 @@ def run_sync_check(session_dir, progress_cb=None):
         csv_anchors.append((start, end))
 
     # Duración CSV (media de los 4 archivos válidos)
-    durations = [e - s for s, e in csv_anchors if s and e and e > s]
-    csv_dur   = round(sum(durations) / len(durations)) if durations else None
+    csv_dur = sync_limits.csv_duration_ms(csv_anchors)
     result["csv_dur"] = csv_dur
     result["csvs_ok"] = all_csv_ok
 
     # PLE-41: duración mínima — sesiones muy cortas producen diffs ~0 que pasan el check
     # incorrectamente aunque no haya juego grabado. Mínimo 30 segundos de sesión válida.
-    _MIN_SESSION_MS = 30_000
-    if csv_dur is not None and csv_dur < _MIN_SESSION_MS:
+    if sync_limits.is_short_session(csv_dur):
         if progress_cb:
             for _i in range(5):
                 progress_cb(_i, "err")
@@ -1418,15 +1282,25 @@ def run_sync_check(session_dir, progress_cb=None):
     if csv_dur and video_dur:
         diff = video_dur - csv_dur
         result["signed_diff"] = diff
-        # Tolerancias:
+        # Tolerancias (definidas en pleiada_sync_limits, compartidas con el Synch Checker):
         #   +15 s: cubre anchor_fallback (WebSocket + AHK startup) en hw lento
         #   -4.5 s: cubre GOP parcial al final
-        in_range = (-4500 <= diff <= 15000)
+        in_range = sync_limits.video_in_range(diff)
         result["video_ok"] = in_range
         if progress_cb: progress_cb(4, "ok" if in_range else "offset")
     else:
         result["video_ok"] = True
         if progress_cb: progress_cb(4, "ok")
+
+    # — Gate de video quieto: pantalla negra o imagen congelada —
+    # Complementa el gate AFK, que solo mira inputs: si el juego queda minimizado
+    # o el game capture se cae, OBS graba negro mientras el jugador sigue
+    # tecleando y AFK no lo detecta.
+    _still = sync_limits.video_stillness(str(video_path))
+    if _still:
+        result["video_still_ms"]    = _still.get("longest_still_ms")
+        result["video_still_ratio"] = _still.get("still_ratio")
+        result["video_still"]       = sync_limits.is_video_still(_still)
 
     # — Gate AFK: rechazar sesiones con demasiado tiempo continuo sin inputs —
     # (mismo cálculo de idle que el bloque activity del metadata)
@@ -1437,12 +1311,18 @@ def run_sync_check(session_dir, progress_cb=None):
             _act = _meta_activity(session_dir, min(_starts), max(_ends))
             if _act:
                 result["longest_idle_s"] = _act.get("longest_idle_seconds")
-                if (_act.get("longest_idle_seconds") or 0) * 1000 >= MAX_CONT_IDLE_MS:
+                # Dos brazos: hueco absoluto > 10 min, o hueco que ocupa más de
+                # la mitad de la sesión — una sesión corta que es casi toda un
+                # solo hueco pasaba el umbral absoluto sin ser gameplay válido.
+                result["idle_fraccion"] = sync_limits.idle_fraccion(
+                    _act.get("longest_idle_seconds"), csv_dur)
+                if sync_limits.is_afk(_act.get("longest_idle_seconds"), csv_dur):
                     result["afk"] = True
     except Exception:
         pass   # si el cálculo falla, no bloquear la sesión por esto
 
-    result["session_ok"] = result["csvs_ok"] and result["video_ok"] and not result["afk"]
+    result["session_ok"] = (result["csvs_ok"] and result["video_ok"]
+                            and not result["afk"] and not result["video_still"])
     return result
 
 # ─── Packager ─────────────────────────────────────────────────────────────────
@@ -2253,57 +2133,10 @@ def _meta_possible_remaps(key_mapping, keys_observed):
 def _meta_activity(session_dir, start_ms, end_ms):
     """
     Mide actividad de input vs inactividad (cutscenes / menús / AFK).
-    Idle = huecos >= IDLE_GAP_MS sin movimiento de mouse ni eventos de teclado.
-    Usa los anchors (start/end) como bordes. Retorna dict o None.
+    Implementado en pleiada_sync_limits para que el gate AFK de acá y el del
+    Synch Checker corran exactamente el mismo cálculo.
     """
-    IDLE_GAP_MS = 10000
-    ts = []
-    try:
-        with open(session_dir / "mouse_delta_log.csv", encoding="utf-8") as f:
-            for r in _csv_mod.reader(f):
-                if len(r) >= 2 and r[1] == "MOVE":
-                    try:
-                        ts.append(int(r[0]))
-                    except Exception:
-                        pass
-    except Exception:
-        pass
-    try:
-        with open(session_dir / "key_log.csv", encoding="utf-8") as f:
-            for r in _csv_mod.reader(f):
-                if len(r) >= 2 and r[1] in ("KEY_DOWN", "KEY_UP"):
-                    try:
-                        ts.append(int(r[0]))
-                    except Exception:
-                        pass
-    except Exception:
-        pass
-    if not start_ms or not end_ms or end_ms <= start_ms or len(ts) < 2:
-        return None
-    ts.sort()
-    span = end_ms - start_ms
-    idle = longest = 0
-    prev = start_ms
-    for t in ts:
-        if t < start_ms or t > end_ms:
-            continue
-        gap = t - prev
-        if gap >= IDLE_GAP_MS:
-            idle += gap
-            longest = max(longest, gap)
-        prev = t
-    gap = end_ms - prev
-    if gap >= IDLE_GAP_MS:
-        idle += gap
-        longest = max(longest, gap)
-    active = span - idle
-    return {
-        "active_input_ratio":    round(active / span, 3),
-        "active_seconds":        round(active / 1000, 1),
-        "idle_seconds":          round(idle / 1000, 1),
-        "longest_idle_seconds":  round(longest / 1000, 1),
-        "idle_gap_threshold_ms": IDLE_GAP_MS,
-    }
+    return sync_limits.activity(session_dir, start_ms, end_ms)
 
 def _meta_key_mapping(exe_path, engine, game_name=""):
     """
@@ -2351,7 +2184,7 @@ def _build_integrity(session_dir):
             _obs_dbg(f"_build_integrity: {p.name}: {e}")
     return {
         "algorithm": "sha256",
-        "note": ("Hashes of the dataset as recorded by Pleiada Recorder. They certify the "
+        "note": ("Hashes of the dataset as recorded by Gameplay Recorder. They certify the "
                  "ORIGINAL files at capture time; any later edit changes the hash and the "
                  "session is rejected at upload. AI Lab derivatives/preprocessing do not "
                  "affect this record."),
@@ -2548,6 +2381,16 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 "short_session":  sync_results.get("short_session", False),
                 "truncated":      sync_results.get("truncated", False),
                 "afk_rejected":   sync_results.get("afk", False),
+                # Los dos brazos del gate AFK, para que sync_verify.py pueda
+                # comparar contra lo declarado sin recalcular.
+                "longest_idle_s": sync_results.get("longest_idle_s"),
+                "idle_fraccion":  sync_results.get("idle_fraccion"),
+                # Gate de video quieto: la imagen no cambió (negro / congelado).
+                # Se guardan también las medidas crudas para poder revisar
+                # server-side dónde quedó el corte sin recalcular.
+                "video_still_rejected": sync_results.get("video_still", False),
+                "video_still_ms":       sync_results.get("video_still_ms"),
+                "video_still_ratio":    sync_results.get("video_still_ratio"),
             },
 
             # Actividad de input: separa juego activo de cutscenes/menús/AFK.
@@ -2610,7 +2453,7 @@ class PleiadaApp:
     def __init__(self):
         self.root = tk.Tk()
         self.root.report_callback_exception = _tk_callback_excepthook   # v0.7.1: log de errores GUI
-        self.root.title("Pleiada Recorder")
+        self.root.title("Gameplay Recorder")
         self.root.overrideredirect(True)
         self.root.resizable(False, False)
         self.root.configure(bg=BG)
@@ -2623,7 +2466,7 @@ class PleiadaApp:
         self.root.geometry(f"+{x}+{y}")
 
         # Ícono de la ventana (alt-tab, barra de tareas)
-        _ico = APP_DIR / "pleiada.ico"
+        _ico = APP_DIR / "gameplay_recorder.ico"
         if _ico.exists():
             try:
                 self.root.wm_iconbitmap(str(_ico))
@@ -2735,7 +2578,7 @@ class PleiadaApp:
                  font=("Segoe UI", 11, "bold")).pack(side="left", padx=(14, 0), pady=8)
 
         # Título + versión
-        tk.Label(tb, text="Pleiada Recorder", fg=TEXT, bg=BG2,
+        tk.Label(tb, text="Gameplay Recorder", fg=TEXT, bg=BG2,
                  font=("Segoe UI", 11, "bold")).pack(side="left", padx=(6, 2))
         tk.Label(tb, text=VERSION, fg=DIM, bg=BG2,
                  font=("Segoe UI", 9)).pack(side="left")
@@ -2861,7 +2704,7 @@ class PleiadaApp:
             return
         if self.recording:
             import tkinter.messagebox as _mb
-            _mb.showwarning("Pleiada Recorder",
+            _mb.showwarning("Gameplay Recorder",
                             "Terminá la grabación antes de actualizar.")
             return
         url = (self._update_manifest or {}).get("update_url")
@@ -3011,7 +2854,7 @@ class PleiadaApp:
         tk.Frame(frame, bg=BG, height=30).pack()
         tk.Label(frame, text="✦", fg=ACCENT, bg=BG,
                  font=("Segoe UI", 28)).pack()
-        tk.Label(frame, text="Pleiada Recorder", fg=TEXT, bg=BG,
+        tk.Label(frame, text="Gameplay Recorder", fg=TEXT, bg=BG,
                  font=("Segoe UI", 17, "bold")).pack(pady=(10, 0))
         tk.Label(frame, text="Gameplay Alliance — sesión de grabación", fg=DIM, bg=BG,
                  font=("Segoe UI", 11)).pack(pady=(4, 32))
@@ -3788,7 +3631,7 @@ class PleiadaApp:
             # msg contiene el nombre legible del modo incorrecto (ej: "Captura de Pantalla")
             self._obs_lbl.config(text=f"Modo de captura incorrecto: {msg}.", fg=RED)
             self._warn_txt.config(
-                text=f"Estás usando '{msg}' en OBS, que no es compatible con Pleiada.\n\n"
+                text=f"Estás usando '{msg}' en OBS, que no es compatible con Gameplay Recorder.\n\n"
                      f"Cambiá la fuente a 'Captura de Videojuego' (Game Capture) y apuntala "
                      f"al proceso del juego.")
             self._warn_frame.pack(fill="x", pady=(8, 0))
@@ -4909,6 +4752,14 @@ class PleiadaApp:
             if results and results.get("short_session"):
                 # PLE-41: sesión demasiado corta
                 body = "La sesión duró menos de 30 segundos.\nGrabá al menos 30 segundos de gameplay para que los datos sean válidos."
+            elif results and results.get("video_still"):
+                # Gate de video quieto. Va ANTES que el de AFK: si disparan los
+                # dos, la causa real suele ser que OBS no estaba capturando, y
+                # decirle "estuviste inactivo" lo manda a buscar donde no está.
+                # Tampoco se menciona el umbral (misma regla que AFK).
+                body = ("La sesión tiene un período largo donde la imagen no cambió "
+                        "(pantalla negra o congelada).\nVerificá que OBS esté capturando "
+                        "el juego e iniciá una nueva sesión.")
             elif results and results.get("afk"):
                 # Gate AFK: demasiado tiempo continuo sin inputs.
                 # A propósito NO se menciona el umbral exacto (pedido de Martín 20/7).
@@ -5180,11 +5031,11 @@ class PleiadaApp:
 
         style = ttk.Style()
         style.theme_use("default")
-        style.configure("Pleiada.Horizontal.TProgressbar",
+        style.configure("GameplayRecorder.Horizontal.TProgressbar",
                          troughcolor=CARD, background=ACCENT, borderwidth=0)
         pct_var = tk.DoubleVar(value=0)
         ttk.Progressbar(frame, variable=pct_var, maximum=100,
-                         style="Pleiada.Horizontal.TProgressbar").pack(
+                         style="GameplayRecorder.Horizontal.TProgressbar").pack(
             fill="x", pady=(12, 0))
 
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
@@ -5463,8 +5314,8 @@ if __name__ == "__main__":
             import tkinter.messagebox as _mb
             _r = _tk2.Tk(); _r.withdraw()
             _mb.showwarning(
-                "Pleiada Recorder",
-                "Pleiada Recorder ya está abierto.\n\nCerrá la ventana existente antes de abrir una nueva."
+                "Gameplay Recorder",
+                "Gameplay Recorder ya está abierto.\n\nCerrá la ventana existente antes de abrir una nueva."
             )
             _r.destroy()
             import sys as _sys2; _sys2.exit(0)

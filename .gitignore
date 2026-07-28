@@ -1,3 +1,9 @@
+# ── Handoff interno ───────────────────────────────────────────────
+# Este repo es PUBLICO. HANDOFF.md es el estado interno de trabajo
+# (infra, decisiones, pendientes) y NO se publica. Vive solo local /
+# sincronizado por Drive. CLAUDE.md si va al repo: es documentacion.
+HANDOFF.md
+
 # ── Build outputs ─────────────────────────────────────────────────
 pleiada_installer/Output/
 pleiada_installer/deps/

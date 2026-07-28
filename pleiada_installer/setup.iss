@@ -1,22 +1,32 @@
-﻿; Pleiada Recorder - Inno Setup Script
+﻿; Gameplay Recorder - Inno Setup Script
+; Los .exe de salida conservan el nombre PleiadaRecorder_*: el site linkea al
+; permalink releases/latest/download/PleiadaRecorder_Setup.exe.
 ; Genera dos instaladores a partir del mismo script:
 ;   - PleiadaRecorder_Setup.exe   (completo: app + Python + AHK + OBS)      → iscc setup.iss
 ;   - PleiadaRecorder_Update.exe  (LITE: solo archivos de la app, updater)  → iscc /DLITE setup.iss
 ; La version se inyecta desde CI con /DAppVersion=X.Y.Z (fallback abajo para builds locales).
 
-#define AppName    "Pleiada Recorder"
+#define AppName    "Gameplay Recorder"
+; AppId NO acompaña al rename: es la identidad de la instalación. Si cambia, el
+; updater LITE deja de reconocer la instalación existente y monta una segunda en
+; paralelo, con dos entradas en Programas y dos carpetas. Queda clavado al valor
+; histórico para siempre.
+#define AppId      "Pleiada Recorder"
 #ifndef AppVersion
   #define AppVersion "0.7.0"
 #endif
-#define AppPublisher "Pleiada"
-#define AppDir     "{autopf}\Pleiada Recorder"
+#define AppPublisher "Sunrise Advisors Generation Ltd"
+; Solo afecta a instalaciones NUEVAS: en un upgrade Inno reusa la carpeta que ya
+; registró bajo el mismo AppId, así que los usuarios actuales siguen en la suya.
+#define AppDir     "{autopf}\Gameplay Recorder"
 ; Paquetes pip de la app — mantener UNA sola lista para full y update
 #define PipPackages "websocket-client Pillow opencv-python"
 
 [Setup]
-; AppId explicito (= AppName, el default historico) para que el updater LITE
-; actualice la MISMA entrada instalada y no cree una instalacion paralela.
-AppId={#AppName}
+; AppId explicito (= el nombre historico "Pleiada Recorder", NO el nombre
+; visible actual) para que el updater LITE actualice la MISMA entrada instalada
+; y no cree una instalacion paralela.
+AppId={#AppId}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
@@ -37,8 +47,8 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
 DisableProgramGroupPage=yes
-UninstallDisplayIcon={app}\pleiada.ico
-SetupIconFile=assets\pleiada.ico
+UninstallDisplayIcon={app}\gameplay_recorder.ico
+SetupIconFile=assets\gameplay_recorder.ico
 WizardImageFile=assets\wizard_banner.bmp
 WizardSmallImageFile=assets\wizard_small.bmp
 MinVersion=10.0
@@ -54,13 +64,14 @@ spanish.InstallingAHK=Instalando AutoHotkey...
 spanish.InstallingOBS=Instalando OBS Studio - complete el asistente que aparece en pantalla...
 spanish.InstallingDeps=Instalando dependencias...
 spanish.ConfiguringOBS=Configurando OBS...
-spanish.AllDone=Instalacion completada. Ya podes usar Pleiada Recorder.
+spanish.AllDone=Instalacion completada. Ya podes usar Gameplay Recorder.
 
 [Files]
 ; Scripts principales
 Source: "files\pleiada_app.pyw";          DestDir: "{app}"; Flags: ignoreversion
 Source: "files\session_uploader.py";      DestDir: "{app}"; Flags: ignoreversion
 Source: "files\pleiada_api.py";           DestDir: "{app}"; Flags: ignoreversion
+Source: "files\pleiada_sync_limits.py";   DestDir: "{app}"; Flags: ignoreversion
 Source: "files\input_logger.ahk";         DestDir: "{app}"; Flags: ignoreversion
 Source: "files\obs_control.py";           DestDir: "{app}"; Flags: ignoreversion
 Source: "files\pleiada_setup_wizard.pyw"; DestDir: "{app}"; Flags: ignoreversion
@@ -71,22 +82,30 @@ Source: "files\games_list.json";          DestDir: "{app}"; Flags: ignoreversion
 Source: "deps\python-3.12.8-amd64.exe";                       DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "deps\AutoHotkey_2.0.24_setup.exe";                   DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "deps\OBS-Studio-32.1.2-Windows-x64-Installer.exe";   DestDir: "{tmp}"; Flags: deleteafterinstall
-; Script de configuracion de OBS WebSocket
-Source: "files\configure_obs.py"; DestDir: "{tmp}"; Flags: deleteafterinstall
 #endif
+; Configuracion de OBS. VA TAMBIEN EN EL LITE: es la unica via por la que un
+; usuario ya instalado recibe RecQuality/RecEncoder, y el auto-update usa el
+; LITE. Dejandolo solo en el completo, la flota actual seguiria grabando 1080p60
+; a 2,5 Mbps para siempre (medido: 135 de 166 sesiones del test de 100h).
+Source: "files\configure_obs.py"; DestDir: "{tmp}"; Flags: deleteafterinstall
 ; Iconos
-Source: "assets\pleiada.ico";        DestDir: "{app}"; Flags: ignoreversion
+Source: "assets\gameplay_recorder.ico";        DestDir: "{app}"; Flags: ignoreversion
 Source: "assets\synch_checker.ico";  DestDir: "{app}"; Flags: ignoreversion
-; Logo Pleiada (usado por el Synch Checker)
-Source: "assets\pleiada_icon.png";   DestDir: "{app}"; Flags: ignoreversion
+; Logo Gameplay Alliance (usado por el Synch Checker)
+Source: "assets\gameplay_recorder_icon.png";   DestDir: "{app}"; Flags: ignoreversion
+
+[InstallDelete]
+; Al actualizar desde una versión anterior al rename queda el acceso directo con
+; el nombre viejo apuntando a la misma app. Sin esto, el usuario ve dos.
+Type: files; Name: "{commondesktop}\Pleiada Recorder.lnk"
 
 [Icons]
-Name: "{commondesktop}\Pleiada Recorder"; \
+Name: "{commondesktop}\{#AppName}"; \
     Filename: "{code:FindPythonW}"; \
     Parameters: """{app}\pleiada_app.pyw"""; \
     WorkingDir: "{app}"; \
-    IconFilename: "{app}\pleiada.ico"; \
-    Comment: "Pleiada Recorder v0.3 — Gameplay Alliance"
+    IconFilename: "{app}\gameplay_recorder.ico"; \
+    Comment: "{#AppName} v{#AppVersion} — Gameplay Alliance"
 
 ; Nota: el Synch Checker se ejecuta automáticamente desde el Recorder (sin shortcut en escritorio)
 
@@ -130,13 +149,16 @@ Filename: "{code:FindPythonExe}"; \
     StatusMsg: "{cm:InstallingDeps}"; \
     Flags: runhidden waituntilterminated
 
-#ifndef LITE
-; 6. Configurar OBS WebSocket automaticamente
+; 6. Configurar OBS (WebSocket + perfil). Corre en AMBOS instaladores: en el
+;    LITE es lo que migra el perfil preexistente a RecQuality=HQ y al encoder
+;    por hardware. Es idempotente y respeta la config del usuario salvo las
+;    claves no negociables, asi que correrlo en cada update es seguro.
 Filename: "{code:FindPythonExe}"; \
     Parameters: """{tmp}\configure_obs.py"""; \
     StatusMsg: "{cm:ConfiguringOBS}"; \
     Flags: runhidden waituntilterminated
 
+#ifndef LITE
 ; 7. Tutorial web — v0.8.4: reemplaza a las ventanas del wizard local.
 ;    Se abre en el browser por defecto del usuario (runasoriginaluser: sin elevar).
 Filename: "https://recorder.gameplayalliance.gg/"; \
@@ -154,26 +176,41 @@ Filename: "{code:FindPythonW}"; \
 #endif
 
 [UninstallRun]
-; Cerrar Pleiada Recorder si está abierto al desinstalar.
-; La ventana se titula "Pleiada Recorder" (seteado en gameplay_logger.ahk V14+).
+; Cerrar el Recorder si está abierto al desinstalar.
+; Se matan LOS DOS títulos: el actual y el histórico "Pleiada Recorder", porque
+; una instalación vieja sin actualizar todavía usa el nombre anterior.
+Filename: "{sys}\taskkill.exe"; \
+    Parameters: "/F /FI ""WINDOWTITLE eq {#AppName}"""; \
+    Flags: runhidden; \
+    RunOnceId: "KillRecorder"
 Filename: "{sys}\taskkill.exe"; \
     Parameters: "/F /FI ""WINDOWTITLE eq Pleiada Recorder"""; \
     Flags: runhidden; \
-    RunOnceId: "KillRecorder"
+    RunOnceId: "KillRecorderLegacy"
 
 [Code]
 
-{ Cerrar el Pleiada Recorder si esta abierto, justo antes de copiar archivos.
+{ Cerrar el Recorder si esta abierto, justo antes de copiar archivos.
   Necesario en el updater (la app se cierra sola antes de lanzarlo, esto es
-  cinturon y tiradores) y util en el instalador completo al hacer upgrades. }
+  cinturon y tiradores) y util en el instalador completo al hacer upgrades.
+
+  OJO: se matan LOS DOS titulos. Al actualizar desde una version anterior al
+  rename, la app que esta corriendo todavia se titula "Pleiada Recorder"; si
+  solo filtraramos por el titulo nuevo no la encontrariamos y los archivos
+  quedarian bloqueados al copiar. }
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   RC: Integer;
 begin
   if CurStep = ssInstall then
+  begin
+    Exec(ExpandConstant('{sys}\taskkill.exe'),
+         '/F /FI "WINDOWTITLE eq {#AppName}"', '',
+         SW_HIDE, ewWaitUntilTerminated, RC);
     Exec(ExpandConstant('{sys}\taskkill.exe'),
          '/F /FI "WINDOWTITLE eq Pleiada Recorder"', '',
          SW_HIDE, ewWaitUntilTerminated, RC);
+  end;
 end;
 
 #ifndef LITE
@@ -187,7 +224,7 @@ procedure InitializeWizard;
 begin
   ConsentPage := CreateCustomPage(
     wpWelcome,
-    'Bienvenido a Pleiada Recorder - Gameplay Alliance',
+    'Bienvenido a Gameplay Recorder - Gameplay Alliance',
     'Leé atentamente la siguiente información antes de continuar.'
   );
 
@@ -203,8 +240,8 @@ begin
   ConsentMemo.Lines.Add('¡Bienvenidos al Gameplay Alliance!');
   ConsentMemo.Lines.Add('');
   ConsentMemo.Lines.Add(
-    'Pleiada Recorder es una herramienta desarrollada por Pleiada para el programa ' +
-    'Gameplay Alliance. Está construida exclusivamente sobre bibliotecas de código ' +
+    'Gameplay Recorder es la herramienta oficial del programa Gameplay Alliance. ' +
+    'Está construida exclusivamente sobre bibliotecas de código ' +
     'abierto y es completamente segura de instalar y utilizar.'
   );
   ConsentMemo.Lines.Add('');

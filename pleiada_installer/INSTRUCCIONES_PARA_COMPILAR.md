@@ -9,25 +9,47 @@ Colocar los siguientes archivos en la carpeta `deps\`:
 
 | Archivo | Link de descarga |
 |---|---|
-| python-3.11.5-amd64.exe | https://www.python.org/ftp/python/3.11.5/python-3.11.5-amd64.exe |
+| python-3.12.8-amd64.exe | https://www.python.org/ftp/python/3.12.8/python-3.12.8-amd64.exe |
 | AutoHotkey_2.0.24_setup.exe | https://www.autohotkey.com/download/ahk-v2.exe |
-| OBS-Studio-30.0.2-Full-Installer-x64.exe | https://github.com/obsproject/obs-studio/releases/download/30.0.2/OBS-Studio-30.0.2-Full-Installer-x64.exe |
+| OBS-Studio-32.1.2-Windows-x64-Installer.exe | https://github.com/obsproject/obs-studio/releases/download/32.1.2/OBS-Studio-32.1.2-Windows-x64-Installer.exe |
 
-## Paso 3 — Agregar el icono de Pleiada
-Colocar en la carpeta `assets\`:
-- pleiada.ico       (icono 256x256 .ico)
-- wizard_banner.bmp (imagen 497x314 px para el wizard)
-- wizard_small.bmp  (imagen 55x58 px para el wizard)
+Los nombres tienen que coincidir EXACTO con los de `[Files]` en setup.iss.
 
-Si no tenes los archivos .bmp, en setup.iss comentar las lineas:
-  WizardImageFile=assets\wizard_banner.bmp
-  WizardSmallImageFile=assets\wizard_small.bmp
+## Paso 3 — Assets de marca (ya versionados en el repo)
+Viven en `assets\` y no hay que conseguirlos: `gameplay_recorder.ico`,
+`gameplay_recorder_icon.png`, `wizard_banner.bmp` (164x314) y
+`wizard_small.bmp` (55x58).
+
+Si cambia el logo, se regeneran los cuatro desde
+`assets\gameplay_alliance_logo_512.png` con:
+```
+python gen_wizard_art.py
+```
+No hace falta correrlo en cada build, solo si cambia el logo o el texto de marca.
 
 ## Paso 4 — Compilar
-1. Abrir Inno Setup Compiler
-2. File -> Open -> seleccionar setup.iss
-3. Build -> Compile (o presionar F9)
-4. El archivo PleiadaRecorder_Setup.exe se genera en la carpeta Output\
+Desde la linea de comandos, pasando SIEMPRE la version. Si se omite, queda el
+fallback viejo que tiene setup.iss y el instalador sale mal estampado:
+
+```
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=0.8.10 setup.iss
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DLITE /DAppVersion=0.8.10 setup.iss
+```
+
+El primero genera `Output\PleiadaRecorder_Setup.exe` (completo, ~181 MB); el
+segundo `Output\PleiadaRecorder_Update.exe` (LITE, solo los archivos de la app,
+es el que usa el auto-update). La version tiene que coincidir con `VERSION` en
+`files\pleiada_app.pyw`.
+
+Desde la GUI (File -> Open -> setup.iss -> F9) tambien compila, pero no permite
+pasar `/DAppVersion`.
+
+### Por que los .exe siguen diciendo PleiadaRecorder
+La app se llama Gameplay Recorder desde v0.8.10, pero el nombre de los .exe NO
+cambio: el boton de descarga del sitio apunta al permalink
+`releases/latest/download/PleiadaRecorder_Setup.exe`, y renombrarlos lo rompe
+hasta actualizar el sitio. Por el mismo motivo `AppId` sigue siendo el historico
+"Pleiada Recorder": si cambia, el updater monta una instalacion paralela.
 
 ## Paso previo obligatorio — Refrescar la lista de juegos bundleada
 Antes de CADA compilacion, correr:
@@ -39,22 +61,36 @@ Regenera `files\games_list.json` desde Airtable con el filtro "Publicado"
 bundle anterior queda intacto — pero el instalador saldria con lista vieja.
 
 ## Estructura de carpetas esperada
+```
 pleiada_installer\
 ├── setup.iss
+├── gen_wizard_art.py
+├── update_games_list.py
 ├── files\
-│   ├── gameplay_logger.ahk
+│   ├── pleiada_app.pyw          (la app; VERSION vive aca)
+│   ├── pleiada_check.pyw         (Gameplay Synch Checker)
+│   ├── pleiada_sync_limits.py    (umbrales y gates compartidos por los dos)
+│   ├── input_logger.ahk
 │   ├── obs_control.py
-│   └── configure_obs.py
+│   ├── session_uploader.py
+│   ├── pleiada_api.py
+│   ├── configure_obs.py
+│   └── games_list.json
 ├── deps\
-│   ├── python-3.11.5-amd64.exe
+│   ├── python-3.12.8-amd64.exe
 │   ├── AutoHotkey_2.0.24_setup.exe
-│   └── OBS-Studio-30.0.2-Full-Installer-x64.exe
+│   └── OBS-Studio-32.1.2-Windows-x64-Installer.exe
 ├── assets\
-│   ├── pleiada.ico
+│   ├── gameplay_alliance_logo_512.png  (fuente de los otros; no se instala)
+│   ├── gameplay_recorder.ico
+│   ├── gameplay_recorder_icon.png
+│   ├── synch_checker.ico
 │   ├── wizard_banner.bmp
 │   └── wizard_small.bmp
 └── Output\
-    └── PleiadaRecorder_Setup.exe  (generado al compilar)
+    ├── PleiadaRecorder_Setup.exe   (generado al compilar)
+    └── PleiadaRecorder_Update.exe  (generado con /DLITE)
+```
 
 ## Requerimientos minimos del sistema para los estudiantes
 - Windows 10 64-bit o superior
