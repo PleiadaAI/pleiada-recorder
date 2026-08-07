@@ -323,6 +323,40 @@ Wizard de 3 pasos post-instalación. Ventana 580×560 px centrada en pantalla. E
 
 Herramienta standalone de verificación de sync entre el video y los logs de una sesión.
 
+#### `pleiada_api.py`
+**Runtime:** Python 3.12+ (solo stdlib)
+
+Cliente HTTP del backend (Lambda Function URL): login OTP, Open Calls y emisión de URLs
+presignadas de subida. Lo comparten la app y el uploader.
+
+#### `session_uploader.py`
+**Runtime:** Python 3.12+ (solo stdlib)
+
+Sube los archivos de una sesión a S3 con URLs presignadas que emite el backend. La carpeta
+de destino se deriva del token en el servidor, así que un usuario solo puede escribir en la
+suya. Los archivos de más de 64 MB van por multipart.
+
+**Tres decisiones que definen la velocidad de subida** (medidas el 05/08/2026; el detalle
+está en el CHANGELOG de v0.8.11):
+
+| Decisión | Por qué |
+|---|---|
+| `blocksize` de 256 KiB | `http.client` entrega el body de a 8192 bytes por default. Con bloques tan chicos el socket nunca tiene datos suficientes en vuelo y la conexión queda limitada por la aplicación: el techo pasa a ser `SO_SNDBUF / RTT`, que con el buffer de 64 KB de Windows da 1,4 MB/s a 44 ms de latencia y 0,4 MB/s a 160 ms — sin importar el ancho de banda del usuario. Medido contra producción: **1,33 → 20,3 MB/s**. |
+| 4 partes en paralelo | Aporta poco en conexiones buenas (a partir de 2–4 streams la línea ya está llena) pero ayuda donde una sola no alcanza, y evita que una parte trabada frene al resto. Ajustable con `upload_concurrency` en `settings.json` (1 a 16). |
+| URLs presignadas por lotes | Antes se pedían todas al iniciar y vencían a las 6 h; con datasets de 11–20 GB por hora de juego, una sesión larga se quedaba sin permisos y **fallaba entera cerca del final**. Ahora se piden a medida que se usan. |
+
+> **No setear `SO_SNDBUF` a mano** para esto: en Windows, fijarlo explícito apaga el
+> autotuning del buffer de envío, que es justo lo que hace funcionar el arreglo.
+
+El archivo se lee por rangos a medida que se envía, así que todas las partes en vuelo
+ocupan ~1 MB de RAM en vez de `part_size` cada una. Cada parte se reintenta por separado
+(3 intentos); un PUT interrumpido no deja nada en S3, y cancelar aborta el multipart y no
+registra la subida. `Documentos\Pleiada Logs\upload.log` guarda un resumen por archivo
+(MB, segundos, MB/s, partes, reintentos) además de los fallos.
+
+Tests: `tests/test_uploader_paralelo.py` — integridad de los bytes por rango, última parte
+corta, lotes de URLs, reintentos y cancelación, contra un sink HTTP local.
+
 ---
 
 ### Installer

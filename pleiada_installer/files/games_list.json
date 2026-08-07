@@ -778,7 +778,7 @@
   "default_key_mapping": null
  },
  {
-  "game": "Black Myth: Wukong",
+  "game": "Black Myth: Wukong (b1)",
   "perspective": "Third Person",
   "genre": "Action RPG",
   "mode": "Singleplayer",
@@ -1263,8 +1263,8 @@
   "perspective": "Third Person",
   "genre": "Action Adventure",
   "mode": "Singleplayer",
-  "process_name": "Control.exe",
-  "process_source": "exact(Control)",
+  "process_name": null,
+  "process_source": "cleared: build DX12 usa Control_DX12.exe",
   "engine": "Northlight",
   "themes": [
    "Action",
@@ -1719,8 +1719,8 @@
   "perspective": "First Person",
   "genre": "Simulation",
   "mode": "Multiplayer",
-  "process_name": "USS.exe",
-  "process_source": "exact(Elite Dangerous)",
+  "process_name": null,
+  "process_source": "cleared: launcher/variantes, exe no confiable",
   "engine": "Cobra",
   "themes": [
    "Action",
@@ -3462,8 +3462,8 @@
   "perspective": "First Person",
   "genre": "Shooter",
   "mode": "Singleplayer",
-  "process_name": "metro2033.exe",
-  "process_source": "exact(Metro 2033)",
+  "process_name": null,
+  "process_source": "cleared: convive con Redux, exe ambiguo",
   "engine": "4A Engine",
   "themes": [
    "Action",
@@ -3511,8 +3511,8 @@
   "perspective": "First Person",
   "genre": "FPS",
   "mode": "Singleplayer",
-  "process_name": "metro.exe",
-  "process_source": "exact(Metro 2033 Redux)",
+  "process_name": null,
+  "process_source": "cleared: convive con el original, exe ambiguo",
   "engine": "4A Engine",
   "themes": [
    "Action",
@@ -5902,36 +5902,6 @@
   "default_key_mapping": null
  },
  {
-  "game": "The Finals",
-  "perspective": "First Person",
-  "genre": "FPS",
-  "mode": "Multiplayer",
-  "process_name": null,
-  "process_source": "exact_no_exe",
-  "engine": "Unreal Engine 5",
-  "themes": [
-   "Action",
-   "Fantasy"
-  ],
-  "languages": [
-   "Chinese (Simplified)",
-   "Chinese (Traditional)",
-   "English",
-   "French",
-   "German",
-   "Italian",
-   "Japanese",
-   "Korean",
-   "Portuguese (Brazil)",
-   "Russian",
-   "Spanish (Spain)",
-   "Thai"
-  ],
-  "developer": "Matrix Software",
-  "igdb_id": "214417",
-  "default_key_mapping": null
- },
- {
   "game": "The Forest",
   "perspective": "First Person",
   "genre": "Survival Horror",
@@ -7052,7 +7022,7 @@
   "default_key_mapping": null
  },
  {
-  "game": "World War Z",
+  "game": "World War Z (WWZ)",
   "perspective": "Third Person",
   "genre": "Shooter",
   "mode": "Co-op",

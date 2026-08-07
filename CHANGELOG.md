@@ -1,5 +1,53 @@
 # Changelog — Pleiada Recorder
 
+## v0.8.11 — 05/08/2026 — las subidas dejan de ir por un solo caño
+
+### El problema
+Miembros con conexiones de 900 Mbps reportaban subidas a 0,4 MB/s: un dataset de 1,2 GB
+tardaba ~50 minutos y uno de una hora de juego, días. No había ningún límite de velocidad
+ni en la app ni en el bucket. **La app le entregaba los datos a la red de a 8 KB por vez**
+y esperaba; así la conexión nunca tenía datos suficientes en vuelo y quedaba limitada por
+el programa, no por internet.
+
+Con ese patrón la velocidad es `tamaño del buffer del socket / tiempo de ida y vuelta`
+— **no depende del ancho de banda contratado**, solo de la distancia al bucket. Con el
+buffer de 64 KB de Windows:
+
+| Distancia al bucket (São Paulo) | Techo |
+|---|---|
+| 44 ms | 1,4 MB/s |
+| 160 ms | **0,4 MB/s** |
+
+Por eso el número era parecido entre miembros con conexiones muy distintas, y por eso el
+test de velocidad de la ISP daba bien: mide otra cosa.
+
+### El arreglo
+- **Los datos se entregan de a 256 KB en vez de 8 KB.** Este es el arreglo de fondo.
+  Medido contra producción el 05/08, mismo archivo y misma ruta, alternando: **1,33 MB/s
+  → 20,3 MB/s**. Un dataset de 1,2 GB pasa de ~50 minutos a ~1.
+- **Las partes suben en paralelo** (4 a la vez). Aporta poco en conexiones buenas —que con
+  el arreglo anterior ya quedan llenas— pero sí ayuda en las conexiones con más latencia,
+  que son justo las de los miembros afectados, y evita que una parte trabada frene al resto.
+- **Partes más chicas y adaptadas al archivo** (16 MB; más grandes solo en archivos muy
+  grandes, para no pasar de 1.000 partes). Reintentar una parte cortada ahora cuesta
+  segundos en vez de minutos.
+- **Los permisos de subida se piden por lotes, a medida que hacen falta.** Antes se pedían
+  todos al empezar y vencían a las 6 horas: con los datasets de hoy (11–20 GB por hora de
+  juego), una sesión larga se quedaba sin permisos a mitad de camino y **la subida fallaba
+  entera cerca del final**. Ese era el peor síntoma de todo esto y desaparece.
+- Los archivos medianos (más de 64 MB, antes 200) también entran por este camino.
+- El archivo se lee del disco a medida que se envía: 8 partes en vuelo ocupan ~2 MB de
+  memoria en vez de cientos.
+- `Documentos\Pleiada Logs\upload.log` ahora registra **siempre** el resumen de cada
+  archivo (MB, segundos, MB/s, partes, reintentos), no solo los errores. Sin eso no había
+  con qué diagnosticar un reporte de lentitud.
+- Válvula para soporte: `upload_concurrency` en `settings.json` baja o sube las conexiones
+  en paralelo (1 a 16) si a alguien el router no le banca 4. Sin interfaz, a propósito.
+
+Cancelar y reintentar siguen funcionando igual, y una subida cancelada sigue sin registrarse.
+Los Recorders que todavía no se actualizaron siguen subiendo con el método viejo: el backend
+mantiene los dos protocolos.
+
 ## v0.8.10 — 28/07/2026 — Gameplay Recorder + un criterio único de validación
 
 > **Actualización obligatoria.** Las versiones anteriores quedan bloqueadas para grabar

@@ -36,3 +36,6 @@ pleiada_obs_error.txt
 
 # Backend (Lambda + IAM) vive en el repo PRIVADO PleiadaAI/pleiada-backend
 backend/
+
+# Config local de Claude Code (rutas de la maquina, no va al repo publico)
+.claude/settings.local.json

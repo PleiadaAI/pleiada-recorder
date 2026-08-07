@@ -87,19 +87,35 @@ def get_upload_urls(token, session_name, filenames, dataset_hash=None,
 
 
 def start_multipart(token, call_id, session_name, filename, filesize,
-                    dataset_hash="", game_name="", duration_seconds=0):
+                    dataset_hash="", game_name="", duration_seconds=0, batch=0):
     """
     Inicia la subida multipart de UN archivo grande (S3 rechaza PUTs > 5 GiB).
     El backend corre el mismo gate del call y devuelve
-    {s3_upload_id, part_size, part_urls: {"1": url, ...}} — o
+    {s3_upload_id, part_size, n_parts, part_urls: {"1": url, ...}} — o
     {already_uploaded: True}. Lanza ApiError si el gate rechaza.
+
+    `batch` > 0 pide el protocolo por lotes: partes adaptativas al tamaño del
+    archivo y solo las primeras `batch` URLs; las que siguen se piden con
+    more_part_urls recién cuando se van a usar, así el vencimiento de la URL
+    no corre durante horas. Sin `batch`, el backend responde como antes.
     """
     return _call("start_multipart", {
         "token": token, "call_id": call_id, "session_name": session_name,
         "filename": filename, "filesize": int(filesize),
         "dataset_hash": dataset_hash or "", "game_name": game_name,
-        "duration_seconds": duration_seconds,
+        "duration_seconds": duration_seconds, "batch": int(batch),
     })
+
+
+def more_part_urls(token, call_id, session_name, filename, s3_upload_id,
+                   from_part, count):
+    """Siguiente lote de URLs presignadas de un multipart ya iniciado."""
+    r = _call("more_part_urls", {
+        "token": token, "call_id": call_id, "session_name": session_name,
+        "filename": filename, "s3_upload_id": s3_upload_id,
+        "from_part": int(from_part), "count": int(count),
+    })
+    return r.get("part_urls") or {}
 
 
 def complete_multipart(token, call_id, session_name, filename, s3_upload_id, parts):
