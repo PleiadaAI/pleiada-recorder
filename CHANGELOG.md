@@ -1,5 +1,128 @@
 # Changelog — Pleiada Recorder
 
+## v0.8.12 (agregado 15/08/2026) — las órdenes completadas dejan de ofrecerse como destino
+
+El Recorder mostraba **GA-2026-007 (ACCIÓN)** en "Orden de destino" con la orden cerrada
+desde fines de julio, y el backend aceptaba esas subidas: la orden terminada seguía
+comiéndose horas nuevas contra su margen de overflow, en vez de que esas horas fueran a la
+orden abierta.
+
+La causa es que el Recorder filtraba por `call_activo`, que significa **visible**, no
+**abierta** — el backend expone activo y completado juntos para que el dashboard pueda
+mostrar el historial. Y el gate de la Lambda nunca miraba el status: solo cupo.
+
+- El Recorder ahora filtra por `call_status` (el status crudo de Airtable) y saltea las
+  completadas. **No usa `call_estado`**, que dice "completado" también cuando la orden
+  llegó al 100% de horas pero sigue activa: ese caso tiene que seguir aceptando subidas
+  hasta el overflow, que es lo que evita perder la sesión que estabas grabando cuando la
+  orden se llenó.
+- Requiere Lambda **2026-08-15.1** o posterior, que agrega `call_status` a `my_calls` y
+  rechaza en el gate con `call_completed`. Deployar la Lambda **primero**.
+
+## v0.8.12 — 10/08/2026 — el video se hashea con el nombre con el que se sube
+
+### El problema
+El hash del video quedaba guardado bajo un nombre que el archivo no tenía en ningún lado.
+OBS nombra la grabación con espacios (`2026-08-02 22-33-10.mp4`) y el Recorder la movía a
+la carpeta de sesión tal cual, así que `integrity.files` guardaba ese nombre. Pero el
+backend sanea cada nombre antes de armar el key de S3 —los espacios pasan a guiones bajos—
+y el objeto terminaba subido como `2026-08-02_22-33-10.mp4`.
+
+Resultado: **buscar el hash del video por el nombre del archivo no encontraba nada**.
+Cualquiera que quisiera verificar la integridad del video —nosotros o un cliente que
+recibe el dataset— fallaba. Los 4 CSV nunca tuvieron el problema porque sus nombres son
+fijos y no llevan espacios.
+
+Verificado el 09/08 sobre 6 de 6 sesiones del bucket, todas v0.8.10 / schema 1.1.
+
+### El arreglo
+- **El MP4 se renombra al moverlo a la carpeta de sesión**, con la misma regla que aplica
+  el backend (`[^A-Za-z0-9._@-]` → `_`). Desde acá el nombre en disco, el de `integrity`
+  y el del objeto en S3 son el mismo. De paso arregla que hasta ahora el archivo local
+  tampoco coincidía con S3: un miembro que quisiera chequear su propia copia también
+  fallaba.
+- **`integrity` declara `"naming": "s3-safe"`**, para que el consumidor sepa sin
+  ambigüedad que puede buscar el hash por el nombre del archivo tal como lo recibe.
+
+### Compatibilidad hacia atrás
+Los datasets ya subidos (~4.000) **no cambian**: siguen con el nombre viejo en `integrity`
+y sin el campo `naming`. La ausencia del campo es justamente la señal de que hay que
+indexar por las dos formas, que es lo que ya hace `hashes_por_nombre` en
+`qa_muestreo/troveo/entregar.py`. Ese fallback se queda como está, permanente, para los
+datasets viejos.
+
+El campo `naming` solo se emite si **todos** los nombres del bloque ya son seguros, así
+que nunca miente: una sesión vieja reprocesada, con el MP4 con espacios todavía en disco,
+no lo declara.
+
+`schema_version` sigue en 1.1: el cambio agrega un campo opcional y no rompe ningún
+consumidor existente.
+
+### Además: el metadata guarda el ejecutable que se detectó
+
+El Recorder ya resolvía el `.exe` real del juego en cada grabación —del window string de
+OBS (`Título:Clase:exe`) y, si eso falla, buscando la ventana por título y resolviendo el
+PID— pero lo usaba solo para calcular el `window_mode` y filtrar la ventana en AHK, y
+después lo descartaba. El metadata escribía el `process_name` de **Airtable**, que está
+vacío en **538 de 570** juegos publicados.
+
+Era circular: el dataset devolvía lo que ya sabíamos en vez de lo que la máquina había
+averiguado. Entre los juegos ya grabados, **116 siguen sin ejecutable pese a acumular
+3.057 h** — en cada una de esas sesiones el dato se calculó y se tiró.
+
+Ahora `game.process_detected` guarda el exe resuelto, al lado del `process_name` de
+Airtable (que se mantiene, para no romper a ningún consumidor que ya lo lea). Con eso se
+puede completar `process_name` en Airtable a partir de las sesiones reales, sin pedirle
+nada a la comunidad, y el Recorder pasa a detectar y clasificar bien esos juegos.
+
+Lo ya subido no se recupera: el valor nunca se escribió. Esto sirve de acá en adelante.
+`schema_version` sigue en 1.1 — es un campo opcional más.
+
+### Además: la configuración de grabación se sostiene sola
+
+El instalador dejaba el perfil de OBS armado una sola vez, y nada lo volvía a mirar. Si el
+miembro entraba a Ajustes → Salida y cambiaba algo, quedaba cambiado para siempre: ni el
+login ni el inicio de grabación lo devolvían al valor nuestro. Lo único que el Recorder
+forzaba era el formato del archivo, y encima lo escribía en la sección de modo *Sencillo*
+—así que a quien tuviera OBS en modo *Avanzado* ni siquiera le aplicaba, y la grabación
+salía sin la protección contra archivos ilegibles si OBS se cae.
+
+Los dos extremos rompen algo distinto: por debajo de lo que pedimos el material pierde
+calidad y puede terminar rechazado; por encima, cada archivo pesa varias veces más y la
+subida se vuelve interminable sin que eso sume nada al dataset.
+
+Ahora, antes de cada grabación, el Recorder deja la configuración como corresponde, en
+silencio y sin avisar: modo Sencillo, MP4 fragmentado, calidad y bitrate del perfil,
+1920×1080 y 60 fps. Si el perfil `Pleiada` no está activo lo activa, y si el miembro lo
+borró lo vuelve a crear en vez de escribir sobre un perfil propio. Todo queda registrado en
+el log de debug.
+
+El bitrate sigue siendo el que está vigente desde el arranque del programa. Este cambio no
+lo sube ni lo baja: lo sostiene.
+
+### Además: dos bugs de detección del juego capturado
+
+**El título equivocado podía pasar el chequeo.** Para comparar el juego elegido contra lo
+que OBS estaba capturando alcanzaba **una sola palabra en común**. Con eso,
+`Marvel's Spider-Man: Miles Morales` seleccionado contra `Marvel's Spider-Man Remastered`
+capturado pasaba el control matcheando por "marvels", y la sesión se subía etiquetada con
+un título que no era el que se grabó. QA no lo detecta —el revisor mira una grilla de
+frames— así que llegaba al cliente. Ahora se exigen todas las palabras significativas del
+título, más el numeral de secuela cuando lo tiene: un `2` seleccionado contra un título sin
+el `2` es otro juego (antes el numeral se descartaba por ser de un solo carácter).
+
+**Los títulos con dos puntos fallaban siempre.** OBS escapa los caracteres que usa de
+separador, así que un `:` real viaja como `#3A`. El Recorder nunca lo decodificaba y
+comparaba contra `Horizon Zero Dawn#3A Complete Edition`. Como **125 de 504 títulos
+publicados llevan `:`** (25% del catálogo), para todos ellos la comparación por texto no
+podía dar bien nunca y caía al fallback de una palabra — los dos bugs se potenciaban.
+
+**Y ahora queda rastro.** El metadata guarda el window string crudo de OBS y el título ya
+decodificado, al lado del ejecutable detectado. Es observabilidad, no bloqueo: no frena a
+nadie, pero cada sesión pasa a ser auto-verificable y la capa A de QA puede comparar sola
+el ejecutable real contra el título declarado. Sin esto, un título mal etiquetado era
+indetectable una vez subida la sesión.
+
 ## v0.8.11 — 05/08/2026 — las subidas dejan de ir por un solo caño
 
 ### El problema

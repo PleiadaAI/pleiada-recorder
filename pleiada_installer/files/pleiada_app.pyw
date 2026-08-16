@@ -14,7 +14,7 @@ import pleiada_api
 import pleiada_sync_limits as sync_limits
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.8.11"
+VERSION = "v0.8.12"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -488,6 +488,41 @@ OBS_HOST     = "localhost"
 OBS_PORT     = 4455
 OBS_PASSWORD = ""
 
+# ── Config de grabación del dataset (v0.8.12) ────────────────────────────────
+# El instalador escribe estos valores UNA sola vez, al crear el perfil Pleiada
+# (configure_obs.py). Nada los volvía a mirar después: si el usuario tocaba
+# Ajustes → Salida en OBS, quedaba cambiado para siempre y el Recorder seguía
+# grabando con lo que hubiera. Esto se re-aplica en silencio antes de CADA
+# grabación, para que todas las sesiones del dataset pesen y se vean igual.
+#
+# Los dos extremos rompen algo distinto:
+#   - por debajo: material inservible para el cliente.
+#   - por encima: calidad alta lleva el dataset de ~1,1 GB/h a 11-20 GB/h y
+#     multiplica subida y costo de S3 por diez o más.
+#
+# RecQuality=Stream es lo que hoy aplica de hecho en la flota (el instalador
+# NUNCA escribió la clave, así que quedaba el default de OBS). Se escribe
+# explícito para dejar de depender de qué versión de OBS tenga cada uno.
+# El fix que lo subía a HQ está en hold desde el 28/07 (_programa\
+# bitrate_fix_configure_obs.patch): mientras siga en hold, esto lo sostiene.
+OBS_PROFILE_NAME = "Pleiada"
+OBS_TARGET_PROFILE = [
+    # (categoría, clave, valor)
+    ("Output",       "Mode",       "Simple"),           # primero: define qué sección lee OBS
+    ("SimpleOutput", "RecFormat2", "fragmented_mp4"),   # crash-safe (ver _obs_do_start)
+    ("SimpleOutput", "RecQuality", "Stream"),           # graba al bitrate de abajo, no por CRF
+    ("SimpleOutput", "VBitrate",   "2500"),
+    ("SimpleOutput", "ABitrate",   "160"),
+]
+OBS_TARGET_VIDEO = {
+    "baseWidth":      1920,
+    "baseHeight":     1080,
+    "outputWidth":    1920,
+    "outputHeight":   1080,
+    "fpsNumerator":   60,
+    "fpsDenominator": 1,
+}
+
 class OBSAuthError(RuntimeError):
     """OBS WebSocket rechazó la autenticación (contraseña activada en OBS)."""
     pass
@@ -499,6 +534,45 @@ def _obs_dbg(msg):
             f.write(f"[{time.strftime('%H:%M:%S')}] {msg}\n")
     except Exception:
         pass
+
+def _obs_unescape(s):
+    """Decodifica los escapes `#XX` que OBS mete en el window string.
+
+    OBS escapa los caracteres que usa como separador: un ':' real del título
+    viaja como '#3A'. Visto en producción: el Recorder mostraba
+    "Horizon Zero Dawn#3A Complete Edition" por "Horizon Zero Dawn: Complete
+    Edition". Sin decodificar, al normalizar queda un '3a' pegado al nombre y
+    el match por substring falla SIEMPRE, cayendo al fallback por palabras.
+    Alcance: 125 de 504 títulos publicados tienen ':' (25% del catálogo).
+
+    OJO con el orden: esto se aplica DESPUÉS de partir el window string por
+    ':', nunca antes. Los ':' reales están escapados justamente para que el
+    split no los vea; decodificar primero los convierte en separadores y parte
+    el título al medio ("Horizon Zero Dawn" perdiendo "Complete Edition"),
+    que es peor que el bug original — se llevaría puesto el chequeo de edición
+    de PLE-35.
+    """
+    if not s:
+        return s
+    try:
+        return re.sub(r'#([0-9A-Fa-f]{2})', lambda m: chr(int(m.group(1), 16)), s)
+    except Exception:
+        return s
+
+def _obs_sequel_numeral(name):
+    """Numeral de secuela de un título, o None. 'Spider-Man 2' → 2, 'GTA V' → 5.
+
+    Se toma el ÚLTIMO numeral del nombre ('Left 4 Dead 2' → 2, no 4).
+    """
+    _ROMAN = {"ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6,
+              "vii": 7, "viii": 8, "ix": 9, "x": 10}
+    num = None
+    for t in re.findall(r"[a-z0-9]+", (name or "").lower()):
+        if t.isdigit():
+            num = int(t)
+        elif t in _ROMAN:
+            num = _ROMAN[t]
+    return num
 
 def _obs_title_matches(game_name, win_title):
     """True si el título de ventana de OBS corresponde al juego seleccionado.
@@ -543,12 +617,37 @@ def _obs_title_matches(game_name, win_title):
             return False   # PLE-35: versión diferente seleccionada
         return True
 
-    # Palabras significativas del juego (≥ 2 chars normalizados) en el título de OBS
+    # Fallback por palabras. v0.8.12: antes alcanzaba UNA sola palabra en común,
+    # y eso dejaba pasar sesiones etiquetadas con el título equivocado — el caso
+    # reproducido es "Marvel's Spider-Man: Miles Morales" seleccionado contra
+    # "Marvel's Spider-Man Remastered" capturado: matcheaba por "marvels" y el
+    # dataset salía con el título que no era, sin que QA pudiera detectarlo.
+    # Ahora se exigen TODAS las palabras significativas, más el numeral de
+    # secuela cuando el juego elegido lo tiene ("Spider-Man 2" contra un título
+    # sin el 2 = juego distinto; el '2' solo se caía antes por len < 2).
     words = [_n(w) for w in game_name.split() if len(_n(w)) >= 2]
     if not words:
         return True   # ninguna palabra verificable → no bloquear
 
-    return any(w in a for w in words)
+    ok = all(w in a for w in words)
+
+    # Numeral de secuela: solo se exige en un sentido. Si el juego elegido tiene
+    # numeral, el título de OBS tiene que traerlo. Al revés NO se exige: los
+    # títulos de OBS vienen llenos de números de versión ("v4.630.0.0") y pedir
+    # simetría bloquearía a gente que hoy graba bien.
+    n_game = _obs_sequel_numeral(game_name)
+    if ok and n_game is not None and _obs_sequel_numeral(win_title) != n_game:
+        ok = False
+
+    # Telemetría de calibración: lo que la regla nueva bloquea y la vieja dejaba
+    # pasar. Endurecer esto convierte falsos positivos silenciosos en bloqueos
+    # visibles, así que queda el rastro para ajustar con pares reales en vez de
+    # a ojo. Va al log de debug, no molesta al usuario.
+    if not ok and any(w in a for w in words):
+        _obs_dbg(f"title_match ENDURECIDO bloqueó: juego='{game_name}' "
+                 f"obs='{win_title}' (la regla vieja lo dejaba pasar)")
+
+    return ok
 
 def obs_connect():
     ws = websocket.WebSocket()
@@ -656,7 +755,8 @@ def obs_get_game_window():
     sr     = obs_send(ws, "GetInputSettings", {"inputName": gc_src["inputName"]})
     window = sr.get("d", {}).get("responseData", {}).get("inputSettings", {}).get("window", "")
     ws.close()
-    return window.split(":")[0].strip() if window else ""
+    # unescape DESPUÉS del split (ver _obs_unescape)
+    return _obs_unescape(window.split(":")[0].strip()) if window else ""
 
 def obs_check_status():
     """Retorna (is_recording, win_title, wrong_source) en una sola conexión WebSocket.
@@ -716,11 +816,12 @@ def obs_check_status():
                     # Formato OBS: "WindowTitle:WindowClass:ExeName.exe"
                     # (el orden de class y exe varía según versión/tipo de fuente)
                     # Buscamos el componente que termina en .exe, sin importar posición.
+                    # unescape DESPUÉS del split (ver _obs_unescape)
                     parts     = window.split(":")
-                    win_title = parts[0].strip()
+                    win_title = _obs_unescape(parts[0].strip())
                     exe_part  = ""
                     for _p in parts[1:]:
-                        _p = _p.strip()
+                        _p = _obs_unescape(_p.strip())
                         if _p.lower().endswith(".exe"):
                             exe_part = re.sub(r'\.exe$', '', _p, flags=re.IGNORECASE)
                             break
@@ -769,24 +870,54 @@ def _obs_do_start():
         # activo. Único caso borde: si el perfil Pleiada fue borrado, se
         # fuerza el formato sobre el perfil activo (la integridad del dataset
         # gana) y queda logueado.
+        #
+        # v0.8.12: además del formato se re-aplica TODA la config de grabación
+        # (OBS_TARGET_PROFILE + OBS_TARGET_VIDEO). Antes solo se forzaba
+        # RecFormat2, así que bitrate, calidad, resolución y FPS quedaban a
+        # merced de lo que el usuario hubiera tocado en OBS. Es silencioso a
+        # propósito: no hay modal ni aviso, se corrige y se graba.
         try:
             _plist    = obs_send(ws, "GetProfileList").get("d", {}).get("responseData", {})
             _cur      = _plist.get("currentProfileName", "")
             _profiles = _plist.get("profiles", [])
-            if _cur != "Pleiada":
-                if "Pleiada" in _profiles:
-                    obs_send(ws, "SetCurrentProfile", {"profileName": "Pleiada"})
-                    _obs_dbg(f"Perfil activo era '{_cur}' — cambiado a Pleiada")
+            if _cur != OBS_PROFILE_NAME:
+                if OBS_PROFILE_NAME in _profiles:
+                    obs_send(ws, "SetCurrentProfile", {"profileName": OBS_PROFILE_NAME})
+                    _obs_dbg(f"Perfil activo era '{_cur}' — cambiado a {OBS_PROFILE_NAME}")
                 else:
-                    _obs_dbg(f"Perfil Pleiada no existe (activo: '{_cur}') — "
-                             "se fuerza RecFormat2 sobre el perfil activo")
-            obs_send(ws, "SetProfileParameter", {
-                "parameterCategory": "SimpleOutput",
-                "parameterName":     "RecFormat2",
-                "parameterValue":    "fragmented_mp4",
-            })
+                    # El usuario lo borró: se recrea vacío y se puebla abajo, en vez
+                    # de escribir sobre el perfil propio del usuario.
+                    _r = obs_send(ws, "CreateProfile", {"profileName": OBS_PROFILE_NAME})
+                    _ok = _r.get("d", {}).get("requestStatus", {}).get("result", False)
+                    _obs_dbg(f"Perfil {OBS_PROFILE_NAME} no existía (activo: '{_cur}') — "
+                             f"CreateProfile result={_ok}")
+                    if not _ok:
+                        # No se pudo crear: se fuerza sobre el activo. La integridad
+                        # del dataset gana; queda logueado.
+                        _obs_dbg("No se pudo crear el perfil — se fuerza sobre el activo")
+
+            for _cat, _key, _val in OBS_TARGET_PROFILE:
+                obs_send(ws, "SetProfileParameter", {
+                    "parameterCategory": _cat,
+                    "parameterName":     _key,
+                    "parameterValue":    _val,
+                })
+            _obs_dbg(f"Config de grabación forzada: "
+                     + ", ".join(f"{k}={v}" for _c, k, v in OBS_TARGET_PROFILE))
         except Exception as e:
-            _obs_dbg(f"Forzado de perfil/RecFormat2 error (continuando): {e}")
+            _obs_dbg(f"Forzado de perfil/config error (continuando): {e}")
+
+        # Resolución y FPS. Van por SetVideoSettings y no por SetProfileParameter
+        # porque OBS aplica esto en caliente; escribir [Video] en el .ini recién
+        # tomaría efecto al reiniciar OBS. Se hace ANTES de StartRecord: con la
+        # grabación activa, OBS rechaza el cambio.
+        try:
+            obs_send(ws, "SetVideoSettings", dict(OBS_TARGET_VIDEO))
+            _obs_dbg(f"Video forzado: {OBS_TARGET_VIDEO['outputWidth']}x"
+                     f"{OBS_TARGET_VIDEO['outputHeight']} @ "
+                     f"{OBS_TARGET_VIDEO['fpsNumerator']} fps")
+        except Exception as e:
+            _obs_dbg(f"SetVideoSettings error (continuando): {e}")
 
         # StartRecord
         started = False
@@ -833,6 +964,20 @@ def obs_start_recording():
         _obs_dbg(f"obs_start_recording launch check: {e}")
         return False
     return _obs_do_start()
+
+
+# Misma regla que `_clean()` del backend (lambda_function.py): al pedir las presigned
+# URLs, el backend sanea cada nombre para el key de S3 ([^A-Za-z0-9._@-] → "_"). El MP4
+# de OBS viene con espacios ("2026-08-02 22-33-10.mp4"), así que el objeto en S3 quedaba
+# con guiones bajos mientras `integrity.files` guardaba el nombre con espacios: buscar el
+# hash del video por su nombre real no encontraba nada. Se sanea acá, al mover el archivo,
+# para que el nombre en disco, en `integrity` y en S3 sean el mismo.
+_SAFE_NAME = re.compile(r"[^A-Za-z0-9._@-]")
+
+def _safe_filename(name):
+    """Nombre de archivo seguro para el key de S3, idéntico al que arma el backend."""
+    return _SAFE_NAME.sub("_", (name or "").strip())[:200]
+
 
 def obs_stop_recording(session_dir=None):
     """Detiene la grabación en OBS, ESPERA a que termine de finalizar el
@@ -899,7 +1044,7 @@ def obs_stop_recording(session_dir=None):
             output_path = str(max(recent, key=lambda f: f.stat().st_mtime))
 
     if output_path and os.path.isfile(output_path) and session_dir:
-        dest = session_dir / Path(output_path).name
+        dest = session_dir / _safe_filename(Path(output_path).name)
         for _ in range(20):
             try:
                 shutil.move(output_path, dest)
@@ -1535,7 +1680,8 @@ def _meta_find_game_exe_path(obs_window, game_name):
     Loguea el resultado para diagnóstico.
     """
     # 1. .exe expuesto por OBS en el window string ("Title:Class:exe")
-    exe = next((p.strip() for p in (obs_window or "").split(":")
+    # unescape DESPUÉS del split (ver _obs_unescape)
+    exe = next((_obs_unescape(p.strip()) for p in (obs_window or "").split(":")
                 if p.strip().lower().endswith(".exe")), "")
     if exe:
         path = _meta_exe_path(exe)
@@ -1544,7 +1690,7 @@ def _meta_find_game_exe_path(obs_window, game_name):
             return path
 
     # 2. Buscar la ventana del juego por título y resolver su PID -> ruta
-    obs_title = (obs_window or "").split(":")[0].strip()
+    obs_title = _obs_unescape((obs_window or "").split(":")[0].strip())
     cands = [c for c in (obs_title, game_name) if c]
     if not cands:
         _obs_dbg(f"exe_path: sin candidatos de título (obs_window='{obs_window}')")
@@ -2171,6 +2317,12 @@ def _build_integrity(session_dir):
     demo ya copiado a la carpeta de sesión). Certifica el ORIGINAL en el momento de captura;
     cualquier edición posterior cambia el hash → la sesión se rechaza en el upload. No incluye
     al propio session_metadata.json (no puede hashearse a sí mismo).
+
+    Las claves son el nombre real del archivo en disco, que desde v0.8.12 coincide con el
+    del objeto en S3 (ver `_safe_filename`). `naming: "s3-safe"` lo certifica: si el campo
+    está, el consumidor puede buscar el hash por el nombre del archivo tal cual lo recibe.
+    Los datasets subidos antes de v0.8.12 no lo traen y pueden tener el MP4 con espacios
+    acá y con guiones bajos en S3 — para esos hay que indexar por las dos formas.
     """
     files = {}
     names = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv", "video_timeline.csv"]
@@ -2182,7 +2334,7 @@ def _build_integrity(session_dir):
                 files[p.name] = _sha256_file(p)
         except Exception as e:
             _obs_dbg(f"_build_integrity: {p.name}: {e}")
-    return {
+    bloque = {
         "algorithm": "sha256",
         "note": ("Hashes of the dataset as recorded by Gameplay Recorder. They certify the "
                  "ORIGINAL files at capture time; any later edit changes the hash and the "
@@ -2190,6 +2342,12 @@ def _build_integrity(session_dir):
                  "affect this record."),
         "files": files,
     }
+    # Solo se declara si TODOS los nombres ya son safe: el marcador es una garantía para el
+    # consumidor, así que no se emite cuando algún archivo llegó con un nombre inesperado
+    # (p. ej. una sesión vieja reprocesada, con el MP4 con espacios todavía en disco).
+    if files and all(n == _safe_filename(n) for n in files):
+        bloque["naming"] = "s3-safe"
+    return bloque
 
 
 def _protect_session_files(session_dir):
@@ -2226,7 +2384,8 @@ def _unprotect_session_files(session_dir):
         pass
 
 
-def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""):
+def build_session_metadata(session_dir, selected_game, sync_results, exe_path="",
+                           obs_window=""):
     """
     Escribe session_metadata.json en session_dir.
     Llamar después de run_sync_check(), antes de package_session().
@@ -2336,6 +2495,24 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 "genre":        game.get("genre"),
                 "mode":         game.get("mode"),
                 "process_name": game.get("process_name"),
+                # v0.8.12: el exe REALMENTE resuelto (OBS window string -> wmic, o
+                # ventana por título -> PID). Antes se calculaba para el window_mode
+                # y se descartaba, y el metadata devolvía el `process_name` de
+                # Airtable — que está vacío en 538 de 570 juegos. Circular: guardaba
+                # lo que ya sabíamos en vez de lo que la máquina había averiguado.
+                # Con esto, cada sesión reporta el exe real y se puede completar
+                # Airtable sin preguntarle nada a nadie (ingest_process_name_s3.py).
+                "process_detected": _proc_for_window or None,
+                # v0.8.12: el window string crudo de OBS ("Título:Clase:exe.exe",
+                # con los escapes #XX sin tocar) y el título ya decodificado.
+                # Es observabilidad, no enforcement: no bloquea nada, pero a
+                # partir de acá toda sesión queda auto-verificable — capa A de QA
+                # puede comparar el exe real contra el título declarado y levantar
+                # la bandera sola. Sin esto, un mismatch de título es indetectable
+                # una vez que la sesión ya se subió.
+                "obs_window_raw":   obs_window or None,
+                "obs_title":        (_obs_unescape((obs_window or "").split(":")[0].strip())
+                                     or None),
                 "game_version": game_version,
                 "engine":        engine,
                 "engine_source": engine_source,             # "detected" | "igdb" | None
@@ -2525,6 +2702,7 @@ class PleiadaApp:
         self._uploading    = False  # v0.8.7: subida en curso — bloquea nav (⚙/salir) y doble subida
         self._recording_exe      = ""   # PLE-37: exe del juego capturado (ej: "Borderlands3.exe")
         self._recording_exe_path = ""   # v0.4 Fase 2: ruta completa del exe (para metadata)
+        self._recording_obs_window = ""  # v0.8.12: window string crudo de OBS (para metadata)
         self._ahk_proc     = None
         self._dropdown_win      = None
         self._obs_status        = "idle"   # idle | checking | ok | warn | err
@@ -2831,6 +3009,16 @@ class PleiadaApp:
         out = []
         for c in self.open_calls or []:
             if c.get("status") != "activa" or not c.get("call_activo", True):
+                continue
+            # `call_activo` significa VISIBLE, y el backend trae activo + completado:
+            # una orden completada hacía días se seguía ofreciendo como destino de
+            # subida (bug 15/08, caso GA-2026-007). El que manda es `call_status`,
+            # el status crudo de la orden en Airtable.
+            # Ojo: NO usar `call_estado`, que también dice "completado" cuando la
+            # orden llegó al 100% de horas pero sigue activa — ese caso tiene que
+            # seguir aceptando subidas hasta el overflow del backend, que es lo que
+            # evita perder la sesión que estabas grabando cuando la orden se llenó.
+            if c.get("call_status", "activo") == "completado":
                 continue
             rem = c.get("remaining_seconds")
             if rem is not None and rem <= 0:
@@ -3926,7 +4114,8 @@ class PleiadaApp:
             #    carpeta de sesión (CSVs + MP4 + session_metadata.json).
             self.root.after(0, self._show_packaging_anim)   # "Guardando localmente los archivos..."
             build_session_metadata(sdir, self.selected_game, results,
-                                   exe_path=self._recording_exe_path)
+                                   exe_path=self._recording_exe_path,
+                                   obs_window=self._recording_obs_window)
             # Bug 2: registrar el check del metadata json para mostrarlo en el análisis
             self._last_sync_statuses["metadata"] = ("ok"
                 if (sdir / "session_metadata.json").exists() else "err")
@@ -4132,7 +4321,8 @@ class PleiadaApp:
                 _ws_set = obs_send(_sr, "GetInputSettings", {"inputName": _gc["inputName"]})
                 _win = _ws_set.get("d", {}).get("responseData", {}).get("inputSettings", {}).get("window", "")
                 self._recording_exe = next(
-                    (p.strip() for p in _win.split(":") if p.strip().lower().endswith(".exe")), ""
+                    (_obs_unescape(p.strip()) for p in _win.split(":")
+                     if p.strip().lower().endswith(".exe")), ""
                 )
             _sr.close()
         except Exception:
@@ -4142,6 +4332,11 @@ class PleiadaApp:
         self._recording_exe_path = _meta_find_game_exe_path(
             _win, (self.selected_game or {}).get("game", "")
         )
+        # v0.8.12: el window string CRUDO de OBS, tal cual llegó. Va a la metadata
+        # como observabilidad: sin esto no hay forma de auditar a posteriori qué
+        # estaba capturando OBS cuando se grabó, y un mismatch de título queda
+        # indetectable una vez subida la sesión.
+        self._recording_obs_window = _win or ""
 
         # e. Arrancar AHK con el exe YA resuelto (filtro de ventana correcto) +
         #    los VK de los hotkeys del Recorder para que AHK no los registre en key_log.
