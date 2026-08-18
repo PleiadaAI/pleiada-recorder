@@ -66,6 +66,12 @@ def configure_profile():
         "ABitrate=160\n"
         "RecRB=false\n"
         "\n"
+        # OBS guarda el formato por separado en cada modo de salida. Si el
+        # usuario pasa a Avanzado lee de aca, y sin esta seccion grababa
+        # hybrid_mp4, que escribe el moov al final del archivo.
+        "[AdvOut]\n"
+        "RecFormat2=fragmented_mp4\n"
+        "\n"
         "[Video]\n"
         "BaseCX=1920\n"
         "BaseCY=1080\n"
@@ -96,34 +102,46 @@ def _migrate_rec_format(ini_path):
     si OBS muere antes, el archivo entero queda ilegible. Con fragmented MP4
     cada fragmento es autosuficiente y una grabacion interrumpida sigue siendo
     reproducible hasta el ultimo GOP escrito.
+
+    Se escribe en [SimpleOutput] Y en [AdvOut]: OBS guarda el formato por
+    separado en cada modo de salida, y hasta el 17/08 solo se tocaba el primero.
+    Todo usuario con OBS en modo Avanzado grababa hybrid_mp4 —con el moov al
+    final del archivo— y esos son los que llegaron como un segundo "sabor" de
+    MP4 en la muestra que reviso Troveo.
     """
+    SECCIONES = ("[SimpleOutput]", "[AdvOut]")
     try:
         with open(ini_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
-        out          = []
-        in_simple    = False
-        format_fixed = False
+        out     = []
+        seccion = ""
+        escrito = set()
+
+        def _cerrar(sec):
+            if sec in SECCIONES and sec not in escrito:
+                out.append("RecFormat2=fragmented_mp4\n")
+                escrito.add(sec)
+
         for line in lines:
             s = line.strip()
             if s.startswith("[") and s.endswith("]"):
-                if in_simple and not format_fixed:
-                    out.append("RecFormat2=fragmented_mp4\n")
-                    format_fixed = True
-                in_simple = (s == "[SimpleOutput]")
+                _cerrar(seccion)
+                seccion = s
                 out.append(line)
                 continue
-            if in_simple and s.split("=")[0].strip() in ("RecFormat2", "RecFormat"):
-                if not format_fixed:
+            if (seccion in SECCIONES
+                    and s.split("=")[0].strip() in ("RecFormat2", "RecFormat")):
+                if seccion not in escrito:
                     out.append("RecFormat2=fragmented_mp4\n")
-                    format_fixed = True
-                continue   # descartar el valor viejo (mp4 clasico)
+                    escrito.add(seccion)
+                continue   # descartar el valor viejo (mp4 clasico o hybrid)
             out.append(line)
-        if in_simple and not format_fixed:
-            out.append("RecFormat2=fragmented_mp4\n")
-            format_fixed = True
-        if not format_fixed:
-            out.append("\n[SimpleOutput]\nRecFormat2=fragmented_mp4\n")
+        _cerrar(seccion)
+
+        for sec in SECCIONES:
+            if sec not in escrito:
+                out.append("\n%s\nRecFormat2=fragmented_mp4\n" % sec)
 
         with open(ini_path, "w", encoding="utf-8") as f:
             f.writelines(out)

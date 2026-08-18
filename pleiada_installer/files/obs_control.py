@@ -488,11 +488,17 @@ def main():
                         dbg(f"Perfil activo era '{cur}' — cambiado a Pleiada")
                     else:
                         dbg(f"Perfil Pleiada no existe (activo: '{cur}')")
-                send(ws, "SetProfileParameter", {
-                    "parameterCategory": "SimpleOutput",
-                    "parameterName":     "RecFormat2",
-                    "parameterValue":    "fragmented_mp4",
-                })
+                # Las DOS categorias: el basic.ini tiene un segundo RecFormat2
+                # en [AdvOut] (hybrid_mp4) y quien tenia OBS en modo Avanzado
+                # grababa hybrid, ignorando este forzado. El hybrid escribe el
+                # moov al final del archivo; es el origen de los "dos sabores"
+                # de MP4 que reporto Troveo el 17/08.
+                for _cat in ("SimpleOutput", "AdvOut"):
+                    send(ws, "SetProfileParameter", {
+                        "parameterCategory": _cat,
+                        "parameterName":     "RecFormat2",
+                        "parameterValue":    "fragmented_mp4",
+                    })
             except Exception as e:
                 dbg(f"Forzado de perfil/RecFormat2 error (continuando): {e}")
 

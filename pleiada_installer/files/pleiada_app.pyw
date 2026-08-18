@@ -14,7 +14,7 @@ import pleiada_api
 import pleiada_sync_limits as sync_limits
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.8.12"
+VERSION = "v0.9.0"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -510,6 +510,13 @@ OBS_TARGET_PROFILE = [
     # (categoría, clave, valor)
     ("Output",       "Mode",       "Simple"),           # primero: define qué sección lee OBS
     ("SimpleOutput", "RecFormat2", "fragmented_mp4"),   # crash-safe (ver _obs_do_start)
+    # El basic.ini del perfil tiene un SEGUNDO RecFormat2 en [AdvOut], con valor
+    # hybrid_mp4. Forzar solo SimpleOutput dejaba grabando hybrid a todo el que
+    # tuviera OBS en modo de salida Avanzado — y el hybrid escribe el moov al
+    # final, que es lo que a Troveo le llegó como "dos sabores" de MP4 (17/08).
+    # Se escribe en las dos categorías: Mode=Simple debería alcanzar, pero si esa
+    # escritura falla o el usuario lo revierte, AdvOut tiene que estar bien igual.
+    ("AdvOut",       "RecFormat2", "fragmented_mp4"),
     ("SimpleOutput", "RecQuality", "Stream"),           # graba al bitrate de abajo, no por CRF
     ("SimpleOutput", "VBitrate",   "2500"),
     ("SimpleOutput", "ABitrate",   "160"),

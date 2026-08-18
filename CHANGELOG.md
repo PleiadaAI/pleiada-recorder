@@ -1,5 +1,30 @@
 # Changelog — Pleiada Recorder
 
+## v0.9.0 — en desarrollo
+
+Absorbe todo lo que estaba armado como v0.8.12, que **no se publica**: su matcher
+endurecido de títulos empeoraba los bloqueos que esta versión viene a eliminar.
+
+### El formato de grabación se fuerza también en modo Avanzado
+
+Forzábamos `RecFormat2=fragmented_mp4` solo en la categoría `SimpleOutput`, pero el
+perfil guarda un segundo `RecFormat2` en `[AdvOut]` con valor `hybrid_mp4`. **Todo
+usuario con OBS en modo de salida Avanzado ignoraba el forzado y grababa hybrid**, que
+escribe el índice del archivo al final en vez de al principio. Es el origen de los dos
+sabores de MP4 que aparecieron en la muestra de 500 h.
+
+Ahora se escribe en las dos categorías, en los tres lugares donde se toca el formato:
+la config forzada de cada grabación, el forzado del arranque de OBS, y la migración del
+`basic.ini` de perfiles ya existentes. La migración quedó cubierta con casos de perfil
+en Avanzado con hybrid, sin sección `[AdvOut]`, y con la sección al final del archivo;
+es idempotente.
+
+Esto **no** produce faststart: OBS no lo hace en ningún modo, y el índice sigue
+quedando al final. Para eso hace falta un remux explícito al cerrar la sesión, que va
+aparte — el fragmentado no se puede cambiar durante la captura porque el anchor de
+sincronización se calcula leyendo los fragmentos en vivo.
+
+
 ## v0.8.12 (agregado 15/08/2026) — las órdenes completadas dejan de ofrecerse como destino
 
 El Recorder mostraba **GA-2026-007 (ACCIÓN)** en "Orden de destino" con la orden cerrada
