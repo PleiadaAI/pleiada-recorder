@@ -765,6 +765,64 @@ def obs_get_game_window():
     # unescape DESPUÉS del split (ver _obs_unescape)
     return _obs_unescape(window.split(":")[0].strip()) if window else ""
 
+def obs_capture_target():
+    """Que esta capturando OBS ahora: (is_recording, titulo, exe, wrong_source).
+
+    obs_check_status devuelve el titulo y el exe pegados en un solo string, que
+    servia para comparar contra un juego ya elegido. Desde v0.9 el juego se
+    deduce de esto, asi que el exe tiene que venir separado: es la clave con la
+    que el backend resuelve el titulo sin depender del nombre de la ventana.
+
+    El exe solo existe si la fuente esta en modo "ventana especifica"; en
+    "cualquier aplicacion en pantalla completa" OBS no expone que engancho.
+    """
+    ws = obs_connect()
+    is_recording = False
+    title = exe = ""
+    wrong = None
+    try:
+        rec = obs_send(ws, "GetRecordStatus")
+        is_recording = rec.get("d", {}).get("responseData", {}).get("outputActive", False)
+        inputs = (obs_send(ws, "GetInputList")
+                  .get("d", {}).get("responseData", {}).get("inputs", []))
+        try:
+            cur = (obs_send(ws, "GetCurrentProgramScene")
+                   .get("d", {}).get("responseData", {}).get("currentProgramSceneName", ""))
+            items = (obs_send(ws, "GetSceneItemList", {"sceneName": cur})
+                     .get("d", {}).get("responseData", {}).get("sceneItems", []))
+            enabled = {i.get("sourceName", "") for i in items if i.get("sceneItemEnabled", False)}
+        except Exception:
+            enabled = None
+        _WRONG = {"monitor_capture": "Captura de Pantalla",
+                  "screen_capture":  "Captura de Pantalla",
+                  "window_capture":  "Captura de Ventana"}
+        for inp in inputs:
+            if inp.get("inputKind") in _WRONG:
+                if enabled is None or inp.get("inputName", "") in enabled:
+                    wrong = _WRONG[inp["inputKind"]]
+                    break
+        if not wrong:
+            gc = next((i for i in inputs if i.get("inputKind") == "game_capture"), None)
+            if gc:
+                window = (obs_send(ws, "GetInputSettings", {"inputName": gc["inputName"]})
+                          .get("d", {}).get("responseData", {})
+                          .get("inputSettings", {}).get("window", ""))
+                if window:
+                    parts = window.split(":")
+                    title = _obs_unescape(parts[0].strip())
+                    for _p in parts[1:]:
+                        _p = _obs_unescape(_p.strip())
+                        if _p.lower().endswith(".exe"):
+                            exe = _p
+                            break
+    finally:
+        try:
+            ws.close()
+        except Exception:
+            pass
+    return is_recording, title, exe, wrong
+
+
 def obs_check_status():
     """Retorna (is_recording, win_title, wrong_source) en una sola conexión WebSocket.
 
@@ -3450,7 +3508,7 @@ class PleiadaApp:
         # Solo si hay sesión, juego seleccionado, OBS ok y no grabando
         if self.recording or not self.logged_in:
             return
-        if self.selected_game and self._obs_status == "ok":
+        if self.selected_game:
             self._start_recording()
 
     def _hotkey_stop(self):
@@ -3467,80 +3525,20 @@ class PleiadaApp:
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
 
-        # — Sección: Juego ————————————————————————————
-        _mk_section_label(frame, "JUEGO A GRABAR")
-
-        # Selector container (relativo para dropdown)
-        sel_outer = tk.Frame(frame, bg=CARD, bd=0, relief="flat",
-                             highlightthickness=1, highlightbackground=BORDER)
-        sel_outer.pack(fill="x")
-
-        sel_inner = tk.Frame(sel_outer, bg=CARD)
-        sel_inner.pack(fill="x", padx=14, pady=0)
-
-        search_lbl = tk.Label(sel_inner, text="⌕", fg=DIM, bg=CARD,
-                               font=("Segoe UI", 13))
-        search_lbl.pack(side="left", pady=12)
-
-        self._search_var = tk.StringVar()
-        self._search_entry = tk.Entry(sel_inner, textvariable=self._search_var,
-                                       bg=CARD, fg=TEXT, insertbackground=ACCENT,
-                                       relief="flat", bd=0, font=("Segoe UI", 12),
-                                       highlightthickness=0)
-        self._search_entry.pack(side="left", fill="x", expand=True, pady=12, padx=(6, 0))
-
-        self._chevron_lbl = tk.Label(sel_inner, text="⌄", fg=DIM, bg=CARD,
-                                      font=("Segoe UI", 10))
-        self._chevron_lbl.pack(side="right")
-
-        # Game tag (visible al seleccionar)
-        self._game_tag_lbl = tk.Label(sel_inner, text="", fg=ACCENT, bg=CARD,
-                                       font=("Segoe UI", 8, "bold"))
-        self._game_tag_lbl.pack(side="right", padx=(0, 6))
-
-        # Hint debajo del selector
-        self._hint_frame = tk.Frame(frame, bg=BG)
-        self._hint_frame.pack(fill="x", pady=(8, 0))
-        self._hint_lbl = tk.Label(self._hint_frame, text="Escribí el nombre del juego para buscar.",
-                                   fg=DIM, bg=BG, font=("Segoe UI", 10), anchor="w")
-        self._hint_lbl.pack(side="left")
-
-        # Dropdown de resultados
-        self._dropdown_var  = tk.StringVar()
-        self._dropdown_data = []  # lista de game dicts
-        self._dropdown_visible = False
-        self._search_var.trace_add("write", self._on_search_changed)
-        self._search_entry.bind("<FocusIn>",  self._on_search_focus)
-        self._search_entry.bind("<FocusOut>", lambda e: self.root.after(150, self._hide_dropdown))
-        self._search_entry.bind("<Down>",  lambda e: self._dropdown_focus(1))
-        self._search_entry.bind("<Up>",    lambda e: self._dropdown_focus(-1))
-        self._search_entry.bind("<Return>", lambda e: self._select_dropdown_item())
-        self._search_entry.bind("<Escape>", lambda e: self._hide_dropdown())
-
-        # OBS status
-        self._obs_frame = tk.Frame(frame, bg=BG)
-        self._obs_frame.pack(fill="x", pady=(14, 0))
-        self._obs_dot = tk.Label(self._obs_frame, text="●", fg=DIMMER, bg=BG,
-                                  font=("Segoe UI", 10))
-        self._obs_dot.pack(side="left")
-        self._obs_lbl = tk.Label(self._obs_frame, text="Seleccioná un juego para verificar OBS.",
-                                  fg=DIM, bg=BG, font=("Segoe UI", 10), anchor="w",
-                                  wraplength=WIN_W - 60)
-        self._obs_lbl.pack(side="left", padx=(6, 0), fill="x", expand=True)
-
-        # Warn box (mismatch)
-        self._warn_frame = tk.Frame(frame, bg="#1a1500",
-                                     highlightthickness=1,
-                                     highlightbackground="#7a5c16",
-                                     bd=0)
-        self._warn_ico = tk.Label(self._warn_frame, text="⚠", fg=YELLOW, bg="#1a1500",
-                                   font=("Segoe UI", 11))
-        self._warn_ico.pack(side="left", padx=(10, 0), pady=10)
-        self._warn_txt = tk.Label(self._warn_frame, text="", fg="#f5d77a", bg="#1a1500",
-                                   font=("Segoe UI", 10), wraplength=WIN_W - 100, justify="left",
-                                   anchor="w")
-        self._warn_txt.pack(side="left", padx=(8, 10), pady=10)
-        # warn_frame initially hidden
+        # — Sección: Juego (detección automática, v0.9) ————————————
+        # Ya no hay selector: el juego sale de lo que OBS está capturando y lo
+        # resuelve el backend. Este frame se rellena solo, según el estado.
+        _mk_section_label(frame, "JUEGO DETECTADO")
+        self._det_box = tk.Frame(frame, bg=CARD, highlightthickness=1,
+                                 highlightbackground=BORDER)
+        self._det_box.pack(fill="x")
+        self._det_calls_box = tk.Frame(frame, bg=BG)
+        self._det_calls_box.pack(fill="x", pady=(10, 0))
+        self._det_state = "esperando"
+        self._det_last  = None      # (exe, título) ya resuelto: no repreguntar
+        self.selected_call = None   # None = grabación libre
+        self._render_det_esperando("Buscando una ventana de juego en OBS…")
+        self._detect_start()
 
         # — Separador ————————————————————————————————
         tk.Frame(frame, bg=BORDER2, height=1).pack(fill="x", pady=(0, 0))
@@ -3764,6 +3762,240 @@ class PleiadaApp:
         self._obs_status = "idle"
         self._update_record_btn()
 
+    # ── Detección automática del juego (v0.9) ─────────────────────────────────
+
+    def _detect_start(self):
+        self._det_active = True
+        self._detect_poll()
+
+    def _detect_stop(self):
+        self._det_active = False
+        tid = getattr(self, "_det_timer_id", None)
+        if tid:
+            try:
+                self.root.after_cancel(tid)
+            except Exception:
+                pass
+            self._det_timer_id = None
+
+    def _detect_poll(self):
+        """Mira OBS cada 2,5 s y, cuando cambia lo capturado, lo manda a resolver.
+
+        Se consulta al backend solo cuando cambia el par (exe, titulo): sin eso
+        cada vuelta del poll seria una consulta, y con IGDB en el medio es
+        castigar al backend por estar parado en una pantalla.
+        """
+        if not getattr(self, "_det_active", False) or self.recording:
+            return
+
+        def _worker():
+            try:
+                is_rec, title, exe, wrong = obs_capture_target()
+            except OBSAuthError as e:
+                self.root.after(0, lambda m=str(e): self._render_det_bloqueado(
+                    "OBS pide contrasena en el WebSocket", m))
+                return
+            except Exception:
+                self.root.after(0, lambda: self._render_det_esperando(
+                    "OBS no esta corriendo o no responde. Abrilo y volve a esta pantalla."))
+                return
+            if is_rec:
+                self.root.after(0, lambda: self._render_det_bloqueado(
+                    "OBS ya esta grabando",
+                    "Detene la grabacion desde OBS antes de empezar una sesion."))
+                return
+            if wrong:
+                self.root.after(0, lambda w=wrong: self._render_det_bloqueado(
+                    "Modo de captura incorrecto: " + w,
+                    "Cambia la fuente a Captura de Videojuego (Game Capture) y "
+                    "apuntala a la ventana del juego."))
+                return
+            if not title and not exe:
+                self.root.after(0, lambda: self._render_det_esperando(
+                    "Abri el juego y apunta la fuente de OBS a su ventana."))
+                return
+            if (exe, title) == self._det_last:
+                return                      # ya resuelto, no repreguntar
+            self._det_last = (exe, title)
+            self.root.after(0, lambda t=title: self._render_det_resolviendo(t))
+            try:
+                res = pleiada_api.resolve_game(self.auth_token, exe, title)
+            except pleiada_api.ApiError as e:
+                self._det_last = None       # que reintente en la proxima vuelta
+                self.root.after(0, lambda m=str(e): self._render_det_esperando(
+                    "No pudimos verificar el titulo: " + m))
+                return
+            self.root.after(0, lambda r=res: self._apply_resolve(r))
+
+        threading.Thread(target=_worker, daemon=True).start()
+        self._det_timer_id = self.root.after(2500, self._detect_poll)
+
+    # — Render de cada estado —————————————————————————————
+
+    def _det_clear(self):
+        for box in (getattr(self, "_det_box", None), getattr(self, "_det_calls_box", None)):
+            if box:
+                for w in box.winfo_children():
+                    w.destroy()
+
+    def _render_det_esperando(self, msg):
+        self._det_state = "esperando"
+        self.selected_game = None
+        self.selected_call = None
+        self._det_clear()
+        row = tk.Frame(self._det_box, bg=CARD)
+        row.pack(fill="x", padx=14, pady=12)
+        tk.Label(row, text="\u25cb", fg=DIM, bg=CARD, font=("Segoe UI", 10)).pack(side="left")
+        tk.Label(row, text="Esperando el juego", fg=TEXT, bg=CARD,
+                 font=("Segoe UI", 11, "bold")).pack(side="left", padx=(8, 0))
+        tk.Label(self._det_calls_box, text=msg, fg=DIM, bg=BG, font=("Segoe UI", 10),
+                 justify="left", anchor="w", wraplength=WIN_W - 60).pack(fill="x")
+        tk.Label(self._det_calls_box,
+                 text="La fuente tiene que estar en modo ventana especifica.",
+                 fg=DIMMER, bg=BG, font=("Segoe UI", 9), justify="left", anchor="w",
+                 wraplength=WIN_W - 60).pack(fill="x", pady=(6, 0))
+        self._update_record_btn()
+
+    def _render_det_resolviendo(self, titulo):
+        self._det_state = "resolviendo"
+        self.selected_game = None
+        self._det_clear()
+        row = tk.Frame(self._det_box, bg=CARD)
+        row.pack(fill="x", padx=14, pady=12)
+        tk.Label(row, text="\u25d0", fg=ACCENT, bg=CARD, font=("Segoe UI", 10)).pack(side="left")
+        tk.Label(row, text=titulo or "Identificando...", fg=TEXT, bg=CARD,
+                 font=("Segoe UI", 11, "bold"), anchor="w",
+                 wraplength=WIN_W - 90).pack(side="left", padx=(8, 0))
+        # Nombrar IGDB: la espera se entiende, y despues se entiende de donde
+        # salio la clasificacion cuando se le dice que no encaja en ninguna orden.
+        tk.Label(self._det_calls_box,
+                 text="Identificando el titulo. Si no lo conocemos, buscamos su ficha en IGDB...",
+                 fg=DIM, bg=BG, font=("Segoe UI", 10), justify="left", anchor="w",
+                 wraplength=WIN_W - 60).pack(fill="x")
+        self._update_record_btn()
+
+    def _render_det_bloqueado(self, titulo, msg):
+        self._det_state = "bloqueado"
+        self.selected_game = None
+        self.selected_call = None
+        self._det_clear()
+        row = tk.Frame(self._det_box, bg=CARD)
+        row.pack(fill="x", padx=14, pady=12)
+        tk.Label(row, text="\u2715", fg=RED, bg=CARD, font=("Segoe UI", 10)).pack(side="left")
+        tk.Label(row, text=titulo, fg=TEXT, bg=CARD, font=("Segoe UI", 11, "bold"),
+                 anchor="w", wraplength=WIN_W - 90).pack(side="left", padx=(8, 0))
+        tk.Label(self._det_calls_box, text=msg, fg=DIM, bg=BG, font=("Segoe UI", 10),
+                 justify="left", anchor="w", wraplength=WIN_W - 60).pack(fill="x")
+        self._update_record_btn()
+
+    def _apply_resolve(self, res):
+        estado = (res or {}).get("estado", "")
+        if estado == "candidatos":
+            self._render_det_candidatos(res)
+            return
+        if estado in ("no_identificado", "no_disponible"):
+            self._render_det_bloqueado(
+                "No pudimos identificar el titulo" if estado == "no_identificado"
+                else "Titulo no disponible",
+                res.get("message") or "")
+            return
+        self._render_det_resuelto(res.get("juego") or {}, res.get("calls") or [],
+                                  admitido=(estado == "admitido"))
+
+    def _render_det_candidatos(self, res):
+        self._det_state = "candidatos"
+        self.selected_game = None
+        self._det_clear()
+        row = tk.Frame(self._det_box, bg=CARD)
+        row.pack(fill="x", padx=14, pady=12)
+        tk.Label(row, text="Cual estas jugando?", fg=TEXT, bg=CARD,
+                 font=("Segoe UI", 11, "bold")).pack(side="left")
+        tk.Label(self._det_calls_box,
+                 text="No pudimos identificarlo solos. Estos son los que mas se parecen.",
+                 fg=DIM, bg=BG, font=("Segoe UI", 10), justify="left", anchor="w",
+                 wraplength=WIN_W - 60).pack(fill="x", pady=(0, 8))
+        for cand in res.get("candidatos") or []:
+            b = tk.Label(self._det_calls_box, text=cand.get("name", ""), fg=TEXT, bg=CARD,
+                         font=("Segoe UI", 10), anchor="w", cursor="hand2",
+                         padx=12, pady=9)
+            b.pack(fill="x", pady=(0, 6))
+            b.bind("<Button-1>", lambda e, c=cand: self._pick_candidato(c))
+        self._update_record_btn()
+
+    def _pick_candidato(self, cand):
+        self._render_det_resolviendo(cand.get("name", ""))
+
+        def _worker():
+            try:
+                calls = pleiada_api.calls_for_game(self.auth_token, cand.get("name", ""))
+            except pleiada_api.ApiError:
+                calls = []
+            self.root.after(0, lambda: self._render_det_resuelto(cand, calls))
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _render_det_resuelto(self, juego, calls, admitido=False):
+        """Juego identificado. Con ordenes se elige destino; sin ordenes, libre."""
+        self._det_state = "resuelto"
+        # El resto de la app (metadata, nombre de carpeta, pantallas de
+        # grabacion) sigue leyendo selected_game como antes: solo cambia de
+        # donde sale.
+        self.selected_game = {
+            "game":        juego.get("name", ""),
+            "genre":       juego.get("genre", ""),
+            "perspective": juego.get("perspective", ""),
+            "mode":        juego.get("mode", ""),
+        }
+        self._det_clear()
+        row = tk.Frame(self._det_box, bg=CARD)
+        row.pack(fill="x", padx=14, pady=12)
+        tk.Label(row, text="\u25cf", fg=GREEN, bg=CARD, font=("Segoe UI", 10)).pack(side="left")
+        col = tk.Frame(row, bg=CARD)
+        col.pack(side="left", padx=(8, 0), fill="x", expand=True)
+        tk.Label(col, text=juego.get("name", ""), fg=TEXT, bg=CARD,
+                 font=("Segoe UI", 11, "bold"), anchor="w",
+                 wraplength=WIN_W - 110).pack(fill="x")
+        detalle = " \u00b7 ".join(x for x in (juego.get("genre"), juego.get("perspective"),
+                                              juego.get("mode")) if x)
+        if detalle:
+            tk.Label(col, text=detalle, fg=DIM, bg=CARD, font=("Segoe UI", 9),
+                     anchor="w").pack(fill="x")
+        if admitido:
+            tk.Label(self._det_calls_box, text="Sumado al programa.", fg=GREEN, bg=BG,
+                     font=("Segoe UI", 9), anchor="w").pack(fill="x", pady=(0, 6))
+
+        if calls:
+            self.selected_call = calls[0].get("call_id")
+            self._call_var = tk.StringVar(value=self.selected_call)
+            tk.Label(self._det_calls_box, text="ORDEN DE DESTINO", fg=DIM, bg=BG,
+                     font=("Segoe UI", 8, "bold"), anchor="w").pack(fill="x", pady=(0, 6))
+            for c in calls:
+                tk.Radiobutton(
+                    self._det_calls_box, text=c.get("titulo", c.get("call_id", "")),
+                    value=c.get("call_id"), variable=self._call_var,
+                    command=lambda: setattr(self, "selected_call", self._call_var.get()),
+                    fg=TEXT, bg=BG, selectcolor=CARD, activebackground=BG,
+                    activeforeground=TEXT, font=("Segoe UI", 10), anchor="w",
+                    highlightthickness=0, bd=0).pack(fill="x")
+                precio = c.get("precio_hora_usd")
+                if precio:
+                    tk.Label(self._det_calls_box, text="    USD %.2f/h" % precio,
+                             fg=DIM, bg=BG, font=("Segoe UI", 9), anchor="w").pack(fill="x")
+        else:
+            # Modo libre. El copy no promete que la orden vaya a llegar.
+            self.selected_call = None
+            tk.Label(self._det_calls_box,
+                     text="Ninguna orden abierta esta buscando este tipo de titulo.",
+                     fg=YELLOW, bg=BG, font=("Segoe UI", 10), anchor="w",
+                     justify="left", wraplength=WIN_W - 60).pack(fill="x")
+            tk.Label(self._det_calls_box,
+                     text="Podes grabarlo y guardarlo igual. Puede aparecer una orden que "
+                          "lo acepte, o puede no aparecer nunca. Chequea el dashboard y "
+                          "nuestras redes por nuevas ordenes.",
+                     fg=DIM, bg=BG, font=("Segoe UI", 9), anchor="w", justify="left",
+                     wraplength=WIN_W - 60).pack(fill="x", pady=(4, 0))
+        self._update_record_btn()
+
     def _check_obs_game(self):
         """Verifica en OBS qué juego está capturado (en thread)."""
         self._obs_dot.config(fg=ACCENT)
@@ -3816,7 +4048,13 @@ class PleiadaApp:
         threading.Thread(target=_worker, daemon=True).start()
 
     def _set_obs_status(self, status, msg):
+        # v0.9: la pantalla principal ya no tiene el panel de estado de OBS: lo
+        # reemplazo el de deteccion. Se conserva el metodo porque el flujo de
+        # grabacion lo sigue llamando, pero no puede asumir que los widgets
+        # existan.
         self._obs_status = status
+        if not hasattr(self, "_obs_dot") or not self._obs_dot.winfo_exists():
+            return
         colors = {
             "ok":               GREEN,
             "warn":             YELLOW,
@@ -3860,11 +4098,22 @@ class PleiadaApp:
         self._update_record_btn()
 
     def _update_record_btn(self):
-        if not hasattr(self, "_rec_btn_idle"):
+        # v0.9: el panel de deteccion llama a este metodo desde un worker, y en
+        # la segunda visita a la pantalla el atributo existe pero apunta a un
+        # widget ya destruido. hasattr no alcanza: hace falta winfo_exists.
+        btn = getattr(self, "_rec_btn_idle", None)
+        if btn is None:
             return
+        try:
+            if not btn.winfo_exists():
+                return
+        except Exception:
+            return
+        # v0.9: alcanza con que el juego este identificado. El estado de OBS ya
+        # se evaluo para poder detectarlo, y el chequeo de coincidencia entre lo
+        # declarado y lo capturado dejo de existir: no hay nada que declarar.
         can_record = (
             self.selected_game is not None and
-            self._obs_status == "ok" and   # PLE-31: botón solo habilitado cuando OBS confirmado
             not self._update_required      # v0.8: bloqueado si VERSION < min_version
         )
         if can_record:
@@ -3883,36 +4132,16 @@ class PleiadaApp:
     # ── Iniciar / Detener grabación ────────────────────────────────────────────
 
     def _start_recording(self):
-        if not self.selected_game or self._obs_status == "mismatch":
+        # v0.9: se sacaron la guarda por "mismatch" de OBS y el chequeo por
+        # tasklist de que el proceso estuviera corriendo. Los dos comparaban
+        # contra un juego DECLARADO por el usuario, y ya no hay declaracion: el
+        # juego sale de lo que OBS captura. Eran la causa principal de los
+        # bloqueos que la gente reportaba.
+        if not self.selected_game:
             return
-        # v0.8: min_version — el hotkey global llega directo acá, sin pasar por
-        # el estado del botón, así que el bloqueo se repite en este punto.
         if self._update_required:
             return
-
-        # PLE-42: validar que el juego esté en ejecución antes de iniciar.
-        # Solo se bloquea si el juego tiene process_name conocido en games_list.json.
-        # Para los juegos sin process_name (null) se omite el chequeo.
-        _proc = self.selected_game.get("process_name")
-        if _proc:
-            try:
-                _tl = subprocess.run(
-                    ["tasklist", "/FI", f"IMAGENAME eq {_proc}", "/FO", "CSV", "/NH"],
-                    capture_output=True, text=True,
-                    creationflags=subprocess.CREATE_NO_WINDOW
-                )
-                # /FO CSV no trunca el nombre (el formato TABLE lo corta a 25 chars,
-                # rompiendo exes largos como "{Proyecto}-Win64-Shipping.exe" de Unreal).
-                if _proc.lower() not in _tl.stdout.lower():
-                    import tkinter.messagebox as _mb
-                    _mb.showwarning(
-                        "Juego no detectado",
-                        f"No se detectó '{self.selected_game['game']}' en ejecución.\n\n"
-                        "Iniciá el juego antes de comenzar la grabación."
-                    )
-                    return
-            except Exception:
-                pass   # error en tasklist → beneficio de la duda, continuar
+        self._detect_stop()
 
         self._show_recording_starting()
 
@@ -5593,6 +5822,10 @@ class PleiadaApp:
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def _clear_content(self):
+        # v0.9: cortar el poll de deteccion al salir de la pantalla principal.
+        # Si sigue vivo, el worker vuelve con un resultado y renderiza sobre
+        # widgets ya destruidos.
+        self._detect_stop()
         self._hide_dropdown()
         # Limpiar binding global de scroll (lo re-crea cada pantalla que lo use)
         try:
