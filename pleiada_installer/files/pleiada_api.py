@@ -62,6 +62,37 @@ def verify_otp(email, code):
     return r["token"]
 
 
+def resolve_game(token, exe, window_title, timeout=20):
+    """
+    Identifica qué juego está capturando OBS, a partir del ejecutable y el
+    título de ventana. TODO el criterio vive en el backend: acá no se clasifica
+    nada, ni se decide qué entra en qué orden.
+
+    Devuelve el dict del backend, con `estado`:
+      resuelto        -> identificado; `calls` dice si hay orden o va libre
+      candidatos      -> más de un título posible; `candidatos` para elegir
+      admitido        -> título nuevo que entró solo porque una orden lo pedía
+      no_identificado -> ÚNICO caso en que no se puede grabar
+      no_disponible   -> rechazado por regla interna, sin explicación al usuario
+
+    Timeout más largo que el resto: puede haber una consulta a IGDB en el medio,
+    y cortar antes deja al usuario con el juego abierto y sin respuesta.
+    """
+    return _call("resolve_game", {
+        "token": token, "exe": exe or "", "window_title": window_title or "",
+    }, timeout=timeout)
+
+
+def calls_for_game(token, game_name):
+    """
+    Órdenes abiertas del usuario que aceptan un juego ya identificado. La usan
+    la pantalla de candidatos y la lista de grabaciones, para saber si una
+    sesión libre ya se puede subir.
+    """
+    r = _call("calls_for_game", {"token": token, "game_name": game_name})
+    return r.get("calls") or []
+
+
 def my_calls(token):
     """Inscripciones del usuario (calls, horas usadas/restantes, subidas)."""
     r = _call("my_calls", {"token": token})

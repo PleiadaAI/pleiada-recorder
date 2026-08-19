@@ -207,6 +207,13 @@ def run_analysis(video, mouse, delta, key, timeline):
         act = sync_limits.activity(_folder, min(starts), max(ends))
     afk = bool(act and sync_limits.is_afk(act.get("longest_idle_seconds"), csv_dur))
 
+    # Gate de input vacío. `act is None` significaba dos cosas muy distintas
+    # —"no se pudo medir" y "no hay un solo evento que medir"— y las dos salían
+    # acá como una advertencia amarilla que no gateaba nada. El conteo las separa.
+    conteo   = sync_limits.contar_eventos_input(_folder) if _folder else None
+    sin_input = bool(conteo and sync_limits.is_sin_input(conteo, csv_dur))
+    causa     = sync_limits.diagnostico_sin_input(conteo, csv_dur) if conteo else None
+
     # Gate de video quieto. Mira la IMAGEN, no los inputs: agarra el caso del
     # juego minimizado o el game capture caído, donde OBS graba negro mientras
     # el jugador sigue tecleando.
@@ -216,7 +223,14 @@ def run_analysis(video, mouse, delta, key, timeline):
 
     add()
     add("Actividad", ACCENT)
-    if act is None:
+    if sin_input:
+        if causa == "captura_bloqueada":
+            add("Input       : el video se grabó pero no quedó registrado el teclado ni el mouse",
+                ERR_COLOR, dot=True)
+        else:
+            add("Input       : no hay actividad de teclado ni de mouse en la sesión",
+                ERR_COLOR, dot=True)
+    elif act is None:
         add("No se pudo evaluar la actividad de input.", WARN_COLOR, dot=True)
     elif afk:
         add("Inactividad : se detectó un período demasiado largo", ERR_COLOR, dot=True)
@@ -303,6 +317,21 @@ def run_analysis(video, mouse, delta, key, timeline):
         add("⚠   SESIÓN NO APTA PARA ENVIAR", ERR_COLOR)
         add("    Encontramos un período largo donde la imagen no cambió (pantalla negra o congelada).", ERR_COLOR)
         add("    Descartá esta sesión e iniciá una nueva grabación. Verificá que OBS esté capturando el juego antes de grabar.", ERR_COLOR)
+        add(SEP, ERR_COLOR)
+
+    elif sin_input:
+        # Gate de input vacío. Va antes que el de AFK: si la captura falló, el
+        # jugador jugó toda la sesión y decirle "estuviste inactivo" lo manda a
+        # buscar el problema donde no está.
+        add(SEP, ERR_COLOR)
+        add("⚠   SESIÓN NO APTA PARA ENVIAR", ERR_COLOR)
+        if causa == "captura_bloqueada":
+            add("    El video se grabó bien, pero no quedó registrado lo que hiciste con el teclado y el mouse.", ERR_COLOR)
+            add("    Suele pasar cuando el juego corre como administrador o su anticheat bloquea la captura.", ERR_COLOR)
+            add("    Abrí el Recorder como administrador e iniciá una nueva grabación. Si vuelve a pasar con este juego, avisanos.", ERR_COLOR)
+        else:
+            add("    La sesión no tiene actividad de teclado ni de mouse.", ERR_COLOR)
+            add("    Si jugaste con joystick todavía no podemos registrarlo: grabá con teclado y mouse e iniciá una nueva grabación.", ERR_COLOR)
         add(SEP, ERR_COLOR)
 
     elif afk:

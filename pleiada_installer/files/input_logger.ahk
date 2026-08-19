@@ -1,4 +1,4 @@
-#Requires AutoHotkey v2.0
+﻿#Requires AutoHotkey v2.0
 #SingleInstance Off
 
 ; ══════════════════════════════════════════════════════════════════
@@ -61,6 +61,35 @@ global pressedKeys := Map()
 global keyHook     := 0
 global reRegCount  := 0
 
+; ── Watchdog del filtro de ventana activa (18-08-2026) ────────────────────────
+; El filtro por exe descarta en silencio. Si gameExe no coincide con el proceso
+; en foco, KeyDownHandler, MouseBtn, MouseScroll y HandleRawInput cortan al
+; primer if y NO se escribe una sola fila — mientras TrackMouse y TrackTimeline,
+; que no pasan por el filtro, siguen llenando mouse_log y video_timeline. La
+; sesion queda con video perfecto, 100% del input perdido y ningun sintoma:
+; medido sobre el bucket, 729 sesiones / 537 h asi.
+;
+; El watchdog mira los dos contadores juntos. Si el cursor se movio (hubo mano
+; en el mouse) y no capturamos ni un evento, el filtro esta apuntando al exe
+; equivocado: adopta el exe que este realmente en foco y sigue. No apaga el
+; filtro —eso perderia el motivo de PLE-43, no loggear fuera del juego—, lo
+; corrige. Cuesta como mucho los primeros 15 s de la sesion.
+global capturados    := 0   ; eventos que SI pasaron el filtro
+global posSamples    := 0   ; muestras de mouse_log (no pasan por el filtro)
+global wdCorridas    := 0
+global wdAdoptado    := ""  ; exe adoptado, para el beacon
+
+; Procesos que nunca son el juego: adoptar cualquiera de estos seria peor que
+; el bug. Misma lista que _SYS_EXE en pleiada_app.pyw.
+global NO_ES_JUEGO := Map(
+    "explorer.exe", true, "applicationframehost.exe", true, "searchhost.exe", true,
+    "searchapp.exe", true, "shellexperiencehost.exe", true, "dwm.exe", true,
+    "sihost.exe", true, "startmenuexperiencehost.exe", true, "textinputhost.exe", true,
+    "code.exe", true, "chrome.exe", true, "msedge.exe", true, "firefox.exe", true,
+    "obs64.exe", true, "obs32.exe", true, "pythonw.exe", true, "python.exe", true,
+    "autohotkey64.exe", true, "autohotkey.exe", true, "lockapp.exe", true,
+)
+
 ; ── PLE-25: mapa de nombres para teclas OEM que GetKeyName retorna vacío ──────
 global VK_FALLBACK := Map(
     0xBA, "Semicolon",   ; VK_OEM_1   → ;
@@ -103,23 +132,30 @@ NowMs() {
 ; WinActive NO detecta correctamente las ventanas en FULLSCREEN EXCLUSIVO
 ; (ej: motor Prism3D de ETS2) — devolvía falso y bloqueaba TODA la captura.
 ; GetForegroundWindow sí reporta la app en foreground en ese modo.
+ExeEnFoco() {
+    ; Nombre del exe de la ventana en foreground, o "" si no se puede resolver.
+    try {
+        hwnd := DllCall("GetForegroundWindow", "Ptr")
+        if !hwnd
+            return ""
+        pid := 0
+        DllCall("GetWindowThreadProcessId", "Ptr", hwnd, "UInt*", &pid)
+        if !pid
+            return ""
+        return ProcessGetName(pid)
+    } catch {
+        return ""
+    }
+}
+
 GameActive() {
     global gameExe
     if gameExe = ""
         return true
-    try {
-        hwnd := DllCall("GetForegroundWindow", "Ptr")
-        if !hwnd
-            return true   ; sin foreground detectable → beneficio de la duda
-        pid := 0
-        DllCall("GetWindowThreadProcessId", "Ptr", hwnd, "UInt*", &pid)
-        if !pid
-            return true
-        name := ProcessGetName(pid)
-        return (StrLower(name) = StrLower(gameExe))
-    } catch {
-        return true   ; error al resolver → no bloquear la captura
-    }
+    name := ExeEnFoco()
+    if name = ""
+        return true   ; sin foreground resoluble → beneficio de la duda
+    return (StrLower(name) = StrLower(gameExe))
 }
 
 ; ═══════════════════════════════════════════════════════════════════
@@ -145,7 +181,7 @@ _KeyName(vk) {
 }
 
 KeyDownHandler(ih, vk, sc) {
-    global keyFH, pressedKeys, hotkeyVKs
+    global keyFH, pressedKeys, hotkeyVKs, capturados
     if !GameActive()
         return
     if vk == 0 || vk == 0xFF
@@ -155,6 +191,7 @@ KeyDownHandler(ih, vk, sc) {
     if pressedKeys.Has(vk)        ; anti-repeat: ignorar auto-repeat
         return
     pressedKeys[vk] := true
+    capturados++
     keyFH.WriteLine(NowMs() . ",KEY_DOWN," . _KeyName(vk) . "," . Format("{:02X}", vk))
 }
 
@@ -178,17 +215,19 @@ KeyUpHandler(ih, vk, sc) {
 ; ═══════════════════════════════════════════════════════════════════
 
 MouseBtn(evtType, btn) {
-    global mouseFH
+    global mouseFH, capturados
     if !GameActive()
         return
+    capturados++
     MouseGetPos(&cx, &cy)
     mouseFH.WriteLine(NowMs() . "," . evtType . "," . cx . "," . cy . "," . btn)
 }
 
 MouseScroll(delta) {
-    global mouseFH
+    global mouseFH, capturados
     if !GameActive()
         return
+    capturados++
     MouseGetPos(&cx, &cy)
     mouseFH.WriteLine(NowMs() . ",SCROLL," . cx . "," . cy . "," . delta)
 }
@@ -233,7 +272,7 @@ ReRegisterRawInput() {
 }
 
 HandleRawInput(wParam, lParam, msg, hwnd) {
-    global deltaFH
+    global deltaFH, capturados
     if !GameActive()
         return
 
@@ -256,15 +295,18 @@ HandleRawInput(wParam, lParam, msg, hwnd) {
     lLastY  := NumGet(buf, 40, "Int")
 
     ; Movimiento relativo → mouse_delta_log.csv (igual que V1)
-    if (lLastX != 0 || lLastY != 0) && !(usFlags & 0x01)
+    if (lLastX != 0 || lLastY != 0) && !(usFlags & 0x01) {
+        capturados++
         deltaFH.WriteLine(NowMs() . ",MOVE," . lLastX . "," . lLastY)
+    }
 }
 
 ; ── Tracking de posición de mouse (16 Hz) ─────────────────────────
 TrackMouse() {
-    global mouseFH, lastX, lastY
+    global mouseFH, lastX, lastY, posSamples
     MouseGetPos(&x, &y)
     if (x != lastX || y != lastY) {
+        posSamples++
         mouseFH.WriteLine(NowMs() . ",MOVE," . x . "," . y . ",")
         lastX := x
         lastY := y
@@ -275,6 +317,68 @@ TrackMouse() {
 TrackTimeline() {
     global videoFH
     videoFH.WriteLine(NowMs() . ",FRAME")
+}
+
+; ── Watchdog del filtro + beacon de salud de captura ──────────────
+; El beacon va a %TEMP%, NO a la carpeta de sesión: el manifiesto de integridad
+; hashea una lista fija de archivos y el uploader sube lo que hay en la carpeta.
+; Un archivo nuevo ahí adentro cambiaría el dataset que ve el cliente.
+; Formato: estado|capturados|posSamples|gameExe|adoptado|exeEnFoco|ts
+EscribirBeacon(estado, foco := "") {
+    global capturados, posSamples, gameExe, wdAdoptado
+    try {
+        FileDelete(A_Temp . "\pleiada_capture_health.txt")
+    }
+    try {
+        FileAppend(estado . "|" . capturados . "|" . posSamples . "|"
+                   . gameExe . "|" . wdAdoptado . "|" . foco . "|" . NowMs(),
+                   A_Temp . "\pleiada_capture_health.txt", "UTF-8")
+    }
+}
+
+WatchdogFiltro() {
+    global gameExe, capturados, posSamples, wdCorridas, wdAdoptado, NO_ES_JUEGO
+    wdCorridas++
+
+    ; Con el filtro apagado no hay nada que corregir: solo reportamos.
+    if gameExe = "" {
+        EscribirBeacon(capturados > 0 ? "ok" : "sin_eventos")
+        if wdCorridas >= 8
+            SetTimer(WatchdogFiltro, 0)
+        return
+    }
+
+    if capturados > 0 {
+        EscribirBeacon("ok")
+        SetTimer(WatchdogFiltro, 0)   ; capturando: no hace falta seguir mirando
+        return
+    }
+
+    ; Sin un solo evento. Si el cursor tampoco se movió no podemos concluir nada
+    ; todavía —puede ser una cutscene, o un joystick—, así que esperamos.
+    if posSamples < 30 {
+        EscribirBeacon("esperando")
+        return
+    }
+
+    ; Hubo mano en el mouse y no capturamos nada: el filtro es el sospechoso.
+    ; Adoptamos el exe que está realmente en foco, salvo que sea un proceso que
+    ; nunca puede ser el juego (ahí el problema es otro y adoptarlo empeoraría).
+    foco := ExeEnFoco()
+    if foco != "" && !NO_ES_JUEGO.Has(StrLower(foco)) && StrLower(foco) != StrLower(gameExe) {
+        wdAdoptado := foco
+        gameExe    := foco
+        EscribirBeacon("filtro_corregido", foco)
+        SetTimer(WatchdogFiltro, 0)
+        return
+    }
+
+    ; El exe en foco YA era el correcto y aun así no llega nada: los hooks están
+    ; bloqueados desde afuera (juego elevado, anticheat, antivirus). Acá el
+    ; logger no puede hacer nada; lo deja anotado para que la app avise.
+    EscribirBeacon("captura_bloqueada", foco)
+    if wdCorridas >= 20        ; ~5 min: cubre al que arranca la grabación y se
+        SetTimer(WatchdogFiltro, 0)   ; queda un rato en menús antes de jugar
 }
 
 ; ── Salida ordenada — escribe ANCHOR_END y cierra handles ─────────
@@ -360,5 +464,11 @@ SetTimer(TrackMouse,    62)    ; ~16 Hz — posición absoluta
 SetTimer(TrackTimeline, 62)    ; ~16 Hz — frames
 SetTimer(CheckStop,    200)    ; ~5 Hz — señal de stop
 
-; 8. Mantener vivo hasta que el padre lo mate
+; 8. Watchdog del filtro de ventana activa. Primera corrida a los 15 s: alcanza
+;    para que el jugador ya esté adentro del juego y para que 15 s sea todo lo
+;    que se puede llegar a perder si el filtro estaba mal apuntado.
+EscribirBeacon("arranque")
+SetTimer(WatchdogFiltro, 15000)
+
+; 9. Mantener vivo hasta que el padre lo mate
 Persistent()

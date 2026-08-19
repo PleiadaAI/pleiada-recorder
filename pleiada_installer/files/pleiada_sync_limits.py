@@ -62,6 +62,41 @@ IDLE_GAP_MS      =  10_000   # hueco sin mouse ni teclado que cuenta como idle
 # brazo absoluto. No hay riesgo de barrer sesiones sanas.
 MAX_IDLE_FRACCION = 0.50
 
+# ── Gate de input vacio (18-08-2026) ─────────────────────────────────────────
+# El gate AFK no agarra el peor caso posible: la sesion sin NINGUN evento de
+# input. activity() necesita al menos 2 timestamps para medir un hueco, asi que
+# con 0 o 1 evento devuelve None, y tanto run_sync_check como el Synch Checker
+# como sync_verify.py hacen `bool(act and ...)`: sin medicion no hay AFK, y la
+# sesion pasa. La sesion con los CSV de input literalmente vacios era la que mas
+# limpio pasaba todos los checks.
+#
+# Como se ve en disco: los CSV vacios pesan siempre lo mismo, header +
+# ANCHOR_START + ANCHOR_END y nada mas — key_log 95 B, mouse_delta_log 89 B,
+# mouse_log 97 B.
+#
+# Medido sobre las 6.368 sesiones del bucket (censo_input_vacio.py, 18-08-2026):
+# 925 sesiones / 645 h sin input utilizable, el 13% de las horas. De esas, 729
+# tienen el mouse_log lleno — el cursor se movio toda la sesion, o sea que hubo
+# mano en el teclado y en el mouse y no se registro ni un evento.
+MIN_EVENTOS_INPUT = 2          # piso absoluto: menos que esto no es gameplay
+MIN_EVENTOS_POR_MIN = 1.0      # brazo relativo, para la sesion casi vacia. El
+                               # gameplay real mas quieto del corpus da decenas
+                               # de eventos por minuto, asi que 1 deja margen de
+                               # sobra y no barre sesiones sanas.
+
+# Cuantas filas de posicion de mouse por minuto alcanzan para afirmar que la mano
+# estuvo en el mouse. mouse_log se llena por polling a ~16 Hz y —a diferencia de
+# los otros tres— NO pasa por el filtro de ventana activa del logger, asi que es
+# el testigo independiente: si esta lleno y los otros dos vacios, no fue que el
+# jugador no jugo, fue que no se capturo.
+#
+# Va como TASA y no como total porque el total no escala con la duracion: la
+# sesion de ETS2 del 30-05 tiene 163 filas en 91 s (107/min, mano en el mouse) y
+# cualquier piso absoluto razonable la daria por quieta. Medido: las sesiones
+# rotas del bucket dan cientos por minuto; las que de verdad no tocaron el mouse,
+# cero.
+MOUSE_POS_POR_MIN_TESTIGO = 60
+
 # ── Gate de video quieto (pantalla negra / imagen congelada) ─────────────────
 # El gate AFK mira inputs; este mira la IMAGEN. Son complementarios: si el juego
 # queda minimizado o el game capture se cae, OBS graba negro mientras el jugador
@@ -150,6 +185,92 @@ def is_afk(longest_idle_seconds, session_dur_ms=None):
     if idle_ms >= MAX_CONT_IDLE_MS:
         return True
     return bool(session_dur_ms and idle_ms >= MAX_IDLE_FRACCION * session_dur_ms)
+
+
+def contar_eventos_input(session_dir):
+    """
+    Cuenta los eventos de cada CSV de input. No promedia ni interpreta: devuelve
+    los cuatro numeros crudos para que el gate y el diagnostico decidan aparte.
+
+        teclado        KEY_DOWN / KEY_UP        (key_log.csv)
+        mouse_crudo    MOVE                     (mouse_delta_log.csv)
+        botones        BUTTON_DOWN/UP, SCROLL   (mouse_log.csv)
+        mouse_posicion MOVE                     (mouse_log.csv)
+
+    Los tres primeros son el input accionable: lo que un modelo puede aprender.
+    El cuarto es solo el testigo (ver MOUSE_POS_TESTIGO).
+    """
+    conteo = {"teclado": 0, "mouse_crudo": 0, "botones": 0, "mouse_posicion": 0}
+    fuentes = (
+        ("key_log.csv",         {"KEY_DOWN": "teclado", "KEY_UP": "teclado"}),
+        ("mouse_delta_log.csv", {"MOVE": "mouse_crudo"}),
+        ("mouse_log.csv",       {"BUTTON_DOWN": "botones", "BUTTON_UP": "botones",
+                                 "SCROLL": "botones", "MOVE": "mouse_posicion"}),
+    )
+    for fname, mapa in fuentes:
+        try:
+            with open(_os.path.join(str(session_dir), fname),
+                      encoding="utf-8", newline="") as f:
+                for r in _csv.reader(f):
+                    if len(r) >= 2:
+                        destino = mapa.get(r[1])
+                        if destino:
+                            conteo[destino] += 1
+        except Exception:
+            pass
+    return conteo
+
+
+def eventos_accionables(conteo):
+    """Teclas + botones + movimiento crudo de mouse: el input que sirve."""
+    return conteo["teclado"] + conteo["mouse_crudo"] + conteo["botones"]
+
+
+def is_sin_input(conteo, session_dur_ms=None):
+    """
+    True si la sesion no trae input utilizable, por cualquiera de los dos brazos:
+      · absoluto : menos de MIN_EVENTOS_INPUT eventos accionables en toda la
+                   sesion (el caso de los CSV vacios)
+      · relativo : menos de MIN_EVENTOS_POR_MIN por minuto de sesion
+
+    El video puede estar perfecto: este gate mira solo si quedo registrado lo
+    que el jugador hizo. Sin eso la sesion no es un dataset, es un video.
+    """
+    n = eventos_accionables(conteo)
+    if n < MIN_EVENTOS_INPUT:
+        return True
+    if session_dur_ms:
+        return n < MIN_EVENTOS_POR_MIN * session_dur_ms / 60_000
+    return False
+
+
+def diagnostico_sin_input(conteo, session_dur_ms=None):
+    """
+    Por que quedo sin input. Separa dos causas que se ven igual en los CSV pero
+    se resuelven distinto:
+
+      "captura_bloqueada" — mouse_log lleno y los otros vacios. El cursor se
+          movio toda la sesion, asi que hubo mano en el teclado y el mouse: los
+          eventos se perdieron entre el jugador y el log (filtro de ventana
+          activa apuntando al exe equivocado, anticheat o antivirus bloqueando
+          los hooks, juego corriendo elevado). Es perdida de datos real.
+
+      "sin_teclado_ni_mouse" — no se movio ni el cursor. O la sesion es un
+          joystick (que hoy no se captura) o directamente no se jugo.
+
+    Retorna None si la sesion tiene input y no hay nada que diagnosticar.
+    """
+    if not is_sin_input(conteo, session_dur_ms):
+        return None
+    pos = conteo["mouse_posicion"]
+    if session_dur_ms:
+        por_min = pos / (session_dur_ms / 60_000)
+    else:
+        # Sin duracion no hay tasa: se cae al piso de un minuto de movimiento.
+        por_min = pos
+    if por_min >= MOUSE_POS_POR_MIN_TESTIGO:
+        return "captura_bloqueada"
+    return "sin_teclado_ni_mouse"
 
 
 # ── Lectura de boxes MP4 (solo headers, sin decodificar) ─────────────────────

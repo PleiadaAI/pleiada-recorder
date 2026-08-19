@@ -1368,6 +1368,9 @@ def run_sync_check(session_dir, progress_cb=None):
         "video_still":       False,  # True si la imagen estuvo quieta demasiado tiempo
         "video_still_ms":    None,   # corrida continua más larga de imagen quieta
         "video_still_ratio": None,   # proporción de la sesión con imagen quieta
+        "sin_input":         False,  # True si no quedó registrado el input del jugador
+        "sin_input_causa":   None,   # "captura_bloqueada" | "sin_teclado_ni_mouse"
+        "eventos_input":     None,   # conteo crudo por CSV, para el registro interno
     }
 
     csv_names   = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv", "video_timeline.csv"]
@@ -1473,8 +1476,21 @@ def run_sync_check(session_dir, progress_cb=None):
     except Exception:
         pass   # si el cálculo falla, no bloquear la sesión por esto
 
+    # — Gate de input vacío: la sesión no registró lo que hizo el jugador —
+    # El gate AFK mide HUECOS entre eventos y necesita al menos dos para medir
+    # algo: con los CSV vacíos devuelve None y no gatea nada. O sea que el peor
+    # caso posible —cero input— era el que más limpio pasaba el check. Este mira
+    # el volumen, no los huecos, y por eso sí lo agarra.
+    # A diferencia de los otros gates, este NO se traga la excepción: si no se
+    # pueden contar los eventos, la sesión no se declara buena.
+    _conteo = sync_limits.contar_eventos_input(session_dir)
+    result["eventos_input"]   = _conteo
+    result["sin_input"]       = sync_limits.is_sin_input(_conteo, csv_dur)
+    result["sin_input_causa"] = sync_limits.diagnostico_sin_input(_conteo, csv_dur)
+
     result["session_ok"] = (result["csvs_ok"] and result["video_ok"]
-                            and not result["afk"] and not result["video_still"])
+                            and not result["afk"] and not result["video_still"]
+                            and not result["sin_input"])
     return result
 
 # ─── Packager ─────────────────────────────────────────────────────────────────
@@ -2575,6 +2591,13 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 "video_still_rejected": sync_results.get("video_still", False),
                 "video_still_ms":       sync_results.get("video_still_ms"),
                 "video_still_ratio":    sync_results.get("video_still_ratio"),
+                # Gate de input vacío: quedó registrado o no lo que hizo el
+                # jugador. El conteo crudo va entero para poder auditar
+                # server-side por qué se rechazó (o por qué pasó) sin releer
+                # los CSV.
+                "sin_input_rejected": sync_results.get("sin_input", False),
+                "sin_input_causa":    sync_results.get("sin_input_causa"),
+                "eventos_input":      sync_results.get("eventos_input"),
             },
 
             # Actividad de input: separa juego activo de cutscenes/menús/AFK.
@@ -3555,7 +3578,7 @@ class PleiadaApp:
         self._update_record_btn()
 
         # — Acceso a "Mis grabaciones" (subir sesiones grabadas antes) ——————
-        sessions_btn = tk.Label(frame, text="📤  Subir grabaciones",
+        sessions_btn = tk.Label(frame, text="📤  Mis grabaciones",
                                 fg=ACCENT, bg=BG, font=("Segoe UI", 10),
                                 cursor="hand2", anchor="center")
         sessions_btn.pack(fill="x", pady=(8, 0))
@@ -4037,6 +4060,106 @@ class PleiadaApp:
                 self._warn_frame.pack(fill="x", pady=(8, 0))
             except Exception:
                 pass
+
+    def _cancel_recording(self):
+        """Descarta la sesion en curso: ni dataset ni analisis.
+
+        Es lo contrario de Detener, que cierra bien y deja la sesion lista para
+        subir. Aca se para OBS, se borra la carpeta con los CSV a medio escribir
+        y NO se corre el sync check: no hay nada que verificar ni que subir, y
+        el usuario no espera por un analisis de algo que descarto.
+
+        El MP4 se deja donde OBS lo dejo. Es lo unico que sobrevive: si alguien
+        cancela porque se equivoco de juego, el video sigue siendo suyo — pero
+        no queda como sesion, asi que no se puede subir despues.
+        """
+        if not self.recording:
+            return
+        import tkinter.messagebox as _mb
+        if not _mb.askyesno(
+                "Cancelar grabación",
+                "Se descarta esta sesión: no se genera el dataset y no vas a "
+                "poder subirla.\n\n"
+                "El video queda en tu carpeta de grabaciones de OBS.\n\n"
+                "¿Cancelar la grabación?",
+                default="no", icon="warning"):
+            return
+
+        self._we_stopped = True     # el listener no lo toma como caida de OBS
+        self.recording   = False
+        if getattr(self, "_demo_name", ""):
+            _source_console("stop")
+        for attr in ("_cd_timer_id", "_timer_id"):
+            tid = getattr(self, attr, None)
+            if tid:
+                self.root.after_cancel(tid)
+                setattr(self, attr, None)
+
+        sdir = self.session_dir
+        self.session_dir = None
+        self._show_cancelling()
+
+        def _worker():
+            try:
+                stop_ahk_logger(str(sdir) if sdir else "")
+            except Exception as e:
+                _obs_dbg(f"cancel: stop_ahk_logger: {e}")
+            # session_dir=None -> OBS cierra el archivo pero NO se mueve a la
+            # carpeta de sesion, que es justamente lo que se va a borrar.
+            video = ""
+            try:
+                video = obs_stop_recording(None) or ""
+            except Exception as e:
+                _obs_dbg(f"cancel: obs_stop_recording: {e}")
+            if sdir:
+                try:
+                    _unprotect_session_files(sdir)
+                except Exception:
+                    pass
+                try:
+                    shutil.rmtree(sdir, ignore_errors=True)
+                    _obs_dbg(f"Sesion cancelada, carpeta borrada: {sdir}")
+                except Exception as e:
+                    _obs_dbg(f"cancel: rmtree: {e}")
+            self.root.after(0, lambda: self._show_cancelled(video))
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _show_cancelling(self):
+        self._clear_content()
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
+        tk.Label(frame, text="Cancelando…", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 13, "bold")).pack()
+        tk.Label(frame, text="Cerrando la grabación y descartando la sesión.",
+                 fg=DIM, bg=BG, font=("Segoe UI", 10),
+                 wraplength=WIN_W - 60).pack(pady=(8, 0))
+        tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
+
+    def _show_cancelled(self, video_path=""):
+        self._clear_content()
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
+        tk.Label(frame, text="Grabación cancelada", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 13, "bold")).pack()
+        tk.Label(frame, text="No se generó el dataset y la sesión no queda "
+                             "disponible para subir.",
+                 fg=DIM, bg=BG, font=("Segoe UI", 10), justify="center",
+                 wraplength=WIN_W - 60).pack(pady=(8, 0))
+        if video_path:
+            tk.Label(frame, text="El video quedó en:", fg=DIMMER, bg=BG,
+                     font=("Segoe UI", 9)).pack(pady=(14, 0))
+            tk.Label(frame, text=video_path, fg=DIM, bg=BG,
+                     font=("Cascadia Code", 8), wraplength=WIN_W - 60,
+                     justify="center").pack()
+        tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
+        _mk_separator(frame, color=BORDER2, pady=(0, 14))
+        tk.Button(frame, text="Volver", fg=TEXT, bg=CARD, relief="flat", bd=0,
+                  cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
+                  activeforeground=TEXT, command=self._show_idle,
+                  highlightthickness=1, highlightbackground=BORDER).pack(fill="x", ipady=10)
 
     def _stop_recording(self):
         if not self.recording:
@@ -4694,6 +4817,16 @@ class PleiadaApp:
                               highlightthickness=1, highlightbackground="#7a2020")
         stop_btn.pack(fill="x", ipady=12)
 
+        # Cancelar: descarta la sesion en vez de cerrarla. Va abajo y en gris —
+        # Detener es la accion normal y tiene que seguir siendo la obvia.
+        cancel_btn = tk.Button(frame, text="Cancelar grabación", fg=DIM, bg=BG,
+                               relief="flat", bd=0, cursor="hand2",
+                               font=("Segoe UI", 10),
+                               activebackground=BG, activeforeground=TEXT,
+                               command=self._cancel_recording,
+                               highlightthickness=0)
+        cancel_btn.pack(fill="x", pady=(8, 0))
+
         # Start ticker
         self._ticker()
         self._pulse_dot()
@@ -4962,6 +5095,21 @@ class PleiadaApp:
                 body = ("La sesión tiene un período largo donde la imagen no cambió "
                         "(pantalla negra o congelada).\nVerificá que OBS esté capturando "
                         "el juego e iniciá una nueva sesión.")
+            elif results and results.get("sin_input"):
+                # Gate de input vacío. Va ANTES que el de AFK porque es más
+                # específico: AFK diría "estuviste inactivo" cuando en realidad
+                # el jugador jugó toda la sesión y lo que falló fue la captura.
+                # Las dos causas se resuelven distinto, así que el texto cambia.
+                if results.get("sin_input_causa") == "captura_bloqueada":
+                    body = ("No se registró lo que hiciste con el teclado y el mouse, "
+                            "aunque el video se grabó bien.\nSuele pasar cuando el juego "
+                            "corre como administrador o su anticheat bloquea la captura. "
+                            "Abrí el Recorder como administrador e iniciá una nueva sesión; "
+                            "si vuelve a pasar con este juego, avisanos.")
+                else:
+                    body = ("La sesión no tiene actividad de teclado ni de mouse.\nSi jugaste "
+                            "con joystick, todavía no podemos registrarlo: grabá con teclado "
+                            "y mouse e iniciá una nueva sesión.")
             elif results and results.get("afk"):
                 # Gate AFK: demasiado tiempo continuo sin inputs.
                 # A propósito NO se menciona el umbral exacto (pedido de Martín 20/7).

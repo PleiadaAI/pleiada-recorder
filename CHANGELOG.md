@@ -5,6 +5,60 @@
 Absorbe todo lo que estaba armado como v0.8.12, que **no se publica**: su matcher
 endurecido de títulos empeoraba los bloqueos que esta versión viene a eliminar.
 
+### La sesión sin input deja de subirse (y de pasar el check)
+
+Troveo revisó la muestra de 500 h y encontró sesiones con `key_log.csv` y
+`mouse_delta_log.csv` vacíos: video de una hora, cero registro de lo que hizo el
+jugador. El censo del bucket completo dio **925 sesiones / 645 h, el 13% de las
+horas subidas**.
+
+Son dos fallas encadenadas, y la segunda es la grave:
+
+**1. El filtro de ventana activa descarta en silencio.** El logger recibe el exe del
+juego (`gameExe`) y sólo registra mientras ese proceso está en foco. Si el exe no
+coincide con el que está realmente adelante, `KeyDownHandler`, `MouseBtn`,
+`MouseScroll` y `HandleRawInput` cortan en el primer `if` y no escriben una sola
+fila — mientras `TrackMouse` y `TrackTimeline`, que no pasan por el filtro, siguen
+llenando `mouse_log` y `video_timeline`. La sesión queda con el video perfecto, el
+100% del input perdido y ningún síntoma visible. Reproducido: mismo input, mismo
+tiempo, `key_log` de 733 B con el filtro apagado y de 95 B (header + los dos
+anchors, cero eventos) con un exe que nunca está en foco.
+
+**2. El gate AFK no lo agarraba, y no por poco.** `activity()` mide *huecos* entre
+eventos y necesita al menos dos para medir uno: con los CSV vacíos devuelve `None`,
+y los tres consumidores hacen `bool(act and ...)`. Sin medición no hay AFK. O sea
+que el peor caso posible —cero input— era el que **más limpio pasaba todos los
+checks**, en el Recorder, en el Synch Checker y en la verificación server-side.
+
+Los tres cambios:
+
+- **Watchdog del filtro** (`input_logger.ahk`). A los 15 s, y después cada 15 s
+  hasta los 5 min, compara dos contadores: eventos capturados y muestras de
+  posición de mouse. Si el cursor se movió y no capturamos nada, el filtro está mal
+  apuntado: adopta el exe que está realmente en foco y sigue. No apaga el filtro
+  —eso perdería el motivo de PLE-43— lo corrige, y cuesta como mucho los primeros
+  15 s. Si el exe en foco ya era el correcto y aun así no llega nada, el problema
+  es externo (juego elevado, anticheat, antivirus) y lo deja anotado en un beacon
+  en `%TEMP%` — fuera de la carpeta de sesión, para no tocar el dataset ni el
+  manifiesto de integridad.
+- **Gate de input vacío** (`pleiada_sync_limits.py`, compartido). Mira volumen en
+  vez de huecos: menos de 2 eventos accionables, o menos de 1 por minuto, y la
+  sesión no se sube. Separa además las dos causas, que se ven igual en los CSV y
+  se resuelven distinto: si `mouse_log` está lleno la mano estuvo en el mouse y la
+  captura falló (`captura_bloqueada`); si tampoco se movió el cursor, o fue joystick
+  —que todavía no registramos— o no se jugó (`sin_teclado_ni_mouse`). El mensaje al
+  usuario cambia según cuál sea.
+- **El Synch Checker deja de decir "no se pudo evaluar"** sobre la sesión sin un
+  solo evento. Era una advertencia amarilla que no gateaba nada; ahora es rechazo.
+
+Medido sobre las 76 sesiones locales: caen 7, todas con teclado, mouse crudo y
+botones en cero. Las 69 restantes quedan entre 270 y 1.300 eventos por minuto,
+tres órdenes de magnitud por encima del corte.
+
+El `session_metadata.json` suma `sync.sin_input_rejected`, `sync.sin_input_causa` y
+`sync.eventos_input` con el conteo crudo, para poder auditar server-side por qué se
+rechazó —o por qué pasó— sin releer los CSV.
+
 ### El formato de grabación se fuerza también en modo Avanzado
 
 Forzábamos `RecFormat2=fragmented_mp4` solo en la categoría `SimpleOutput`, pero el
