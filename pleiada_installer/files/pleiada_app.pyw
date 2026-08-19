@@ -2466,7 +2466,7 @@ def _unprotect_session_files(session_dir):
 
 
 def build_session_metadata(session_dir, selected_game, sync_results, exe_path="",
-                           obs_window=""):
+                           obs_window="", modo="manual"):
     """
     Escribe session_metadata.json en session_dir.
     Llamar después de run_sync_check(), antes de package_session().
@@ -2559,7 +2559,12 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
             "session_id":       session_id,
             "source_id":        source_id,
             "recorder_version": VERSION,
-            "recording_mode":   "manual",
+            # v0.9: "libre" = se grabo sin orden de destino porque ninguna
+            # orden abierta aceptaba el titulo. El dataset es identico; lo que
+            # cambia es que al cerrar no se ofrece subir. Queda en el metadata
+            # para que la sesion se pueda reevaluar cuando abra una orden que si
+            # lo acepte, sin depender de lo que recuerde la app.
+            "recording_mode":   modo,
 
             "timing": {
                 "start_unix_ms":       start_ms,
@@ -2838,6 +2843,18 @@ class PleiadaApp:
         tb = tk.Frame(parent, bg=BG2, height=38)
         tb.pack(fill="x")
         tb.pack_propagate(False)
+
+        # v0.9: Atras. Vive en la barra porque el flujo dejo de ser una sola
+        # pantalla: identificar el juego, elegir entre candidatos y elegir orden
+        # son pasos, y de cualquiera se tiene que poder volver. Se oculta cuando
+        # no hay a donde ir (pantalla inicial) y mientras se graba: ahi el unico
+        # camino valido es Detener o Cancelar.
+        self._back_btn = tk.Label(tb, text="‹", fg=DIM, bg=BG2, width=2,
+                                  font=("Segoe UI", 14), cursor="hand2",
+                                  anchor="center")
+        self._back_btn.bind("<Button-1>", lambda e: self._go_back())
+        self._back_btn.bind("<Enter>", lambda e: self._back_btn.config(fg=TEXT))
+        self._back_btn.bind("<Leave>", lambda e: self._back_btn.config(fg=DIM))
 
         # Logo mark (✦)
         tk.Label(tb, text="✦", fg=ACCENT, bg=BG2,
@@ -3310,6 +3327,7 @@ class PleiadaApp:
             return  # settings solo con sesión iniciada
         self._capturing_hotkey = None
         self._clear_content()
+        self._set_back(self._show_idle)
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
 
@@ -3534,6 +3552,7 @@ class PleiadaApp:
         self._det_box.pack(fill="x")
         self._det_calls_box = tk.Frame(frame, bg=BG)
         self._det_calls_box.pack(fill="x", pady=(10, 0))
+        self._set_back(None)          # pantalla inicial: no hay paso anterior
         self._det_state = "esperando"
         self._det_last  = None      # (exe, título) ya resuelto: no repreguntar
         self.selected_call = None   # None = grabación libre
@@ -4474,7 +4493,9 @@ class PleiadaApp:
             self.root.after(0, self._show_packaging_anim)   # "Guardando localmente los archivos..."
             build_session_metadata(sdir, self.selected_game, results,
                                    exe_path=self._recording_exe_path,
-                                   obs_window=self._recording_obs_window)
+                                   obs_window=self._recording_obs_window,
+                                   modo=("manual" if getattr(self, "selected_call", None)
+                                         else "libre"))
             # Bug 2: registrar el check del metadata json para mostrarlo en el análisis
             self._last_sync_statuses["metadata"] = ("ok"
                 if (sdir / "session_metadata.json").exists() else "err")
@@ -5056,6 +5077,7 @@ class PleiadaApp:
                                highlightthickness=0)
         cancel_btn.pack(fill="x", pady=(8, 0))
 
+        self._set_back(None)          # grabando no se sale con Atras
         # Start ticker
         self._ticker()
         self._pulse_dot()
@@ -5760,6 +5782,7 @@ class PleiadaApp:
 
     def _show_sessions_list(self):
         self._clear_content()
+        self._set_back(self._show_idle)
         outer = tk.Frame(self.content, bg=BG)
         outer.pack(fill="both", expand=True)
 
@@ -5820,6 +5843,33 @@ class PleiadaApp:
                           d, self._show_sessions_list)).pack(side="right", ipady=2, ipadx=12)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
+
+    # ── Navegacion (v0.9) ─────────────────────────────────────────────────────
+
+    def _set_back(self, destino=None):
+        """Muestra el Atras y a donde vuelve. None lo oculta.
+
+        No es una pila generica a proposito: cada pantalla declara su anterior.
+        Una pila real se desincroniza con los saltos que hace el flujo de
+        grabacion (auto-reinicio, errores, vuelta al inicio) y termina llevando
+        al usuario a una pantalla que ya no aplica.
+        """
+        self._back_to = destino
+        btn = getattr(self, "_back_btn", None)
+        if btn is None:
+            return
+        try:
+            if destino is None:
+                btn.pack_forget()
+            else:
+                btn.pack(side="left", padx=(8, 0), before=btn.master.winfo_children()[1])
+        except Exception:
+            pass
+
+    def _go_back(self):
+        destino = getattr(self, "_back_to", None)
+        if callable(destino):
+            destino()
 
     def _clear_content(self):
         # v0.9: cortar el poll de deteccion al salir de la pantalla principal.
