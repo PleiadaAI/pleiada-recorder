@@ -46,7 +46,26 @@ OBS trae las librerías, pero no necesariamente el ejecutable. Y el remux agrega
 al final de la sesión (una pasada de I/O sobre el archivo), así que hay que mostrarlo en
 pantalla y no dejar al usuario mirando una ventana quieta.
 
-## 2. El gate de pantalla muerta asume CRF, y la flota graba CBR
+## 2. Test intermitente en el uploader paralelo
+
+**Estado: detectado el 19/08/2026, sin diagnosticar. Preexistente — no lo introdujo la
+v0.9.**
+
+`test_los_bytes_llegan_completos_y_en_orden` falla ~2 de cada 8 corridas, y no falla por
+poco: reporta 6,5 MB o 11,8 MB recibidos contra 12,6 MB esperados. Siempre de menos.
+
+Las dos lecturas posibles son muy distintas y hay que decidir cuál es antes de confiar en
+el resultado del test:
+
+- **Es del test.** El assert lee el diccionario de partes recibidas apenas vuelve
+  `_upload_multipart_file`, y algún hilo todavía está escribiendo. Molesto, inofensivo.
+- **Es del uploader.** La función vuelve antes de que todas las partes hayan terminado.
+  Eso sí importa: significa que damos por subido algo incompleto.
+
+Se hizo visible con la máquina cargada (builds corriendo en paralelo), que es
+exactamente cuándo aparecen las carreras. No apareció antes porque el test corría solo.
+
+## 3. El gate de pantalla muerta asume CRF, y la flota graba CBR
 
 **Estado: detectado el 18/08/2026, sin medir el impacto.**
 
@@ -62,7 +81,7 @@ una precondición documentada que nadie volvió a chequear.
 Hay que medir cuántas capturas en negro pasó el gate automático — las 22 de la entrega
 troveo-001 las encontró la revisión humana, no el gate.
 
-## 3. Detectar y registrar joystick
+## 4. Detectar y registrar joystick
 
 **Estado: sin implementar. `gamepad_connected` está hardcodeado en `false`.**
 
@@ -71,7 +90,7 @@ con los CSV de input vacíos y son indistinguibles de una falla de captura hasta
 el `mouse_log`. Desde v0.9.0 el gate las rechaza, así que el usuario al menos se entera —
 pero grabó una hora al pedo.
 
-## 4. Elegir dónde se guardan las grabaciones
+## 5. Elegir dónde se guardan las grabaciones
 
 **Estado: aprobado para una versión futura (16/08/2026). No entra en la actual.**
 
@@ -92,7 +111,7 @@ hace que no sea trivial:
 - Validar que la carpeta exista, sea escribible y tenga espacio; no permitir el cambio
   mientras hay una grabación en curso.
 
-## 5. Subir el bitrate de grabación
+## 6. Subir el bitrate de grabación
 
 **Estado: en hold desde el 28/07/2026.** Parche en
 `_programa\bitrate_fix_configure_obs.patch`.
