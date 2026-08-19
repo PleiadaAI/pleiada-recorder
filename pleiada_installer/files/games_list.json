@@ -215,25 +215,23 @@
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
-  "engine": "Unity",
+  "engine": "Unreal Engine 4",
   "themes": [
-   "Drama",
-   "Horror",
-   "Romance"
+   "Action"
   ],
   "languages": [
-   "Chinese (Simplified)",
-   "Chinese (Traditional)",
    "English",
+   "English (UK)",
    "French",
    "German",
    "Italian",
-   "Japanese",
+   "Polish",
+   "Portuguese (Brazil)",
    "Russian",
    "Spanish (Spain)"
   ],
-  "developer": "Lorenzo Redaelli",
-  "igdb_id": "136577",
+  "developer": "Hazelight Studios",
+  "igdb_id": "36897",
   "default_key_mapping": null
  },
  {
@@ -821,6 +819,42 @@
   "default_key_mapping": null
  },
  {
+  "game": "Arma 3",
+  "perspective": "First Person",
+  "genre": "Tactical Shooter",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Real Virtuality 4",
+  "themes": [
+   "Action",
+   "Open world",
+   "Sandbox",
+   "Warfare"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "Czech",
+   "English",
+   "French",
+   "German",
+   "Hungarian",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)",
+   "Turkish",
+   "Ukrainian"
+  ],
+  "developer": "Bohemia Interactive Studio",
+  "igdb_id": "1881",
+  "default_key_mapping": null
+ },
+ {
   "game": "Arma: Reforger",
   "perspective": "First Person",
   "genre": "Tactical Shooter",
@@ -1048,6 +1082,40 @@
   "default_key_mapping": null
  },
  {
+  "game": "Back 4 Blood",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Co-op",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Horror",
+   "Survival"
+  ],
+  "languages": [
+   "Arabic",
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)",
+   "Turkish"
+  ],
+  "developer": "Turtle Rock Studios",
+  "igdb_id": "116200",
+  "default_key_mapping": null
+ },
+ {
   "game": "Backrooms: Escape Together",
   "perspective": "First Person",
   "genre": "Adventure",
@@ -1204,6 +1272,67 @@
   "languages": [],
   "developer": "Rocksteady Studios",
   "igdb_id": "26041",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Battlefield 4",
+  "perspective": "First Person",
+  "genre": "FPS",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Frostbite",
+  "themes": [
+   "Action",
+   "Warfare"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Czech",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "EA Digital Illusions CE",
+  "igdb_id": "1979",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Battlefield 6",
+  "perspective": "First Person",
+  "genre": "FPS",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Frostbite",
+  "themes": [
+   "Action",
+   "Warfare"
+  ],
+  "languages": [
+   "Arabic",
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Spanish (Spain)"
+  ],
+  "developer": "EA Digital Illusions CE",
+  "igdb_id": "317407",
   "default_key_mapping": null
  },
  {
@@ -1607,6 +1736,98 @@
   "default_key_mapping": null
  },
  {
+  "game": "Borderlands 2",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Co-op",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 3",
+  "themes": [
+   "Action",
+   "Comedy",
+   "Open world",
+   "Sandbox",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Spanish (Spain)"
+  ],
+  "developer": "Gearbox Software",
+  "igdb_id": "1011",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Borderlands 3",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Co-op",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Comedy",
+   "Fantasy",
+   "Open world"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Gearbox Software",
+  "igdb_id": "19164",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Borderlands 4",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Co-op",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 5",
+  "themes": [
+   "Action",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)",
+   "Thai"
+  ],
+  "developer": "Gearbox Software",
+  "igdb_id": "314246",
+  "default_key_mapping": null
+ },
+ {
   "game": "Botany Manor",
   "perspective": "First Person",
   "genre": "Puzzle",
@@ -1836,6 +2057,38 @@
   ],
   "developer": "Treyarch",
   "igdb_id": "302156",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Call of Duty: Black Ops 7",
+  "perspective": "First Person",
+  "genre": "FPS",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "IW Engine",
+  "themes": [
+   "Action",
+   "Science fiction",
+   "Warfare"
+  ],
+  "languages": [
+   "Arabic",
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Treyarch",
+  "igdb_id": "348220",
   "default_key_mapping": null
  },
  {
@@ -2689,6 +2942,66 @@
   "developer": "Crimson Forge Studios",
   "igdb_id": "321893",
   "default_key_mapping": null
+ },
+ {
+  "game": "Cyberpunk 2077",
+  "perspective": "First Person",
+  "genre": "Action RPG",
+  "mode": "Singleplayer",
+  "process_name": "Cyberpunk2077.exe",
+  "process_source": "exact(Cyberpunk 2077)",
+  "engine": "REDengine",
+  "themes": [
+   "Action",
+   "Open world",
+   "Sandbox",
+   "Science fiction"
+  ],
+  "languages": [
+   "Arabic",
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "Czech",
+   "English",
+   "English (UK)",
+   "French",
+   "German",
+   "Hungarian",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)",
+   "Thai",
+   "Turkish",
+   "Ukrainian"
+  ],
+  "developer": "CD Projekt RED",
+  "igdb_id": "1877",
+  "default_key_mapping": {
+   "w": "move_forward",
+   "a": "move_left",
+   "s": "move_backward",
+   "d": "move_right",
+   "LShift": "sprint",
+   "Space": "jump",
+   "LControl": "crouch",
+   "MouseLeft": "attack",
+   "MouseRight": "aim",
+   "q": "quick_melee",
+   "r": "reload",
+   "e": "cyberware",
+   "1": "weapon_1",
+   "2": "weapon_2",
+   "3": "weapon_3",
+   "4": "melee_weapon",
+   "Tab": "scanner",
+   "t": "phone",
+   "x": "use_consumable"
+  }
  },
  {
   "game": "Dagger Directive",
@@ -4312,6 +4625,47 @@
   "default_key_mapping": null
  },
  {
+  "game": "Euro Truck Simulator 2",
+  "perspective": "First Person",
+  "genre": "Driving Sim",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "exact_no_exe",
+  "engine": "Prism3D",
+  "themes": [
+   "Business",
+   "Non-fiction",
+   "Open world"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "Czech",
+   "Danish",
+   "Dutch",
+   "English",
+   "Finnish",
+   "French",
+   "German",
+   "Hungarian",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Norwegian",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)",
+   "Swedish",
+   "Turkish",
+   "Ukrainian"
+  ],
+  "developer": "SCS Software",
+  "igdb_id": "3070",
+  "default_key_mapping": null
+ },
+ {
   "game": "EVE Online",
   "perspective": "Third Person",
   "genre": "MMORPG",
@@ -4435,6 +4789,102 @@
   ],
   "developer": "Saber Interactive",
   "igdb_id": "262534",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Fallout 4",
+  "perspective": "First Person",
+  "genre": "Action RPG",
+  "mode": "Singleplayer",
+  "process_name": "Fallout4.exe",
+  "process_source": "exact(Fallout 4)",
+  "engine": "Creation Engine",
+  "themes": [
+   "Action",
+   "Open world",
+   "Sandbox",
+   "Science fiction",
+   "Stealth",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "Bethesda Game Studios",
+  "igdb_id": "9630",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Fallout 76",
+  "perspective": "First Person",
+  "genre": "Action RPG",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "exact_no_exe",
+  "engine": "Creation Engine",
+  "themes": [
+   "Action",
+   "Open world",
+   "Science fiction",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "Bethesda Game Studios",
+  "igdb_id": "103020",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Fallout: New Vegas",
+  "perspective": "First Person",
+  "genre": "Action RPG",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "",
+  "engine": "Gamebryo",
+  "themes": [
+   "Action",
+   "Open world",
+   "Sandbox",
+   "Science fiction",
+   "Stealth",
+   "Survival"
+  ],
+  "languages": [
+   "English",
+   "English (UK)",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "Obsidian Entertainment",
+  "igdb_id": "16",
   "default_key_mapping": null
  },
  {
@@ -4790,34 +5240,6 @@
   "default_key_mapping": null
  },
  {
-  "game": "FragPunk",
-  "perspective": "First Person",
-  "genre": "Hero Shooter",
-  "mode": "Multiplayer",
-  "process_name": null,
-  "process_source": "exact_no_exe",
-  "engine": "Unreal Engine 5",
-  "themes": [
-   "Action"
-  ],
-  "languages": [
-   "Chinese (Simplified)",
-   "Chinese (Traditional)",
-   "English",
-   "French",
-   "German",
-   "Japanese",
-   "Korean",
-   "Portuguese (Brazil)",
-   "Portuguese (Portugal)",
-   "Russian",
-   "Spanish (Spain)"
-  ],
-  "developer": "Bad Guitar Studio",
-  "igdb_id": "305155",
-  "default_key_mapping": null
- },
- {
   "game": "Garten of Banban 7",
   "perspective": "First Person",
   "genre": "Puzzle",
@@ -4986,80 +5408,6 @@
   ],
   "developer": "David Szymanski",
   "igdb_id": "134127",
-  "default_key_mapping": null
- },
- {
-  "game": "God of War (2018)",
-  "perspective": "Third Person",
-  "genre": "Action Adventure",
-  "mode": "Singleplayer",
-  "process_name": null,
-  "process_source": "exact_no_exe",
-  "engine": null,
-  "themes": [
-   "Action",
-   "Fantasy",
-   "Historical"
-  ],
-  "languages": [
-   "Chinese (Traditional)",
-   "Czech",
-   "Dutch",
-   "English",
-   "French",
-   "German",
-   "Hungarian",
-   "Italian",
-   "Japanese",
-   "Korean",
-   "Polish",
-   "Portuguese (Brazil)",
-   "Portuguese (Portugal)",
-   "Russian",
-   "Spanish (Spain)",
-   "Turkish"
-  ],
-  "developer": "SIE Santa Monica Studio",
-  "igdb_id": "19560",
-  "default_key_mapping": null
- },
- {
-  "game": "God of War Ragnarök",
-  "perspective": "Third Person",
-  "genre": "Action Adventure",
-  "mode": "Singleplayer",
-  "process_name": null,
-  "process_source": "exact_no_exe",
-  "engine": null,
-  "themes": [
-   "Action",
-   "Fantasy",
-   "Open world"
-  ],
-  "languages": [
-   "Arabic",
-   "Chinese (Simplified)",
-   "Chinese (Traditional)",
-   "Czech",
-   "Dutch",
-   "English",
-   "French",
-   "German",
-   "Hungarian",
-   "Italian",
-   "Japanese",
-   "Korean",
-   "Polish",
-   "Portuguese (Brazil)",
-   "Portuguese (Portugal)",
-   "Russian",
-   "Spanish (Mexico)",
-   "Spanish (Spain)",
-   "Thai",
-   "Turkish"
-  ],
-  "developer": "SIE Santa Monica Studio",
-  "igdb_id": "112875",
   "default_key_mapping": null
  },
  {
@@ -6390,34 +6738,31 @@
   "mode": "Singleplayer",
   "process_name": "Journey.exe",
   "process_source": "exact(Journey)",
-  "engine": "SmartSim",
+  "engine": "PhyreEngine",
   "themes": [
-   "Comedy",
-   "Fantasy",
-   "Romance",
-   "Sandbox"
+   "Fantasy"
   ],
   "languages": [
+   "Arabic",
    "Chinese (Simplified)",
    "Chinese (Traditional)",
-   "Czech",
-   "Danish",
    "Dutch",
    "English",
-   "Finnish",
    "French",
    "German",
    "Italian",
    "Japanese",
-   "Norwegian",
+   "Korean",
    "Polish",
    "Portuguese (Brazil)",
    "Russian",
    "Spanish (Spain)",
-   "Swedish"
+   "Swedish",
+   "Thai",
+   "Turkish"
   ],
-  "developer": "Maxis",
-  "igdb_id": "137294",
+  "developer": "ThatGameCompany",
+  "igdb_id": "1352",
   "default_key_mapping": null
  },
  {
@@ -7042,37 +7387,6 @@
   }
  },
  {
-  "game": "Lies of P: Overture",
-  "perspective": "Third Person",
-  "genre": "Souls-like",
-  "mode": "Singleplayer",
-  "process_name": null,
-  "process_source": "",
-  "engine": null,
-  "themes": [
-   "Action",
-   "Horror",
-   "Open world"
-  ],
-  "languages": [
-   "Chinese (Simplified)",
-   "Chinese (Traditional)",
-   "English",
-   "French",
-   "German",
-   "Italian",
-   "Japanese",
-   "Korean",
-   "Polish",
-   "Portuguese (Brazil)",
-   "Russian",
-   "Spanish (Spain)"
-  ],
-  "developer": "Round8 Studio",
-  "igdb_id": "331204",
-  "default_key_mapping": null
- },
- {
   "game": "Light No Fire",
   "perspective": "Third Person",
   "genre": "Survival",
@@ -7553,42 +7867,6 @@
   "default_key_mapping": null
  },
  {
-  "game": "Marvel Rivals",
-  "perspective": "Third Person",
-  "genre": "Shooter",
-  "mode": "Multiplayer",
-  "process_name": null,
-  "process_source": "igdb",
-  "engine": "Unreal Engine 5",
-  "themes": [
-   "Action"
-  ],
-  "languages": [
-   "Arabic",
-   "Chinese (Simplified)",
-   "Chinese (Traditional)",
-   "English",
-   "English (UK)",
-   "French",
-   "German",
-   "Italian",
-   "Japanese",
-   "Korean",
-   "Polish",
-   "Portuguese (Brazil)",
-   "Portuguese (Portugal)",
-   "Russian",
-   "Spanish (Mexico)",
-   "Spanish (Spain)",
-   "Thai",
-   "Turkish",
-   "Vietnamese"
-  ],
-  "developer": "NetEase Games",
-  "igdb_id": "294041",
-  "default_key_mapping": null
- },
- {
   "game": "Marvel's Avengers",
   "perspective": "Third Person",
   "genre": "Action RPG",
@@ -7703,47 +7981,6 @@
   ],
   "developer": "Insomniac Games",
   "igdb_id": "127044",
-  "default_key_mapping": null
- },
- {
-  "game": "Marvel's Spider-Man: Miles Morales",
-  "perspective": "Third Person",
-  "genre": "Action Adventure",
-  "mode": "Singleplayer",
-  "process_name": null,
-  "process_source": "",
-  "engine": "Insomniac Engine v.4.0",
-  "themes": [
-   "Action",
-   "Open world",
-   "Stealth"
-  ],
-  "languages": [
-   "Arabic",
-   "Chinese (Simplified)",
-   "Chinese (Traditional)",
-   "Czech",
-   "Danish",
-   "Dutch",
-   "English",
-   "Finnish",
-   "French",
-   "German",
-   "Hungarian",
-   "Italian",
-   "Japanese",
-   "Korean",
-   "Norwegian",
-   "Polish",
-   "Portuguese (Brazil)",
-   "Portuguese (Portugal)",
-   "Russian",
-   "Spanish (Mexico)",
-   "Spanish (Spain)",
-   "Swedish"
-  ],
-  "developer": "Insomniac Games",
-  "igdb_id": "134581",
   "default_key_mapping": null
  },
  {
@@ -8582,40 +8819,6 @@
   "default_key_mapping": null
  },
  {
-  "game": "Naraka: Bladepoint",
-  "perspective": "Third Person",
-  "genre": "Battle Royale",
-  "mode": "Multiplayer",
-  "process_name": null,
-  "process_source": "exact_no_exe",
-  "engine": "Unity",
-  "themes": [
-   "Action",
-   "Fantasy"
-  ],
-  "languages": [
-   "Arabic",
-   "Chinese (Simplified)",
-   "Chinese (Traditional)",
-   "English",
-   "English (UK)",
-   "French",
-   "German",
-   "Japanese",
-   "Korean",
-   "Portuguese (Brazil)",
-   "Portuguese (Portugal)",
-   "Russian",
-   "Spanish (Spain)",
-   "Thai",
-   "Turkish",
-   "Vietnamese"
-  ],
-  "developer": "24 Entertainment",
-  "igdb_id": "127352",
-  "default_key_mapping": null
- },
- {
   "game": "Naruto X Boruto Ultimate Ninja Storm Connections",
   "perspective": "Third Person",
   "genre": "Fighting",
@@ -8929,24 +9132,6 @@
   ],
   "developer": "Alcedo Games",
   "igdb_id": "291232",
-  "default_key_mapping": null
- },
- {
-  "game": "Once Human",
-  "perspective": "Third Person",
-  "genre": "Survival",
-  "mode": "Multiplayer",
-  "process_name": null,
-  "process_source": "exact_no_exe",
-  "engine": "Source",
-  "themes": [],
-  "languages": [
-   "Chinese (Simplified)",
-   "English",
-   "Finnish"
-  ],
-  "developer": "Half-Life 2: Short Stories Team",
-  "igdb_id": "217001",
   "default_key_mapping": null
  },
  {
@@ -10853,39 +11038,6 @@
   "default_key_mapping": null
  },
  {
-  "game": "Saints Row (2022)",
-  "perspective": "Third Person",
-  "genre": "Action Adventure",
-  "mode": "Co-op",
-  "process_name": null,
-  "process_source": "",
-  "engine": null,
-  "themes": [
-   "Action",
-   "Open world"
-  ],
-  "languages": [
-   "Chinese (Simplified)",
-   "Chinese (Traditional)",
-   "Czech",
-   "English",
-   "French",
-   "German",
-   "Italian",
-   "Japanese",
-   "Korean",
-   "Polish",
-   "Portuguese (Brazil)",
-   "Portuguese (Portugal)",
-   "Russian",
-   "Spanish (Mexico)",
-   "Spanish (Spain)"
-  ],
-  "developer": "Volition",
-  "igdb_id": "165346",
-  "default_key_mapping": null
- },
- {
   "game": "Saints Row IV",
   "perspective": "Third Person",
   "genre": "Action Adventure",
@@ -11288,10 +11440,12 @@
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
-  "engine": null,
+  "engine": "Unreal Engine 5",
   "themes": [
    "Action",
+   "Drama",
    "Horror",
+   "Mystery",
    "Survival"
   ],
   "languages": [
@@ -11303,10 +11457,16 @@
    "Italian",
    "Japanese",
    "Korean",
-   "Spanish (Spain)"
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)",
+   "Ukrainian"
   ],
-  "developer": "Koei Tecmo Games",
-  "igdb_id": "397362",
+  "developer": "Bloober Team",
+  "igdb_id": "222341",
   "default_key_mapping": null
  },
  {
@@ -13062,16 +13222,30 @@
   "engine": "Unity",
   "themes": [
    "Action",
-   "Fantasy"
+   "Horror",
+   "Open world",
+   "Survival"
   ],
   "languages": [
+   "Chinese (Simplified)",
    "Chinese (Traditional)",
+   "Czech",
    "English",
+   "Finnish",
+   "French",
+   "German",
+   "Italian",
    "Japanese",
-   "Korean"
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)",
+   "Swedish",
+   "Turkish"
   ],
-  "developer": "Primary Orbit",
-  "igdb_id": "99425",
+  "developer": "Endnight Games Ltd",
+  "igdb_id": "7504",
   "default_key_mapping": {
    "w": "move_forward",
    "a": "move_left",
@@ -14007,37 +14181,6 @@
   ],
   "developer": "Trigger Happy Interactive",
   "igdb_id": "301071",
-  "default_key_mapping": null
- },
- {
-  "game": "Tower of Fantasy",
-  "perspective": "Third Person",
-  "genre": "MMORPG",
-  "mode": "Multiplayer",
-  "process_name": null,
-  "process_source": "exact_no_exe",
-  "engine": "Unreal Engine 4",
-  "themes": [
-   "Action",
-   "Open world"
-  ],
-  "languages": [
-   "Chinese (Simplified)",
-   "Chinese (Traditional)",
-   "English",
-   "French",
-   "German",
-   "Japanese",
-   "Korean",
-   "Portuguese (Brazil)",
-   "Portuguese (Portugal)",
-   "Russian",
-   "Spanish (Mexico)",
-   "Spanish (Spain)",
-   "Thai"
-  ],
-  "developer": "Hotta Studio",
-  "igdb_id": "256153",
   "default_key_mapping": null
  },
  {
@@ -15004,36 +15147,6 @@
   ],
   "developer": "Leenzee Games",
   "igdb_id": "171225",
-  "default_key_mapping": null
- },
- {
-  "game": "Wuthering Waves",
-  "perspective": "Third Person",
-  "genre": "Action RPG",
-  "mode": "Multiplayer",
-  "process_name": null,
-  "process_source": "",
-  "engine": "Unreal Engine 4",
-  "themes": [
-   "Action",
-   "Fantasy",
-   "Open world",
-   "Science fiction"
-  ],
-  "languages": [
-   "Chinese (Simplified)",
-   "Chinese (Traditional)",
-   "English",
-   "French",
-   "German",
-   "Japanese",
-   "Korean",
-   "Spanish (Mexico)",
-   "Spanish (Spain)",
-   "Thai"
-  ],
-  "developer": "Kuro Games",
-  "igdb_id": "202956",
   "default_key_mapping": null
  },
  {
