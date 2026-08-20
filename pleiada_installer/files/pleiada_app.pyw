@@ -3796,54 +3796,91 @@ class PleiadaApp:
     def _detect_poll(self):
         """Mira OBS cada 2,5 s y, cuando cambia lo capturado, lo manda a resolver.
 
-        Se consulta al backend solo cuando cambia el par (exe, titulo): sin eso
-        cada vuelta del poll seria una consulta, y con IGDB en el medio es
-        castigar al backend por estar parado en una pantalla.
+        Tres reglas que existen por el bug de parpadeo del 19/08:
+
+        1. Un solo worker a la vez (`_det_busy`). El proximo tick se agenda
+           cuando el worker TERMINA, no cuando arranca. Con el timeout de la API
+           en 30 s y un tick cada 2,5 s, antes se apilaban hasta 12 pedidos
+           simultaneos contra el backend.
+        2. La clave de "esto ya lo resolvi" es el EXE cuando existe, no el par
+           (exe, titulo). Hay juegos que cambian el titulo de la ventana en vivo
+           —reloj, FPS, mapa— y con el titulo adentro cada vuelta parecia un
+           juego distinto y se reconsultaba.
+        3. Si la consulta falla, NO se limpia la clave. Antes se limpiaba "para
+           que reintente", y el reintento fallaba igual: resolviendo -> error ->
+           resolviendo, cada 2,5 s, para siempre. Ahora el error queda quieto en
+           pantalla, con el motivo y un boton para reintentar a mano.
         """
         if not getattr(self, "_det_active", False) or self.recording:
             return
+        if getattr(self, "_det_busy", False):
+            self._det_timer_id = self.root.after(2500, self._detect_poll)
+            return
+        self._det_busy = True
+
+        def _fin():
+            """Libera el turno y agenda el proximo tick."""
+            self._det_busy = False
+            if getattr(self, "_det_active", False) and not self.recording:
+                self._det_timer_id = self.root.after(2500, self._detect_poll)
+
+        def _ui(fn, *a):
+            self.root.after(0, lambda: (fn(*a), _fin()))
 
         def _worker():
             try:
                 is_rec, title, exe, wrong = obs_capture_target()
             except OBSAuthError as e:
-                self.root.after(0, lambda m=str(e): self._render_det_bloqueado(
-                    "OBS pide contrasena en el WebSocket", m))
+                _obs_dbg(f"deteccion: OBS pide password: {e}")
+                _ui(self._render_det_bloqueado,
+                    "OBS pide contrasena en el WebSocket", str(e))
                 return
-            except Exception:
-                self.root.after(0, lambda: self._render_det_esperando(
-                    "OBS no esta corriendo o no responde. Abrilo y volve a esta pantalla."))
+            except Exception as e:
+                _obs_dbg(f"deteccion: OBS no responde: {e}")
+                _ui(self._render_det_esperando,
+                    "OBS no esta corriendo o no responde. Abrilo y volve a esta pantalla.")
                 return
             if is_rec:
-                self.root.after(0, lambda: self._render_det_bloqueado(
-                    "OBS ya esta grabando",
-                    "Detene la grabacion desde OBS antes de empezar una sesion."))
+                _ui(self._render_det_bloqueado, "OBS ya esta grabando",
+                    "Detene la grabacion desde OBS antes de empezar una sesion.")
                 return
             if wrong:
-                self.root.after(0, lambda w=wrong: self._render_det_bloqueado(
-                    "Modo de captura incorrecto: " + w,
+                _ui(self._render_det_bloqueado, "Modo de captura incorrecto: " + wrong,
                     "Cambia la fuente a Captura de Videojuego (Game Capture) y "
-                    "apuntala a la ventana del juego."))
+                    "apuntala a la ventana del juego.")
                 return
             if not title and not exe:
-                self.root.after(0, lambda: self._render_det_esperando(
-                    "Abri el juego y apunta la fuente de OBS a su ventana."))
+                _ui(self._render_det_esperando,
+                    "Abri el juego y apunta la fuente de OBS a su ventana.")
                 return
-            if (exe, title) == self._det_last:
-                return                      # ya resuelto, no repreguntar
-            self._det_last = (exe, title)
+
+            clave = exe.lower() if exe else ("t:" + title.lower())
+            if clave == getattr(self, "_det_last", None):
+                _fin()                      # ya resuelto: ni render ni consulta
+                return
             self.root.after(0, lambda t=title: self._render_det_resolviendo(t))
+            _obs_dbg(f"deteccion: resolviendo exe={exe!r} titulo={title!r}")
             try:
                 res = pleiada_api.resolve_game(self.auth_token, exe, title)
             except pleiada_api.ApiError as e:
-                self._det_last = None       # que reintente en la proxima vuelta
-                self.root.after(0, lambda m=str(e): self._render_det_esperando(
-                    "No pudimos verificar el titulo: " + m))
+                # La clave NO se limpia: si se limpia, el proximo tick vuelve a
+                # intentar y el ciclo de parpadeo arranca de nuevo.
+                self._det_last = clave
+                _obs_dbg(f"deteccion: resolve_game fallo ({e.code or 'sin codigo'}): {e}")
+                _ui(self._render_det_error, str(e), e.code or "")
                 return
-            self.root.after(0, lambda r=res: self._apply_resolve(r))
+            self._det_last = clave
+            _obs_dbg(f"deteccion: estado={res.get('estado')!r} juego={(res.get('juego') or {}).get('name')!r}")
+            _ui(self._apply_resolve, res)
 
         threading.Thread(target=_worker, daemon=True).start()
-        self._det_timer_id = self.root.after(2500, self._detect_poll)
+
+    def _reintentar_deteccion(self):
+        """Vuelve a preguntar por lo mismo, a pedido del usuario."""
+        self._det_last = None
+        self._det_busy = False
+        self._render_det_resolviendo("")
+        self._detect_poll()
 
     # — Render de cada estado —————————————————————————————
 
@@ -3901,6 +3938,36 @@ class PleiadaApp:
                  anchor="w", wraplength=WIN_W - 90).pack(side="left", padx=(8, 0))
         tk.Label(self._det_calls_box, text=msg, fg=DIM, bg=BG, font=("Segoe UI", 10),
                  justify="left", anchor="w", wraplength=WIN_W - 60).pack(fill="x")
+        self._update_record_btn()
+
+    def _render_det_error(self, msg, code=""):
+        """Fallo la consulta al backend. Se queda quieto: reintentar es del usuario.
+
+        Reintentar solo cada 2,5 s no arregla nada cuando el error es estable
+        —sesion vencida, backend caido, sin internet— y convierte la pantalla en
+        un parpadeo del que no se puede leer ni el motivo.
+        """
+        self._det_state = "error"
+        self.selected_game = None
+        self.selected_call = None
+        self._det_clear()
+        row = tk.Frame(self._det_box, bg=CARD)
+        row.pack(fill="x", padx=14, pady=12)
+        tk.Label(row, text="\u26a0", fg=YELLOW, bg=CARD,
+                 font=("Segoe UI", 10)).pack(side="left")
+        tk.Label(row, text="No pudimos verificar el titulo", fg=TEXT, bg=CARD,
+                 font=("Segoe UI", 11, "bold")).pack(side="left", padx=(8, 0))
+        tk.Label(self._det_calls_box, text=msg, fg=DIM, bg=BG, font=("Segoe UI", 10),
+                 justify="left", anchor="w", wraplength=WIN_W - 60).pack(fill="x")
+        if code in ("sesion_invalida", "auth"):
+            tk.Label(self._det_calls_box,
+                     text="Probá cerrar sesión y volver a entrar desde Ajustes.",
+                     fg=DIMMER, bg=BG, font=("Segoe UI", 9), anchor="w",
+                     wraplength=WIN_W - 60).pack(fill="x", pady=(4, 0))
+        b = tk.Label(self._det_calls_box, text="Reintentar", fg=ACCENT, bg=BG,
+                     font=("Segoe UI", 10), cursor="hand2", anchor="w")
+        b.pack(fill="x", pady=(10, 0))
+        b.bind("<Button-1>", lambda e: self._reintentar_deteccion())
         self._update_record_btn()
 
     def _apply_resolve(self, res):

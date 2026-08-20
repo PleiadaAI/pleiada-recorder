@@ -62,7 +62,7 @@ def verify_otp(email, code):
     return r["token"]
 
 
-def resolve_game(token, exe, window_title, timeout=20):
+def resolve_game(token, exe, window_title, timeout=30):
     """
     Identifica qué juego está capturando OBS, a partir del ejecutable y el
     título de ventana. TODO el criterio vive en el backend: acá no se clasifica
