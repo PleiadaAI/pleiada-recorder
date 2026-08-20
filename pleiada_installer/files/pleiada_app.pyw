@@ -3621,11 +3621,7 @@ class PleiadaApp:
         tutorial_lbl.bind("<Leave>", lambda e: tutorial_lbl.config(fg=DIMMER))
         tutorial_lbl.bind("<Button-1>", lambda e: self._open_tutorial())
 
-        # Posicionar dropdown al hacer click
-        sel_outer.bind("<Button-1>", lambda e: self._search_entry.focus())
-
         self._idle_frame = frame
-        self._sel_outer  = sel_outer
 
     def _on_search_focus(self, e=None):
         self._sel_outer.config(highlightbackground=ACCENT)
