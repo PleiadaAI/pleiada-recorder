@@ -1,5 +1,28 @@
 # Changelog — Pleiada Recorder
 
+## v0.9.1 — 20/08/2026 — arreglos del primer día de QA
+
+Misma versión funcional que la 0.9.0; sale con número nuevo porque **todo build
+que va a QA con un fix tiene que poder distinguirse en pantalla**. Con tres
+builds distintos estampados 0.9.0, el equipo no tenía forma de confirmar que
+estaba probando el corregido.
+
+- **La app crasheaba al abrir.** Al sacar el selector de juegos quedó una línea
+  suelta que usaba una variable cuyo bloque se había borrado. Compilaba limpio y
+  reventaba en runtime, antes de dibujar nada.
+- **El panel de detección parpadeaba sin identificar nada.** Al fallar la
+  consulta se limpiaba la marca de "ya lo resolví" para reintentar, el reintento
+  fallaba igual, y quedaba en un ciclo del que no se alcanzaba a leer el motivo.
+  Ahora el error se queda quieto, muestra la razón y ofrece Reintentar. Además
+  hay una sola consulta en vuelo a la vez, y la clave para no repreguntar es el
+  ejecutable, no el título —que algunos juegos cambian en vivo—.
+- **Cada paso de la detección queda en el log de debug**: qué ejecutable y
+  título se mandaron, y con qué código falló.
+
+Requiere Lambda `2026-08-20.1` o posterior, que arregla el título con el modo
+gráfico pegado atrás (`Left 4 Dead 2 - Direct3D 9` no resolvía).
+
+
 ## v0.9.0 — en desarrollo
 
 Absorbe todo lo que estaba armado como v0.8.12, que **no se publica**: su matcher
