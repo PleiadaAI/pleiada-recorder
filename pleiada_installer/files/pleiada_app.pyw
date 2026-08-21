@@ -1,6 +1,6 @@
-﻿"""
-pleiada_app.pyw  â€”  Gameplay Recorder
-AplicaciÃ³n unificada: login, selecciÃ³n de juego, grabaciÃ³n, sync check, empaquetado.
+"""
+pleiada_app.pyw  —  Gameplay Recorder
+Aplicación unificada: login, selección de juego, grabación, sync check, empaquetado.
 """
 
 import tkinter as tk
@@ -13,31 +13,31 @@ import session_uploader
 import pleiada_api
 import pleiada_sync_limits as sync_limits
 
-# â”€â”€â”€ VersiÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-VERSION = "v0.9.1"
+# ─── Versión ──────────────────────────────────────────────────────────────────
+VERSION = "v0.9.4"
 
-# â”€â”€â”€ Rutas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
 APP_DIR    = Path(sys.executable).parent if _frozen else Path(__file__).parent
 APPDATA    = Path(os.environ.get("APPDATA", Path.home()))
 AUTH_FILE  = APPDATA / "Pleiada" / "auth.json"
 SETTINGS_FILE = APPDATA / "Pleiada" / "settings.json"   # v0.5: hotkeys y prefs
 GAMES_FILE = APP_DIR / "games_list.json"
-# v0.8.6: renombrado a _v2 para invalidar caches viejos â€” el filtro cambiÃ³ de
-# "active" a "Publicado" y un cachÃ© previo con la misma list_version nunca se
-# re-descargarÃ­a (sync_games_list compara versiones, no contenido).
-GAMES_CACHE = APPDATA / "Pleiada" / "games_list_cache_v2.json"   # v0.4: cachÃ© de Airtable
+# v0.8.6: renombrado a _v2 para invalidar caches viejos — el filtro cambió de
+# "active" a "Publicado" y un caché previo con la misma list_version nunca se
+# re-descargaría (sync_games_list compara versiones, no contenido).
+GAMES_CACHE = APPDATA / "Pleiada" / "games_list_cache_v2.json"   # v0.4: caché de Airtable
 TEMP_DIR   = Path(os.environ.get("TEMP", "C:\\Temp"))
 ANCHOR_FILE = TEMP_DIR / "pleiada_anchor_ts.txt"
 GAME_FILE   = TEMP_DIR / "pleiada_game_name.txt"
 BASE_DIR    = Path.home() / "Documents" / "Pleiada Recordings"
 AHK_SCRIPT  = APP_DIR / "input_logger.ahk"
 
-# â”€â”€â”€ Crash / error logging (v0.7.1, ubicaciÃ³n v0.8.4) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Crash / error logging (v0.7.1, ubicación v0.8.4) ────────────────────────
 # Captura crashes, excepciones no manejadas (main + threads), errores de callbacks
 # de Tkinter (que de otro modo se tragan en un .exe windowed) y crashes nativos
 # (faulthandler). Vive en Documentos\Pleiada Logs: una carpeta que el usuario
-# puede encontrar fÃ¡cil y mandar a soporte (AppData estÃ¡ oculto para la mayorÃ­a).
+# puede encontrar fácil y mandar a soporte (AppData está oculto para la mayoría).
 import faulthandler, traceback
 LOG_DIR = Path.home() / "Documents" / "Pleiada Logs"
 _fault_fp = None
@@ -76,7 +76,7 @@ def _tk_callback_excepthook(exc, val, tb):
     """report_callback_exception de Tkinter: errores en handlers de la GUI."""
     _crashlog("GUI callback exception:\n" + "".join(traceback.format_exception(exc, val, tb)))
 
-# â”€â”€â”€ Design tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Design tokens ────────────────────────────────────────────────────────────
 BG      = "#0d0d18"
 BG2     = "#0a0a12"
 CARD    = "#13132a"
@@ -91,22 +91,26 @@ RED     = "#e05555"
 BORDER  = "#2a2850"
 BORDER2 = "#1f1d3d"
 
-# Alto: la barra de tÃ­tulo propia mide 38 px fijos y la vista de Ajustes pide 681,
-# asÃ­ que con 640 el botÃ³n de Cerrar sesiÃ³n quedaba FUERA de la ventana (reportado
+# Alto: la barra de título propia mide 38 px fijos y la vista de Ajustes pide 681,
+# así que con 640 el botón de Cerrar sesión quedaba FUERA de la ventana (reportado
 # 25/07). 730 deja 692 de contenido: 11 px de margen sobre lo que pide.
-# OJO: no alcanza si ademÃ¡s estÃ¡ visible el banner de actualizaciÃ³n, que se packea
+# OJO: no alcanza si además está visible el banner de actualización, que se packea
 # arriba del contenido. Lo que aguanta que Ajustes siga creciendo es hacerlo
-# scrollable â€” queda en backlog.
+# scrollable — queda en backlog.
 WIN_W, WIN_H = 420, 730
+# PLE-161: en pantallas muy escaladas la ventana no entra entera y el panel de
+# tips se oculta para que el pie no quede afuera. Lo decide el bloque de DPI del
+# entry point; acá vale True porque a 100% siempre entra.
+TIPS_VISIBLES = True
 MAX_SECONDS  = 3900   # 1 h 5 min
 
-# Gate AFK: una sesiÃ³n con mÃ¡s de este tiempo CONTINUO sin inputs (teclado/
-# mouse) se marca como no vÃ¡lida para subir. Caso real 20/07/26: 30 min
+# Gate AFK: una sesión con más de este tiempo CONTINUO sin inputs (teclado/
+# mouse) se marca como no válida para subir. Caso real 20/07/26: 30 min
 # grabados con el jugador alt-tabbeado desde el segundo 3.
 # Definido en pleiada_sync_limits para que el Synch Checker aplique el mismo gate.
 MAX_CONT_IDLE_MS = sync_limits.MAX_CONT_IDLE_MS   # 10 minutos
 
-# â”€â”€â”€ Credenciales (login OTP â€” v0.8) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Credenciales (login OTP — v0.8) ──────────────────────────────────────────
 
 def load_auth():
     try:
@@ -116,7 +120,7 @@ def load_auth():
         return None
 
 def save_auth(email, token):
-    """Guarda email + token de sesiÃ³n. Si token es vacÃ­o, borra el archivo."""
+    """Guarda email + token de sesión. Si token es vacío, borra el archivo."""
     AUTH_FILE.parent.mkdir(parents=True, exist_ok=True)
     if token:
         with open(AUTH_FILE, "w", encoding="utf-8") as f:
@@ -124,7 +128,30 @@ def save_auth(email, token):
     else:
         AUTH_FILE.unlink(missing_ok=True)
 
-# â”€â”€â”€ Estado de subida por sesiÃ³n (v0.8) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+def _es_error_de_sesion(err):
+    """¿Este ApiError es "tu token no vale más"? (y no un problema de red)
+
+    PLE-164: había dos criterios distintos en la app y ninguno servía acá. El
+    panel de detección preguntaba por el código `sesion_invalida`, que el
+    backend NO mandaba —viajaba la frase en castellano en el campo del código—,
+    así que nunca ofrecía el re-login. El uploader, en cambio, olfateaba el
+    texto. Ahora hay un solo criterio, y mira las dos cosas: el código nuevo
+    (Lambda >= 2026-08-21.1) y el texto viejo, porque un Recorder actualizado
+    puede hablar con una Lambda que todavía no lo esté.
+
+    Un timeout o un "sin conexión" NO entran acá: desloguear a alguien porque
+    se le cayó el wifi le hace perder la sesión de grabación por nada.
+    """
+    code = (getattr(err, "code", "") or "").lower()
+    if code in ("sesion_invalida", "sesión_invalida", "auth", "token_invalido"):
+        return True
+    txt = str(err or "").lower()
+    return ("sesión" in txt or "sesion" in txt) and ("vencid" in txt or "inválid" in txt
+                                                     or "invalid" in txt)
+
+
+# ─── Estado de subida por sesión (v0.8) ───────────────────────────────────────
 UPLOAD_STATE_FILE = ".pleiada_upload.json"   # sidecar; NO se sube (ver session_uploader._EXCLUDE)
 
 def _session_state_path(sdir):
@@ -143,7 +170,7 @@ def write_session_state(sdir, **kw):
     p = _session_state_path(sdir)
     try:
         if p.exists():
-            os.chmod(p, stat.S_IWRITE)   # por si quedÃ³ read-only
+            os.chmod(p, stat.S_IWRITE)   # por si quedó read-only
     except Exception:
         pass
     try:
@@ -161,7 +188,7 @@ def _fmt_eta(s):
     return f"~{s // 60}m {s % 60:02d}s restantes"
 
 def list_local_sessions():
-    """Devuelve [(Path, {status, size_label})] de sesiones locales, mÃ¡s nuevas primero."""
+    """Devuelve [(Path, {status, size_label})] de sesiones locales, más nuevas primero."""
     out = []
     try:
         dirs = [d for d in BASE_DIR.iterdir() if d.is_dir()]
@@ -189,14 +216,14 @@ def list_local_sessions():
         out.append((d, {"status": status, "size_label": size_label}))
     return out
 
-# â”€â”€â”€ Settings / hotkeys (v0.5) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Settings / hotkeys (v0.5) ────────────────────────────────────────────────
 
 # Hotkeys por defecto: F9 = iniciar, F10 = detener. Sin modificadores.
 DEFAULT_SETTINGS = {
     "hotkey_start": {"vk": 0x78, "label": "F9"},
     "hotkey_stop":  {"vk": 0x79, "label": "F10"},
-    "max_session_minutes": 60,    # v0.7.1: duraciÃ³n mÃ¡x de sesiÃ³n, clamp [1, 60] min
-    "auto_restart":        False, # v0.7.1: reiniciar grabaciÃ³n tras auto-stop por tiempo
+    "max_session_minutes": 60,    # v0.7.1: duración máx de sesión, clamp [1, 60] min
+    "auto_restart":        False, # v0.7.1: reiniciar grabación tras auto-stop por tiempo
 }
 
 def load_settings():
@@ -206,7 +233,7 @@ def load_settings():
         # Completar claves faltantes con defaults
         out = json.loads(json.dumps(DEFAULT_SETTINGS))
         out.update({k: v for k, v in s.items() if k in DEFAULT_SETTINGS})
-        # v0.7.1: clamp/coerciÃ³n de los valores nuevos
+        # v0.7.1: clamp/coerción de los valores nuevos
         try:
             out["max_session_minutes"] = max(1, min(60, int(out["max_session_minutes"])))
         except Exception:
@@ -224,8 +251,8 @@ def save_settings(settings):
     except Exception:
         pass
 
-# Mapa keysym de Tkinter â†’ (vk, label legible) para reasignar hotkeys.
-# Cubre F1-F12, letras, dÃ­gitos y algunas teclas comunes.
+# Mapa keysym de Tkinter → (vk, label legible) para reasignar hotkeys.
+# Cubre F1-F12, letras, dígitos y algunas teclas comunes.
 def _keysym_to_vk(keysym):
     ks = keysym
     # F1-F24
@@ -236,7 +263,7 @@ def _keysym_to_vk(keysym):
     # Letras
     if len(ks) == 1 and ks.isalpha():
         return ord(ks.upper()), ks.upper()
-    # DÃ­gitos
+    # Dígitos
     if len(ks) == 1 and ks.isdigit():
         return ord(ks), ks
     # Teclas especiales comunes
@@ -250,16 +277,16 @@ def _keysym_to_vk(keysym):
         return special[ks]
     return None, None
 
-# â”€â”€â”€ Lista de juegos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Lista de juegos ──────────────────────────────────────────────────────────
 #
-# Fuente de verdad: base "Pleiada Games" en Airtable (dinÃ¡mica, editable sin recompilar).
+# Fuente de verdad: base "Pleiada Games" en Airtable (dinámica, editable sin recompilar).
 # Orden de prioridad al cargar:
 #   1. games_list_cache.json (descargado de Airtable)
 #   2. games_list.json bundleado en el installer (fallback final)
 # El sync con Airtable corre en background al iniciar la app (sync_games_list).
 #
 # Token read-only (scope: data.records:read). Si se extrae del binario, solo puede
-# leer la lista de juegos â€” no puede modificar ni borrar nada de la base.
+# leer la lista de juegos — no puede modificar ni borrar nada de la base.
 
 AIRTABLE_TOKEN      = "patDpnvFjK67EiN0g.c56e7a6c69976db0a23bc0dd018f6bf77169a9d8f11a16aa14029c2c80eda165"
 AIRTABLE_BASE_ID    = "appeyQ2C1DFa7e2HC"
@@ -269,11 +296,11 @@ AIRTABLE_CONFIG_TID = "tblwzcB6aluMoJGPs"
 _games_cache = None
 
 def load_games():
-    """Carga la lista de juegos: cachÃ© de Airtable â†’ fallback al JSON bundleado."""
+    """Carga la lista de juegos: caché de Airtable → fallback al JSON bundleado."""
     global _games_cache
     if _games_cache is not None:
         return _games_cache
-    # 1. Intentar cachÃ© de Airtable
+    # 1. Intentar caché de Airtable
     try:
         with open(GAMES_CACHE, encoding="utf-8") as f:
             cache = json.load(f)
@@ -291,7 +318,7 @@ def load_games():
     return _games_cache
 
 def _airtable_get(endpoint, params=None):
-    """GET a la API de Airtable. Lanza excepciÃ³n si falla."""
+    """GET a la API de Airtable. Lanza excepción si falla."""
     import urllib.request as _ur, urllib.parse as _up
     url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{endpoint}"
     if params:
@@ -323,9 +350,9 @@ def _airtable_download_games():
         page = _airtable_get(AIRTABLE_GAMES_TID, params)
         for rec in page.get("records", []):
             f = rec.get("fields", {})
-            # Solo juegos con el tilde "Publicado" en Airtable â€” la MISMA regla
-            # que el catÃ¡logo pÃºblico (catalogo.gameplayalliance.gg). Publicado
-            # es la columna autoritativa de visibilidad (decisiÃ³n MartÃ­n
+            # Solo juegos con el tilde "Publicado" en Airtable — la MISMA regla
+            # que el catálogo público (catalogo.gameplayalliance.gg). Publicado
+            # es la columna autoritativa de visibilidad (decisión Martín
             # 20/07/26); "active" ya no gobierna el listado del Recorder.
             if not f.get("Publicado"):
                 continue
@@ -334,9 +361,9 @@ def _airtable_download_games():
                 continue
             def _split(v):
                 return [x.strip() for x in v.split(",") if x.strip()] if isinstance(v, str) else (v or [])
-            # default_key_mapping: JSON curado (teclaâ†’acciÃ³n) del binding de fÃ¡brica del
+            # default_key_mapping: JSON curado (tecla→acción) del binding de fábrica del
             # juego. Fallback cuando no se puede leer el config real (ej: RDR2 binario).
-            # Se guarda como dato en Airtable, NO como cÃ³digo por juego.
+            # Se guarda como dato en Airtable, NO como código por juego.
             def _parse_default_km(v):
                 if isinstance(v, dict):
                     return v or None
@@ -368,8 +395,8 @@ def _airtable_download_games():
 
 def sync_games_list():
     """
-    Sincroniza la lista de juegos con Airtable. Nunca lanza excepciÃ³n.
-    Actualiza GAMES_CACHE y el cachÃ© en memoria si hay una versiÃ³n nueva.
+    Sincroniza la lista de juegos con Airtable. Nunca lanza excepción.
+    Actualiza GAMES_CACHE y el caché en memoria si hay una versión nueva.
     Llamar en un thread daemon al iniciar la app.
     """
     global _games_cache
@@ -382,17 +409,17 @@ def sync_games_list():
     except Exception:
         pass
 
-    # La lista es dinÃ¡mica (se actualiza a diario): chequear SIEMPRE la versiÃ³n al
-    # abrir â€” es 1 request liviano (Config.list_version). Solo se descarga el listado
-    # completo si la versiÃ³n cambiÃ³. Si offline, se usa el cachÃ© existente.
+    # La lista es dinámica (se actualiza a diario): chequear SIEMPRE la versión al
+    # abrir — es 1 request liviano (Config.list_version). Solo se descarga el listado
+    # completo si la versión cambió. Si offline, se usa el caché existente.
     remote_version = _airtable_remote_version()
     if remote_version is None:
-        return  # offline o error â€” seguimos con el cachÃ©/fallback
+        return  # offline o error — seguimos con el caché/fallback
 
     if remote_version == cached_version:
-        return  # ya tenemos la Ãºltima versiÃ³n, no descargar
+        return  # ya tenemos la última versión, no descargar
 
-    # VersiÃ³n nueva â†’ descargar todo
+    # Versión nueva → descargar todo
     try:
         games = _airtable_download_games()
         if games:
@@ -407,9 +434,9 @@ def sync_games_list():
 
 def fuzzy_search(query, max_results=None):
     """
-    Sin query â†’ toda la lista ordenada alfabÃ©ticamente (para scroll).
-    Con query â†’ matches ordenados por relevancia (exacto â†’ empieza-con â†’ contiene),
-    alfabÃ©tico dentro de cada grupo. Filtra desde el primer caracter.
+    Sin query → toda la lista ordenada alfabéticamente (para scroll).
+    Con query → matches ordenados por relevancia (exacto → empieza-con → contiene),
+    alfabético dentro de cada grupo. Filtra desde el primer caracter.
     max_results=None devuelve todos (el dropdown maneja el scroll).
     """
     games = load_games()
@@ -426,19 +453,19 @@ def fuzzy_search(query, max_results=None):
     out = exact + starts + rest
     return out[:max_results] if max_results else out
 
-# â”€â”€â”€ Auto-update (v0.8) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Auto-update (v0.8) ───────────────────────────────────────────────────────
 #
 # El CI publica en cada release un manifiesto latest.json junto a los .exe:
 #   { version, min_version, update_url, update_sha256, ... }
 # La app lo chequea al arrancar (en background) y ofrece actualizar con el
-# updater liviano PleiadaRecorder_Update.exe. Si la versiÃ³n instalada es menor
-# que min_version, la grabaciÃ³n queda bloqueada hasta actualizar.
+# updater liviano PleiadaRecorder_Update.exe. Si la versión instalada es menor
+# que min_version, la grabación queda bloqueada hasta actualizar.
 
 UPDATE_MANIFEST_URL = ("https://github.com/PleiadaAI/pleiada-recorder"
                        "/releases/latest/download/latest.json")
 
 def _parse_version(v):
-    """'v0.7.0' / '0.7' â†’ (0, 7, 0). None si no parsea."""
+    """'v0.7.0' / '0.7' → (0, 7, 0). None si no parsea."""
     try:
         parts = str(v).strip().lstrip("vV").split(".")
         nums = []
@@ -457,11 +484,11 @@ def _parse_version(v):
 
 def check_for_update():
     """
-    Lee el manifiesto de updates del Ãºltimo release. Nunca lanza excepciÃ³n.
+    Lee el manifiesto de updates del último release. Nunca lanza excepción.
     Retorna el manifiesto (dict) con dos claves calculadas:
-      _newer  â†’ hay una versiÃ³n mÃ¡s nueva que la instalada
-      _forced â†’ la instalada es menor que min_version (bloquear grabaciÃ³n)
-    o None si no hay red / manifiesto invÃ¡lido.
+      _newer  → hay una versión más nueva que la instalada
+      _forced → la instalada es menor que min_version (bloquear grabación)
+    o None si no hay red / manifiesto inválido.
     """
     try:
         import urllib.request as _ur
@@ -480,7 +507,7 @@ def check_for_update():
     except Exception:
         return None
 
-# â”€â”€â”€ OBS helpers (inlined desde obs_control.py) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── OBS helpers (inlined desde obs_control.py) ───────────────────────────────
 
 import hashlib, base64, uuid, websocket
 
@@ -488,33 +515,33 @@ OBS_HOST     = "localhost"
 OBS_PORT     = 4455
 OBS_PASSWORD = ""
 
-# â”€â”€ Config de grabaciÃ³n del dataset (v0.8.12) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Config de grabación del dataset (v0.8.12) ────────────────────────────────
 # El instalador escribe estos valores UNA sola vez, al crear el perfil Pleiada
-# (configure_obs.py). Nada los volvÃ­a a mirar despuÃ©s: si el usuario tocaba
-# Ajustes â†’ Salida en OBS, quedaba cambiado para siempre y el Recorder seguÃ­a
+# (configure_obs.py). Nada los volvía a mirar después: si el usuario tocaba
+# Ajustes → Salida en OBS, quedaba cambiado para siempre y el Recorder seguía
 # grabando con lo que hubiera. Esto se re-aplica en silencio antes de CADA
-# grabaciÃ³n, para que todas las sesiones del dataset pesen y se vean igual.
+# grabación, para que todas las sesiones del dataset pesen y se vean igual.
 #
 # Los dos extremos rompen algo distinto:
 #   - por debajo: material inservible para el cliente.
 #   - por encima: calidad alta lleva el dataset de ~1,1 GB/h a 11-20 GB/h y
-#     multiplica subida y costo de S3 por diez o mÃ¡s.
+#     multiplica subida y costo de S3 por diez o más.
 #
 # RecQuality=Stream es lo que hoy aplica de hecho en la flota (el instalador
-# NUNCA escribiÃ³ la clave, asÃ­ que quedaba el default de OBS). Se escribe
-# explÃ­cito para dejar de depender de quÃ© versiÃ³n de OBS tenga cada uno.
-# El fix que lo subÃ­a a HQ estÃ¡ en hold desde el 28/07 (_programa\
+# NUNCA escribió la clave, así que quedaba el default de OBS). Se escribe
+# explícito para dejar de depender de qué versión de OBS tenga cada uno.
+# El fix que lo subía a HQ está en hold desde el 28/07 (_programa\
 # bitrate_fix_configure_obs.patch): mientras siga en hold, esto lo sostiene.
 OBS_PROFILE_NAME = "Pleiada"
 OBS_TARGET_PROFILE = [
-    # (categorÃ­a, clave, valor)
-    ("Output",       "Mode",       "Simple"),           # primero: define quÃ© secciÃ³n lee OBS
+    # (categoría, clave, valor)
+    ("Output",       "Mode",       "Simple"),           # primero: define qué sección lee OBS
     ("SimpleOutput", "RecFormat2", "fragmented_mp4"),   # crash-safe (ver _obs_do_start)
     # El basic.ini del perfil tiene un SEGUNDO RecFormat2 en [AdvOut], con valor
     # hybrid_mp4. Forzar solo SimpleOutput dejaba grabando hybrid a todo el que
-    # tuviera OBS en modo de salida Avanzado â€” y el hybrid escribe el moov al
-    # final, que es lo que a Troveo le llegÃ³ como "dos sabores" de MP4 (17/08).
-    # Se escribe en las dos categorÃ­as: Mode=Simple deberÃ­a alcanzar, pero si esa
+    # tuviera OBS en modo de salida Avanzado — y el hybrid escribe el moov al
+    # final, que es lo que a Troveo le llegó como "dos sabores" de MP4 (17/08).
+    # Se escribe en las dos categorías: Mode=Simple debería alcanzar, pero si esa
     # escritura falla o el usuario lo revierte, AdvOut tiene que estar bien igual.
     ("AdvOut",       "RecFormat2", "fragmented_mp4"),
     ("SimpleOutput", "RecQuality", "Stream"),           # graba al bitrate de abajo, no por CRF
@@ -531,7 +558,7 @@ OBS_TARGET_VIDEO = {
 }
 
 class OBSAuthError(RuntimeError):
-    """OBS WebSocket rechazÃ³ la autenticaciÃ³n (contraseÃ±a activada en OBS)."""
+    """OBS WebSocket rechazó la autenticación (contraseña activada en OBS)."""
     pass
 
 def _obs_dbg(msg):
@@ -545,18 +572,18 @@ def _obs_dbg(msg):
 def _obs_unescape(s):
     """Decodifica los escapes `#XX` que OBS mete en el window string.
 
-    OBS escapa los caracteres que usa como separador: un ':' real del tÃ­tulo
-    viaja como '#3A'. Visto en producciÃ³n: el Recorder mostraba
+    OBS escapa los caracteres que usa como separador: un ':' real del título
+    viaja como '#3A'. Visto en producción: el Recorder mostraba
     "Horizon Zero Dawn#3A Complete Edition" por "Horizon Zero Dawn: Complete
     Edition". Sin decodificar, al normalizar queda un '3a' pegado al nombre y
     el match por substring falla SIEMPRE, cayendo al fallback por palabras.
-    Alcance: 125 de 504 tÃ­tulos publicados tienen ':' (25% del catÃ¡logo).
+    Alcance: 125 de 504 títulos publicados tienen ':' (25% del catálogo).
 
-    OJO con el orden: esto se aplica DESPUÃ‰S de partir el window string por
-    ':', nunca antes. Los ':' reales estÃ¡n escapados justamente para que el
+    OJO con el orden: esto se aplica DESPUÉS de partir el window string por
+    ':', nunca antes. Los ':' reales están escapados justamente para que el
     split no los vea; decodificar primero los convierte en separadores y parte
-    el tÃ­tulo al medio ("Horizon Zero Dawn" perdiendo "Complete Edition"),
-    que es peor que el bug original â€” se llevarÃ­a puesto el chequeo de ediciÃ³n
+    el título al medio ("Horizon Zero Dawn" perdiendo "Complete Edition"),
+    que es peor que el bug original — se llevaría puesto el chequeo de edición
     de PLE-35.
     """
     if not s:
@@ -567,9 +594,9 @@ def _obs_unescape(s):
         return s
 
 def _obs_sequel_numeral(name):
-    """Numeral de secuela de un tÃ­tulo, o None. 'Spider-Man 2' â†’ 2, 'GTA V' â†’ 5.
+    """Numeral de secuela de un título, o None. 'Spider-Man 2' → 2, 'GTA V' → 5.
 
-    Se toma el ÃšLTIMO numeral del nombre ('Left 4 Dead 2' â†’ 2, no 4).
+    Se toma el ÚLTIMO numeral del nombre ('Left 4 Dead 2' → 2, no 4).
     """
     _ROMAN = {"ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6,
               "vii": 7, "viii": 8, "ix": 9, "x": 10}
@@ -582,20 +609,20 @@ def _obs_sequel_numeral(name):
     return num
 
 def _obs_title_matches(game_name, win_title):
-    """True si el tÃ­tulo de ventana de OBS corresponde al juego seleccionado.
+    """True si el título de ventana de OBS corresponde al juego seleccionado.
 
     Estrategia (en orden):
-    1. Substring bidireccional normalizado â€” cubre "FarCryÂ®6Trial" vs "Far Cry 6"
-       PLE-35: si el match es unidireccional (game_name âŠ‚ win_title), verificar que
-       el contenido extra en win_title no sean version qualifiers â†’ rechaza
+    1. Substring bidireccional normalizado — cubre "FarCry®6Trial" vs "Far Cry 6"
+       PLE-35: si el match es unidireccional (game_name ⊂ win_title), verificar que
+       el contenido extra en win_title no sean version qualifiers → rechaza
        "Borderlands 3" vs "Borderlands 3 Definitive Edition".
-    2. Al menos una palabra significativa del juego (â‰¥ 2 chars) aparece en el tÃ­tulo
-    3. Sin datos o sin palabras â†’ no bloquear (beneficio de la duda)
+    2. Al menos una palabra significativa del juego (≥ 2 chars) aparece en el título
+    3. Sin datos o sin palabras → no bloquear (beneficio de la duda)
 
-    NormalizaciÃ³n: minÃºsculas + solo alfanumÃ©ricos (elimina Â®, Â©, â„¢, espacios, guiones, etc.)
+    Normalización: minúsculas + solo alfanuméricos (elimina ®, ©, ™, espacios, guiones, etc.)
     """
-    # Palabras que indican una versiÃ³n/ediciÃ³n especÃ­fica del juego.
-    # Si aparecen en el tÃ­tulo de OBS pero NO en el nombre seleccionado â†’ mismatch.
+    # Palabras que indican una versión/edición específica del juego.
+    # Si aparecen en el título de OBS pero NO en el nombre seleccionado → mismatch.
     _VERSION_QUALIFIERS = {
         "definitive", "edition", "redux", "remastered", "enhanced",
         "complete", "ultimate", "deluxe", "anniversary", "gold",
@@ -610,48 +637,48 @@ def _obs_title_matches(game_name, win_title):
     b = _n(game_name)
 
     if not a or not b:
-        return True   # sin datos â†’ no bloquear
+        return True   # sin datos → no bloquear
 
     # Substring bidireccional
     if a in b:
-        return True   # win_title âŠ† game_name â†’ OK siempre
+        return True   # win_title ⊆ game_name → OK siempre
 
     if b in a:
-        # game_name âŠ† win_title â€” verificar que el extra no sea un version qualifier
-        # Extraer palabras del win_title que NO estÃ¡n en el game_name normalizado
+        # game_name ⊆ win_title — verificar que el extra no sea un version qualifier
+        # Extraer palabras del win_title que NO están en el game_name normalizado
         extra_words = [_n(w) for w in win_title.split() if _n(w) not in b and len(_n(w)) >= 3]
         if any(w in _VERSION_QUALIFIERS for w in extra_words):
-            return False   # PLE-35: versiÃ³n diferente seleccionada
+            return False   # PLE-35: versión diferente seleccionada
         return True
 
-    # Fallback por palabras. v0.8.12: antes alcanzaba UNA sola palabra en comÃºn,
-    # y eso dejaba pasar sesiones etiquetadas con el tÃ­tulo equivocado â€” el caso
+    # Fallback por palabras. v0.8.12: antes alcanzaba UNA sola palabra en común,
+    # y eso dejaba pasar sesiones etiquetadas con el título equivocado — el caso
     # reproducido es "Marvel's Spider-Man: Miles Morales" seleccionado contra
     # "Marvel's Spider-Man Remastered" capturado: matcheaba por "marvels" y el
-    # dataset salÃ­a con el tÃ­tulo que no era, sin que QA pudiera detectarlo.
-    # Ahora se exigen TODAS las palabras significativas, mÃ¡s el numeral de
-    # secuela cuando el juego elegido lo tiene ("Spider-Man 2" contra un tÃ­tulo
-    # sin el 2 = juego distinto; el '2' solo se caÃ­a antes por len < 2).
+    # dataset salía con el título que no era, sin que QA pudiera detectarlo.
+    # Ahora se exigen TODAS las palabras significativas, más el numeral de
+    # secuela cuando el juego elegido lo tiene ("Spider-Man 2" contra un título
+    # sin el 2 = juego distinto; el '2' solo se caía antes por len < 2).
     words = [_n(w) for w in game_name.split() if len(_n(w)) >= 2]
     if not words:
-        return True   # ninguna palabra verificable â†’ no bloquear
+        return True   # ninguna palabra verificable → no bloquear
 
     ok = all(w in a for w in words)
 
     # Numeral de secuela: solo se exige en un sentido. Si el juego elegido tiene
-    # numeral, el tÃ­tulo de OBS tiene que traerlo. Al revÃ©s NO se exige: los
-    # tÃ­tulos de OBS vienen llenos de nÃºmeros de versiÃ³n ("v4.630.0.0") y pedir
-    # simetrÃ­a bloquearÃ­a a gente que hoy graba bien.
+    # numeral, el título de OBS tiene que traerlo. Al revés NO se exige: los
+    # títulos de OBS vienen llenos de números de versión ("v4.630.0.0") y pedir
+    # simetría bloquearía a gente que hoy graba bien.
     n_game = _obs_sequel_numeral(game_name)
     if ok and n_game is not None and _obs_sequel_numeral(win_title) != n_game:
         ok = False
 
-    # TelemetrÃ­a de calibraciÃ³n: lo que la regla nueva bloquea y la vieja dejaba
+    # Telemetría de calibración: lo que la regla nueva bloquea y la vieja dejaba
     # pasar. Endurecer esto convierte falsos positivos silenciosos en bloqueos
-    # visibles, asÃ­ que queda el rastro para ajustar con pares reales en vez de
+    # visibles, así que queda el rastro para ajustar con pares reales en vez de
     # a ojo. Va al log de debug, no molesta al usuario.
     if not ok and any(w in a for w in words):
-        _obs_dbg(f"title_match ENDURECIDO bloqueÃ³: juego='{game_name}' "
+        _obs_dbg(f"title_match ENDURECIDO bloqueó: juego='{game_name}' "
                  f"obs='{win_title}' (la regla vieja lo dejaba pasar)")
 
     return ok
@@ -665,7 +692,7 @@ def obs_connect():
         ws.send(json.dumps({"op": 1, "d": {"rpcVersion": 1}}))
         json.loads(ws.recv())
         return ws
-    # OBS tiene contraseÃ±a en el WebSocket â€” intentar autenticar con OBS_PASSWORD
+    # OBS tiene contraseña en el WebSocket — intentar autenticar con OBS_PASSWORD
     secret = base64.b64encode(
         hashlib.sha256((OBS_PASSWORD + auth_data["salt"]).encode()).digest()
     ).decode()
@@ -673,27 +700,27 @@ def obs_connect():
         hashlib.sha256((secret + auth_data["challenge"]).encode()).digest()
     ).decode()
     ws.send(json.dumps({"op": 1, "d": {"rpcVersion": 1, "authentication": auth_str}}))
-    # Si la contraseÃ±a es incorrecta OBS cierra la conexiÃ³n sin responder (recv vacÃ­o)
+    # Si la contraseña es incorrecta OBS cierra la conexión sin responder (recv vacío)
     try:
         raw = ws.recv()
         if not raw:
             raise OBSAuthError()
-        json.loads(raw)   # Identified â€” si llega acÃ¡, auth OK
+        json.loads(raw)   # Identified — si llega acá, auth OK
     except OBSAuthError:
         try: ws.close()
         except: pass
         raise OBSAuthError(
-            "OBS WebSocket tiene contraseÃ±a activada.\n"
-            "Desactivala en: OBS â†’ Herramientas â†’ WebSocket Server Settings â†’ "
-            "desmarcÃ¡ 'Enable Authentication'."
+            "OBS WebSocket tiene contraseña activada.\n"
+            "Desactivala en: OBS → Herramientas → WebSocket Server Settings → "
+            "desmarcá 'Enable Authentication'."
         )
     except Exception:
         try: ws.close()
         except: pass
         raise OBSAuthError(
-            "OBS WebSocket tiene contraseÃ±a activada.\n"
-            "Desactivala en: OBS â†’ Herramientas â†’ WebSocket Server Settings â†’ "
-            "desmarcÃ¡ 'Enable Authentication'."
+            "OBS WebSocket tiene contraseña activada.\n"
+            "Desactivala en: OBS → Herramientas → WebSocket Server Settings → "
+            "desmarcá 'Enable Authentication'."
         )
     return ws
 
@@ -751,8 +778,8 @@ def launch_obs():
     return False
 
 def obs_get_game_window():
-    """Devuelve el tÃ­tulo de la ventana del juego configurado en OBS, o ''.
-    Puede lanzar OBSAuthError si el WebSocket requiere contraseÃ±a."""
+    """Devuelve el título de la ventana del juego configurado en OBS, o ''.
+    Puede lanzar OBSAuthError si el WebSocket requiere contraseña."""
     ws = obs_connect()   # deja propagar OBSAuthError
     resp    = obs_send(ws, "GetInputList")
     inputs  = resp.get("d", {}).get("responseData", {}).get("inputs", [])
@@ -762,8 +789,42 @@ def obs_get_game_window():
     sr     = obs_send(ws, "GetInputSettings", {"inputName": gc_src["inputName"]})
     window = sr.get("d", {}).get("responseData", {}).get("inputSettings", {}).get("window", "")
     ws.close()
-    # unescape DESPUÃ‰S del split (ver _obs_unescape)
+    # unescape DESPUÉS del split (ver _obs_unescape)
     return _obs_unescape(window.split(":")[0].strip()) if window else ""
+
+def _exe_corriendo(exe):
+    """True / False / None: si hay un proceso con ese nombre de imagen ahora.
+
+    PLE-154: lo que OBS devuelve en `inputSettings.window` es la ventana que la
+    fuente tiene CONFIGURADA, no la que esta capturando. OBS la conserva cuando
+    el juego se cierra, asi que sin este chequeo el Recorder da por detectado un
+    juego que no esta abierto y deja grabar una pantalla sin nada.
+
+    La v0.9 borro este chequeo (era PLE-42) porque comparaba contra el juego que
+    el usuario DECLARABA, y ya no hay declaracion. El error fue sacarlo entero en
+    vez de reapuntarlo al exe detectado, que es lo que hace esta version.
+
+    None cuando no se puede afirmar ni negar (sin exe, o tasklist fallo): el que
+    llama NO tiene que bloquear con None. Un chequeo que no corre no es prueba de
+    que el juego este cerrado, y bloquear a alguien que si esta jugando es peor
+    que dejar pasar una pantalla vacia.
+
+    /FO CSV y no el formato TABLE: TABLE corta el nombre a 25 caracteres y parte
+    los exes largos de Unreal ("{Proyecto}-Win64-Shipping.exe").
+    """
+    exe = (exe or "").strip()
+    if not exe:
+        return None
+    try:
+        tl = subprocess.run(
+            ["tasklist", "/FI", f"IMAGENAME eq {exe}", "/FO", "CSV", "/NH"],
+            capture_output=True, text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW, timeout=8)
+    except Exception as e:
+        _obs_dbg(f"_exe_corriendo({exe}): {e}")
+        return None
+    return exe.lower() in (tl.stdout or "").lower()
+
 
 def obs_capture_target():
     """Que esta capturando OBS ahora: (is_recording, titulo, exe, wrong_source).
@@ -824,13 +885,13 @@ def obs_capture_target():
 
 
 def obs_check_status():
-    """Retorna (is_recording, win_title, wrong_source) en una sola conexiÃ³n WebSocket.
+    """Retorna (is_recording, win_title, wrong_source) en una sola conexión WebSocket.
 
-    is_recording  : True si OBS estÃ¡ grabando ahora.
-    win_title     : tÃ­tulo de la ventana del Game Capture source ('' si no hay o no apunta a nada).
+    is_recording  : True si OBS está grabando ahora.
+    win_title     : título de la ventana del Game Capture source ('' si no hay o no apunta a nada).
     wrong_source  : nombre legible del modo incorrecto si el usuario NO usa Game Capture
-                    pero sÃ­ tiene otra fuente de captura activa (ej: "Captura de Pantalla").
-                    None si todo estÃ¡ bien o si no hay ninguna fuente de captura.
+                    pero sí tiene otra fuente de captura activa (ej: "Captura de Pantalla").
+                    None si todo está bien o si no hay ninguna fuente de captura.
     Puede lanzar OBSAuthError."""
 
     _WRONG_SOURCES = {
@@ -841,7 +902,7 @@ def obs_check_status():
 
     ws = obs_connect()   # deja propagar OBSAuthError
 
-    # Â¿EstÃ¡ grabando?
+    # ¿Está grabando?
     rec_resp     = obs_send(ws, "GetRecordStatus")
     is_recording = rec_resp.get("d", {}).get("responseData", {}).get("outputActive", False)
 
@@ -853,7 +914,7 @@ def obs_check_status():
         resp   = obs_send(ws, "GetInputList")
         inputs = resp.get("d", {}).get("responseData", {}).get("inputs", [])
 
-        # PLE-33: solo marcar fuente incompatible si estÃ¡ activa (enabled) en la escena actual
+        # PLE-33: solo marcar fuente incompatible si está activa (enabled) en la escena actual
         try:
             _scene_r   = obs_send(ws, "GetCurrentProgramScene")
             _cur_scene = _scene_r.get("d", {}).get("responseData", {}).get("currentProgramSceneName", "")
@@ -874,14 +935,14 @@ def obs_check_status():
         if not wrong_source:
             gc_src = next((i for i in inputs if i.get("inputKind") == "game_capture"), None)
             if gc_src:
-                # Game Capture encontrado â€” leer quÃ© juego tiene configurado
+                # Game Capture encontrado — leer qué juego tiene configurado
                 sr     = obs_send(ws, "GetInputSettings", {"inputName": gc_src["inputName"]})
                 window = sr.get("d", {}).get("responseData", {}).get("inputSettings", {}).get("window", "")
                 if window:
                     # Formato OBS: "WindowTitle:WindowClass:ExeName.exe"
-                    # (el orden de class y exe varÃ­a segÃºn versiÃ³n/tipo de fuente)
-                    # Buscamos el componente que termina en .exe, sin importar posiciÃ³n.
-                    # unescape DESPUÃ‰S del split (ver _obs_unescape)
+                    # (el orden de class y exe varía según versión/tipo de fuente)
+                    # Buscamos el componente que termina en .exe, sin importar posición.
+                    # unescape DESPUÉS del split (ver _obs_unescape)
                     parts     = window.split(":")
                     win_title = _obs_unescape(parts[0].strip())
                     exe_part  = ""
@@ -898,12 +959,12 @@ def obs_check_status():
     return is_recording, win_title, win_match, wrong_source
 
 def _obs_do_start():
-    """Asume OBS ya estÃ¡ corriendo. Conecta, configura audio, envÃ­a StartRecord.
-    Retorna True si la grabaciÃ³n arrancÃ³, False si fallÃ³.
-    Puede lanzar OBSAuthError si el WebSocket requiere contraseÃ±a."""
+    """Asume OBS ya está corriendo. Conecta, configura audio, envía StartRecord.
+    Retorna True si la grabación arrancó, False si falló.
+    Puede lanzar OBSAuthError si el WebSocket requiere contraseña."""
     ws = None
     try:
-        ws = obs_connect()   # puede lanzar OBSAuthError â€” se deja propagar
+        ws = obs_connect()   # puede lanzar OBSAuthError — se deja propagar
 
         # Unmute desktop audio, mute mic
         try:
@@ -919,28 +980,28 @@ def _obs_do_start():
         except Exception as e:
             _obs_dbg(f"audio setup error: {e}")
 
-        # Forzar formato de grabaciÃ³n crash-safe (fragmented MP4).
-        # Un MP4 clÃ¡sico escribe el Ã­ndice (moov) reciÃ©n al finalizar: si OBS
+        # Forzar formato de grabación crash-safe (fragmented MP4).
+        # Un MP4 clásico escribe el índice (moov) recién al finalizar: si OBS
         # muere o lo matan antes de ese paso, TODO el archivo queda ilegible
-        # (caso real 20/07/26: sesiÃ³n de 30 min â†’ 705 MB sin moov). Con fMP4
-        # cada fragmento es autosuficiente y una grabaciÃ³n interrumpida sigue
-        # siendo reproducible hasta el Ãºltimo GOP escrito.
-        # Se fuerza acÃ¡ (y no solo en el instalador) para cubrir perfiles
+        # (caso real 20/07/26: sesión de 30 min → 705 MB sin moov). Con fMP4
+        # cada fragmento es autosuficiente y una grabación interrumpida sigue
+        # siendo reproducible hasta el último GOP escrito.
+        # Se fuerza acá (y no solo en el instalador) para cubrir perfiles
         # creados por instaladores viejos o modificados a mano en OBS.
-        # SetProfileParameter escribe sobre el perfil ACTIVO de OBS, asÃ­ que
-        # primero se activa el perfil "Pleiada" si el usuario dejÃ³ otro activo
+        # SetProfileParameter escribe sobre el perfil ACTIVO de OBS, así que
+        # primero se activa el perfil "Pleiada" si el usuario dejó otro activo
         # (usar OBS por fuera de Pleiada no debe degradar el dataset: el perfil
         # Pleiada garantiza 1080p60 + bitrate + formato). Nunca se escribe
-        # sobre los perfiles propios del usuario â€” solo se cambia cuÃ¡l estÃ¡
-        # activo. Ãšnico caso borde: si el perfil Pleiada fue borrado, se
+        # sobre los perfiles propios del usuario — solo se cambia cuál está
+        # activo. Único caso borde: si el perfil Pleiada fue borrado, se
         # fuerza el formato sobre el perfil activo (la integridad del dataset
         # gana) y queda logueado.
         #
-        # v0.8.12: ademÃ¡s del formato se re-aplica TODA la config de grabaciÃ³n
+        # v0.8.12: además del formato se re-aplica TODA la config de grabación
         # (OBS_TARGET_PROFILE + OBS_TARGET_VIDEO). Antes solo se forzaba
-        # RecFormat2, asÃ­ que bitrate, calidad, resoluciÃ³n y FPS quedaban a
+        # RecFormat2, así que bitrate, calidad, resolución y FPS quedaban a
         # merced de lo que el usuario hubiera tocado en OBS. Es silencioso a
-        # propÃ³sito: no hay modal ni aviso, se corrige y se graba.
+        # propósito: no hay modal ni aviso, se corrige y se graba.
         try:
             _plist    = obs_send(ws, "GetProfileList").get("d", {}).get("responseData", {})
             _cur      = _plist.get("currentProfileName", "")
@@ -948,18 +1009,18 @@ def _obs_do_start():
             if _cur != OBS_PROFILE_NAME:
                 if OBS_PROFILE_NAME in _profiles:
                     obs_send(ws, "SetCurrentProfile", {"profileName": OBS_PROFILE_NAME})
-                    _obs_dbg(f"Perfil activo era '{_cur}' â€” cambiado a {OBS_PROFILE_NAME}")
+                    _obs_dbg(f"Perfil activo era '{_cur}' — cambiado a {OBS_PROFILE_NAME}")
                 else:
-                    # El usuario lo borrÃ³: se recrea vacÃ­o y se puebla abajo, en vez
+                    # El usuario lo borró: se recrea vacío y se puebla abajo, en vez
                     # de escribir sobre el perfil propio del usuario.
                     _r = obs_send(ws, "CreateProfile", {"profileName": OBS_PROFILE_NAME})
                     _ok = _r.get("d", {}).get("requestStatus", {}).get("result", False)
-                    _obs_dbg(f"Perfil {OBS_PROFILE_NAME} no existÃ­a (activo: '{_cur}') â€” "
+                    _obs_dbg(f"Perfil {OBS_PROFILE_NAME} no existía (activo: '{_cur}') — "
                              f"CreateProfile result={_ok}")
                     if not _ok:
                         # No se pudo crear: se fuerza sobre el activo. La integridad
                         # del dataset gana; queda logueado.
-                        _obs_dbg("No se pudo crear el perfil â€” se fuerza sobre el activo")
+                        _obs_dbg("No se pudo crear el perfil — se fuerza sobre el activo")
 
             for _cat, _key, _val in OBS_TARGET_PROFILE:
                 obs_send(ws, "SetProfileParameter", {
@@ -967,15 +1028,15 @@ def _obs_do_start():
                     "parameterName":     _key,
                     "parameterValue":    _val,
                 })
-            _obs_dbg(f"Config de grabaciÃ³n forzada: "
+            _obs_dbg(f"Config de grabación forzada: "
                      + ", ".join(f"{k}={v}" for _c, k, v in OBS_TARGET_PROFILE))
         except Exception as e:
             _obs_dbg(f"Forzado de perfil/config error (continuando): {e}")
 
-        # ResoluciÃ³n y FPS. Van por SetVideoSettings y no por SetProfileParameter
-        # porque OBS aplica esto en caliente; escribir [Video] en el .ini reciÃ©n
-        # tomarÃ­a efecto al reiniciar OBS. Se hace ANTES de StartRecord: con la
-        # grabaciÃ³n activa, OBS rechaza el cambio.
+        # Resolución y FPS. Van por SetVideoSettings y no por SetProfileParameter
+        # porque OBS aplica esto en caliente; escribir [Video] en el .ini recién
+        # tomaría efecto al reiniciar OBS. Se hace ANTES de StartRecord: con la
+        # grabación activa, OBS rechaza el cambio.
         try:
             obs_send(ws, "SetVideoSettings", dict(OBS_TARGET_VIDEO))
             _obs_dbg(f"Video forzado: {OBS_TARGET_VIDEO['outputWidth']}x"
@@ -1011,7 +1072,7 @@ def _obs_do_start():
 
         ws.close(); return True   # optimistic
     except OBSAuthError:
-        raise   # dejar que llegue a _launch_at_zero para mostrar mensaje especÃ­fico
+        raise   # dejar que llegue a _launch_at_zero para mostrar mensaje específico
     except Exception as e:
         _obs_dbg(f"_obs_do_start: {e}")
         if ws:
@@ -1020,7 +1081,7 @@ def _obs_do_start():
         return False
 
 def obs_start_recording():
-    """Lanza OBS si no estÃ¡ corriendo, luego inicia la grabaciÃ³n."""
+    """Lanza OBS si no está corriendo, luego inicia la grabación."""
     try:
         if not obs_is_running():
             if not launch_obs():
@@ -1032,26 +1093,26 @@ def obs_start_recording():
 
 
 # Misma regla que `_clean()` del backend (lambda_function.py): al pedir las presigned
-# URLs, el backend sanea cada nombre para el key de S3 ([^A-Za-z0-9._@-] â†’ "_"). El MP4
-# de OBS viene con espacios ("2026-08-02 22-33-10.mp4"), asÃ­ que el objeto en S3 quedaba
+# URLs, el backend sanea cada nombre para el key de S3 ([^A-Za-z0-9._@-] → "_"). El MP4
+# de OBS viene con espacios ("2026-08-02 22-33-10.mp4"), así que el objeto en S3 quedaba
 # con guiones bajos mientras `integrity.files` guardaba el nombre con espacios: buscar el
-# hash del video por su nombre real no encontraba nada. Se sanea acÃ¡, al mover el archivo,
+# hash del video por su nombre real no encontraba nada. Se sanea acá, al mover el archivo,
 # para que el nombre en disco, en `integrity` y en S3 sean el mismo.
 _SAFE_NAME = re.compile(r"[^A-Za-z0-9._@-]")
 
 def _safe_filename(name):
-    """Nombre de archivo seguro para el key de S3, idÃ©ntico al que arma el backend."""
+    """Nombre de archivo seguro para el key de S3, idéntico al que arma el backend."""
     return _SAFE_NAME.sub("_", (name or "").strip())[:200]
 
 
 def obs_stop_recording(session_dir=None):
-    """Detiene la grabaciÃ³n en OBS, ESPERA a que termine de finalizar el
-    archivo y reciÃ©n entonces lo mueve al session_dir.
+    """Detiene la grabación en OBS, ESPERA a que termine de finalizar el
+    archivo y recién entonces lo mueve al session_dir.
 
     Mover el video sin esperar el evento OUTPUT_STOPPED puede capturar un
-    MP4 a medio finalizar (sin el Ã­ndice completo): el StopRecord del
+    MP4 a medio finalizar (sin el índice completo): el StopRecord del
     WebSocket responde de inmediato, pero OBS sigue escribiendo el archivo
-    en background durante varios segundos mÃ¡s."""
+    en background durante varios segundos más."""
     output_path = None
     stopped     = False
     session_start = (os.path.getmtime(str(session_dir))
@@ -1061,15 +1122,15 @@ def obs_stop_recording(session_dir=None):
         resp = obs_send(ws, "StopRecord")
         output_path = resp.get("d", {}).get("responseData", {}).get("outputPath", "")
 
-        # Esperar RecordStateChanged â†’ OUTPUT_STOPPED (= archivo finalizado).
-        # El evento ademÃ¡s trae el outputPath definitivo.
+        # Esperar RecordStateChanged → OUTPUT_STOPPED (= archivo finalizado).
+        # El evento además trae el outputPath definitivo.
         ws.settimeout(2)
         deadline = time.time() + 30
         while time.time() < deadline:
             try:
                 parsed = json.loads(ws.recv())
             except Exception:
-                continue   # timeout de recv â†’ reintentar hasta el deadline
+                continue   # timeout de recv → reintentar hasta el deadline
             if parsed.get("op") == 5:
                 ed = parsed.get("d", {})
                 if (ed.get("eventType") == "RecordStateChanged" and
@@ -1078,15 +1139,15 @@ def obs_stop_recording(session_dir=None):
                     if ev_path:
                         output_path = ev_path
                     stopped = True
-                    _obs_dbg("OUTPUT_STOPPED recibido â€” archivo finalizado por OBS")
+                    _obs_dbg("OUTPUT_STOPPED recibido — archivo finalizado por OBS")
                     break
         ws.close()
     except Exception as e:
         _obs_dbg(f"obs_stop_recording ws error: {e}")
 
     if not stopped:
-        # Fallback: poll GetRecordStatus hasta que la grabaciÃ³n no estÃ© activa.
-        _obs_dbg("Sin OUTPUT_STOPPED â€” fallback a poll de GetRecordStatus")
+        # Fallback: poll GetRecordStatus hasta que la grabación no esté activa.
+        _obs_dbg("Sin OUTPUT_STOPPED — fallback a poll de GetRecordStatus")
         for _ in range(15):
             try:
                 ws2    = obs_connect()
@@ -1115,16 +1176,16 @@ def obs_stop_recording(session_dir=None):
                 shutil.move(output_path, dest)
                 _obs_dbg(f"Video movido a: {dest}")
                 if _mp4_is_truncated(str(dest)):
-                    # Sin moov NI moof: OBS muriÃ³ sin finalizar. Se deja el
-                    # archivo para diagnÃ³stico; el sync check lo marcarÃ¡
-                    # como truncado y la sesiÃ³n quedarÃ¡ como no vÃ¡lida.
-                    _obs_dbg("ADVERTENCIA: el video movido no tiene Ã­ndice (moov/moof)")
+                    # Sin moov NI moof: OBS murió sin finalizar. Se deja el
+                    # archivo para diagnóstico; el sync check lo marcará
+                    # como truncado y la sesión quedará como no válida.
+                    _obs_dbg("ADVERTENCIA: el video movido no tiene índice (moov/moof)")
                 return str(dest)
             except (PermissionError, OSError):
                 time.sleep(0.5)
     return output_path or ""
 
-# â”€â”€â”€ Anchor timestamp (copiado de obs_control.py) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Anchor timestamp (copiado de obs_control.py) ─────────────────────────────
 
 def _mp4_next_box(f, pos, limit):
     if pos + 8 > limit:
@@ -1238,7 +1299,7 @@ def _first_moof_duration_ms(path, timescale):
     return None
 
 # Auto-record de demos POV para juegos Source 1 (TF2/L4D2): dispara record/stop por la consola
-# TCP del juego (-netconport 2121). No bloquea la grabaciÃ³n si falla (juego sin netcon â†’ no-op).
+# TCP del juego (-netconport 2121). No bloquea la grabación si falla (juego sin netcon → no-op).
 def _source_console(cmd, port=2121, timeout=4.0):
     import socket
     try:
@@ -1277,7 +1338,7 @@ def compute_anchor_ts(rec_dir_str, existing_set):
             return int(time.time() * 1000) - dur_ms
     return None
 
-# â”€â”€â”€ AHK launcher â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── AHK launcher ─────────────────────────────────────────────────────────────
 
 _ahk_proc = None
 
@@ -1287,7 +1348,7 @@ def _find_ahk():
     prog_files_x86 = os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")
 
     candidates = [
-        # Program Files â€” instalaciÃ³n system-wide
+        # Program Files — instalación system-wide
         os.path.join(prog_files,     r"AutoHotkey\v2\AutoHotkey64.exe"),
         os.path.join(prog_files,     r"AutoHotkey\AutoHotkey64.exe"),
         os.path.join(prog_files,     r"AutoHotkey\AutoHotkey.exe"),
@@ -1325,15 +1386,15 @@ def _find_ahk():
     except Exception:
         pass
 
-    # BÃºsqueda en PATH del sistema
+    # Búsqueda en PATH del sistema
     import shutil as _sh
     return _sh.which("AutoHotkey64") or _sh.which("AutoHotkey") or "AutoHotkey.exe"
 
 def start_ahk_logger(log_dir_str, game_exe="", hotkey_vks=""):
-    """Lanza AHK con el directorio de sesiÃ³n y (opcionalmente) el exe del juego.
+    """Lanza AHK con el directorio de sesión y (opcionalmente) el exe del juego.
     PLE-43/13: si se pasa game_exe, AHK solo registra inputs cuando ese proceso
-    estÃ¡ en primer plano, evitando capturar inputs fuera del contexto de juego.
-    hotkey_vks: csv de cÃ³digos VK (ej "120,121") que AHK excluye del key_log
+    está en primer plano, evitando capturar inputs fuera del contexto de juego.
+    hotkey_vks: csv de códigos VK (ej "120,121") que AHK excluye del key_log
     para no registrar los atajos del Recorder (iniciar/detener)."""
     global _ahk_proc
     ahk  = _find_ahk()
@@ -1371,7 +1432,7 @@ def stop_ahk_logger(log_dir=None):
     _ahk_proc = None
     return True
 
-# â”€â”€â”€ Sync checker (inlined desde pleiada_check.pyw) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Sync checker (inlined desde pleiada_check.pyw) ───────────────────────────
 
 def _csv_anchors(path):
     """Retorna (start_ms, end_ms) desde ANCHOR_START/END en el CSV."""
@@ -1395,14 +1456,14 @@ def _csv_anchors(path):
     return start_ms, end_ms
 
 def _mp4_is_truncated(path):
-    """True si el MP4 estÃ¡ truncado/corrupto. Implementado en pleiada_sync_limits
+    """True si el MP4 está truncado/corrupto. Implementado en pleiada_sync_limits
     para que el Synch Checker aplique exactamente el mismo criterio."""
     return sync_limits.mp4_is_truncated(path)
 
 def _mp4_frag_duration_ms(path):
-    """DuraciÃ³n real del MP4 en ms. Implementado en pleiada_sync_limits: las dos
-    copias que habÃ­a (acÃ¡ y en pleiada_check.pyw) ya habÃ­an divergido y daban
-    duraciones distintas sobre el mismo MP4 estÃ¡ndar."""
+    """Duración real del MP4 en ms. Implementado en pleiada_sync_limits: las dos
+    copias que había (acá y en pleiada_check.pyw) ya habían divergido y daban
+    duraciones distintas sobre el mismo MP4 estándar."""
     return sync_limits.mp4_duration_ms(path)
 
 def run_sync_check(session_dir, progress_cb=None):
@@ -1419,14 +1480,14 @@ def run_sync_check(session_dir, progress_cb=None):
         "signed_diff":  None,
         "csv_dur":      None,
         "session_ok":   False,
-        "short_session": False,   # PLE-41: True si la sesiÃ³n fue < 30 s
+        "short_session": False,   # PLE-41: True si la sesión fue < 30 s
         "afk":           False,   # True si hubo > MAX_CONT_IDLE_MS seguidos sin inputs
         "longest_idle_s": None,
-        "idle_fraccion": None,    # proporciÃ³n de la sesiÃ³n que ocupa ese hueco
+        "idle_fraccion": None,    # proporción de la sesión que ocupa ese hueco
         "video_still":       False,  # True si la imagen estuvo quieta demasiado tiempo
-        "video_still_ms":    None,   # corrida continua mÃ¡s larga de imagen quieta
-        "video_still_ratio": None,   # proporciÃ³n de la sesiÃ³n con imagen quieta
-        "sin_input":         False,  # True si no quedÃ³ registrado el input del jugador
+        "video_still_ms":    None,   # corrida continua más larga de imagen quieta
+        "video_still_ratio": None,   # proporción de la sesión con imagen quieta
+        "sin_input":         False,  # True si no quedó registrado el input del jugador
         "sin_input_causa":   None,   # "captura_bloqueada" | "sin_teclado_ni_mouse"
         "eventos_input":     None,   # conteo crudo por CSV, para el registro interno
     }
@@ -1434,7 +1495,7 @@ def run_sync_check(session_dir, progress_cb=None):
     csv_names   = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv", "video_timeline.csv"]
     csv_anchors = []
 
-    # â€” Pasos 0-3: verificar CSVs â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+    # — Pasos 0-3: verificar CSVs ——————————————————————
     all_csv_ok = True
     for i, name in enumerate(csv_names):
         path = session_dir / name
@@ -1450,13 +1511,13 @@ def run_sync_check(session_dir, progress_cb=None):
         if progress_cb: progress_cb(i, "ok" if ok else "err")
         csv_anchors.append((start, end))
 
-    # DuraciÃ³n CSV (media de los 4 archivos vÃ¡lidos)
+    # Duración CSV (media de los 4 archivos válidos)
     csv_dur = sync_limits.csv_duration_ms(csv_anchors)
     result["csv_dur"] = csv_dur
     result["csvs_ok"] = all_csv_ok
 
-    # PLE-41: duraciÃ³n mÃ­nima â€” sesiones muy cortas producen diffs ~0 que pasan el check
-    # incorrectamente aunque no haya juego grabado. MÃ­nimo 30 segundos de sesiÃ³n vÃ¡lida.
+    # PLE-41: duración mínima — sesiones muy cortas producen diffs ~0 que pasan el check
+    # incorrectamente aunque no haya juego grabado. Mínimo 30 segundos de sesión válida.
     if sync_limits.is_short_session(csv_dur):
         if progress_cb:
             for _i in range(5):
@@ -1465,7 +1526,7 @@ def run_sync_check(session_dir, progress_cb=None):
         result["session_ok"]    = False
         return result
 
-    # â€” Paso 4: verificar video â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+    # — Paso 4: verificar video ————————————————————————
     video_files = list(session_dir.glob("*.mp4"))
     if not video_files:
         if progress_cb: progress_cb(4, "missing")
@@ -1491,7 +1552,7 @@ def run_sync_check(session_dir, progress_cb=None):
         result["session_ok"] = False
         return result
 
-    # Comparar duraciÃ³n CSV vs video
+    # Comparar duración CSV vs video
     if csv_dur and video_dur:
         diff = video_dur - csv_dur
         result["signed_diff"] = diff
@@ -1505,7 +1566,7 @@ def run_sync_check(session_dir, progress_cb=None):
         result["video_ok"] = True
         if progress_cb: progress_cb(4, "ok")
 
-    # â€” Gate de video quieto: pantalla negra o imagen congelada â€”
+    # — Gate de video quieto: pantalla negra o imagen congelada —
     # Complementa el gate AFK, que solo mira inputs: si el juego queda minimizado
     # o el game capture se cae, OBS graba negro mientras el jugador sigue
     # tecleando y AFK no lo detecta.
@@ -1515,8 +1576,8 @@ def run_sync_check(session_dir, progress_cb=None):
         result["video_still_ratio"] = _still.get("still_ratio")
         result["video_still"]       = sync_limits.is_video_still(_still)
 
-    # â€” Gate AFK: rechazar sesiones con demasiado tiempo continuo sin inputs â€”
-    # (mismo cÃ¡lculo de idle que el bloque activity del metadata)
+    # — Gate AFK: rechazar sesiones con demasiado tiempo continuo sin inputs —
+    # (mismo cálculo de idle que el bloque activity del metadata)
     try:
         _starts = [s for s, e in csv_anchors if s]
         _ends   = [e for s, e in csv_anchors if e]
@@ -1524,23 +1585,23 @@ def run_sync_check(session_dir, progress_cb=None):
             _act = _meta_activity(session_dir, min(_starts), max(_ends))
             if _act:
                 result["longest_idle_s"] = _act.get("longest_idle_seconds")
-                # Dos brazos: hueco absoluto > 10 min, o hueco que ocupa mÃ¡s de
-                # la mitad de la sesiÃ³n â€” una sesiÃ³n corta que es casi toda un
-                # solo hueco pasaba el umbral absoluto sin ser gameplay vÃ¡lido.
+                # Dos brazos: hueco absoluto > 10 min, o hueco que ocupa más de
+                # la mitad de la sesión — una sesión corta que es casi toda un
+                # solo hueco pasaba el umbral absoluto sin ser gameplay válido.
                 result["idle_fraccion"] = sync_limits.idle_fraccion(
                     _act.get("longest_idle_seconds"), csv_dur)
                 if sync_limits.is_afk(_act.get("longest_idle_seconds"), csv_dur):
                     result["afk"] = True
     except Exception:
-        pass   # si el cÃ¡lculo falla, no bloquear la sesiÃ³n por esto
+        pass   # si el cálculo falla, no bloquear la sesión por esto
 
-    # â€” Gate de input vacÃ­o: la sesiÃ³n no registrÃ³ lo que hizo el jugador â€”
+    # — Gate de input vacío: la sesión no registró lo que hizo el jugador —
     # El gate AFK mide HUECOS entre eventos y necesita al menos dos para medir
-    # algo: con los CSV vacÃ­os devuelve None y no gatea nada. O sea que el peor
-    # caso posible â€”cero inputâ€” era el que mÃ¡s limpio pasaba el check. Este mira
-    # el volumen, no los huecos, y por eso sÃ­ lo agarra.
-    # A diferencia de los otros gates, este NO se traga la excepciÃ³n: si no se
-    # pueden contar los eventos, la sesiÃ³n no se declara buena.
+    # algo: con los CSV vacíos devuelve None y no gatea nada. O sea que el peor
+    # caso posible —cero input— era el que más limpio pasaba el check. Este mira
+    # el volumen, no los huecos, y por eso sí lo agarra.
+    # A diferencia de los otros gates, este NO se traga la excepción: si no se
+    # pueden contar los eventos, la sesión no se declara buena.
     _conteo = sync_limits.contar_eventos_input(session_dir)
     result["eventos_input"]   = _conteo
     result["sin_input"]       = sync_limits.is_sin_input(_conteo, csv_dur)
@@ -1551,11 +1612,11 @@ def run_sync_check(session_dir, progress_cb=None):
                             and not result["sin_input"])
     return result
 
-# â”€â”€â”€ Packager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Packager ─────────────────────────────────────────────────────────────────
 
 def package_session(session_dir):
     """
-    Crea un ZIP con todos los archivos de la sesiÃ³n (sin cifrar).
+    Crea un ZIP con todos los archivos de la sesión (sin cifrar).
     Guarda como <sessionName>.pleiada en el mismo directorio padre.
     Retorna path del archivo generado, o None si falla.
     """
@@ -1571,7 +1632,7 @@ def package_session(session_dir):
         _obs_dbg(f"package_session error: {e}")
         return None
 
-# â”€â”€â”€ Session metadata (v0.4) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Session metadata (v0.4) ─────────────────────────────────────────────────
 
 def _meta_csv_anchors(session_dir):
     """Lee ANCHOR_START y ANCHOR_END de video_timeline.csv. Retorna (start_ms, end_ms)."""
@@ -1589,7 +1650,7 @@ def _meta_csv_anchors(session_dir):
         return None, None
 
 def _meta_input_hz(session_dir):
-    """Calcula Hz de muestreo de video_timeline y posiciÃ³n de mouse desde los CSVs."""
+    """Calcula Hz de muestreo de video_timeline y posición de mouse desde los CSVs."""
     result = {}
     for fname, events in [("video_timeline.csv", {"FRAME"}),
                            ("mouse_log.csv",      {"MOVE"})]:
@@ -1609,7 +1670,7 @@ def _meta_input_hz(session_dir):
 
 def _meta_video_info(session_dir):
     """
-    Extrae resoluciÃ³n, FPS, codec, frame count y bitrate del MP4 vÃ­a OpenCV.
+    Extrae resolución, FPS, codec, frame count y bitrate del MP4 vía OpenCV.
     OBS no incluye ffprobe standalone, pero opencv-python es dependencia del Recorder.
     """
     try:
@@ -1632,7 +1693,7 @@ def _meta_video_info(session_dir):
                    if fourcc else None) or None
         cap.release()
 
-        # Bitrate promedio real = tamaÃ±o / duraciÃ³n
+        # Bitrate promedio real = tamaño / duración
         bitrate = None
         try:
             if fps and nframes:
@@ -1655,7 +1716,7 @@ def _meta_video_info(session_dir):
         return {}
 
 def _meta_hardware():
-    """CPU, RAM, GPUs, resoluciÃ³n y refresh rate del monitor principal."""
+    """CPU, RAM, GPUs, resolución y refresh rate del monitor principal."""
     hw = {}
     # CPU
     try:
@@ -1676,7 +1737,7 @@ def _meta_hardware():
         hw["ram_gb"] = round(ms.ullTotalPhys / (1024 ** 3), 1)
     except Exception:
         hw["ram_gb"] = None
-    # GPUs via wmic (Windows 10/11, deprecado en 24H2 pero aÃºn funcional)
+    # GPUs via wmic (Windows 10/11, deprecado en 24H2 pero aún funcional)
     try:
         r = subprocess.run(
             ["wmic", "path", "win32_VideoController", "get", "name,DriverVersion", "/format:csv"],
@@ -1691,13 +1752,13 @@ def _meta_hardware():
         hw["gpus"] = gpus or None
     except Exception:
         hw["gpus"] = None
-    # Monitor â€” resoluciÃ³n
+    # Monitor — resolución
     try:
         hw["monitor_width"]  = ctypes.windll.user32.GetSystemMetrics(0)
         hw["monitor_height"] = ctypes.windll.user32.GetSystemMetrics(1)
     except Exception:
         hw["monitor_width"] = hw["monitor_height"] = None
-    # Monitor â€” refresh rate via GetDeviceCaps(VREFRESH) â€” simple y confiable
+    # Monitor — refresh rate via GetDeviceCaps(VREFRESH) — simple y confiable
     try:
         VREFRESH = 116
         hdc = ctypes.windll.user32.GetDC(0)
@@ -1717,7 +1778,7 @@ def _meta_os():
     except Exception:
         return {"name": None, "version": None, "build": None}
 
-# â”€â”€ Fase 2: helpers de detecciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Fase 2: helpers de detección ─────────────────────────────────────────────
 
 def _meta_exe_path(exe_name):
     """Retorna la ruta completa del proceso exe_name via wmic, o None si no corre."""
@@ -1757,11 +1818,11 @@ def _meta_find_game_exe_path(obs_window, game_name):
     Resuelve la ruta completa del .exe del juego (juego debe estar corriendo).
     Fallbacks en orden:
       1. .exe del window string de OBS  ->  wmic
-      2. ventana visible cuyo tÃ­tulo matchee el de OBS o el nombre del juego  -> PID -> ruta
-    Loguea el resultado para diagnÃ³stico.
+      2. ventana visible cuyo título matchee el de OBS o el nombre del juego  -> PID -> ruta
+    Loguea el resultado para diagnóstico.
     """
     # 1. .exe expuesto por OBS en el window string ("Title:Class:exe")
-    # unescape DESPUÃ‰S del split (ver _obs_unescape)
+    # unescape DESPUÉS del split (ver _obs_unescape)
     exe = next((_obs_unescape(p.strip()) for p in (obs_window or "").split(":")
                 if p.strip().lower().endswith(".exe")), "")
     if exe:
@@ -1770,19 +1831,19 @@ def _meta_find_game_exe_path(obs_window, game_name):
             _obs_dbg(f"exe_path via OBS exe '{exe}': {path}")
             return path
 
-    # 2. Buscar la ventana del juego por tÃ­tulo y resolver su PID -> ruta
+    # 2. Buscar la ventana del juego por título y resolver su PID -> ruta
     obs_title = _obs_unescape((obs_window or "").split(":")[0].strip())
     cands = [c for c in (obs_title, game_name) if c]
     if not cands:
-        _obs_dbg(f"exe_path: sin candidatos de tÃ­tulo (obs_window='{obs_window}')")
+        _obs_dbg(f"exe_path: sin candidatos de título (obs_window='{obs_window}')")
         return None
 
     def _n(s):
         return re.sub(r"[^a-z0-9]+", "", s.lower())
     cand_norm = [_n(c) for c in cands]
 
-    # Procesos shell/sistema que NUNCA son el juego â€” Bug 8: el Explorador abierto
-    # en la carpeta "Euro Truck Simulator 2_..." matcheaba por tÃ­tulo y resolvÃ­a a
+    # Procesos shell/sistema que NUNCA son el juego — Bug 8: el Explorador abierto
+    # en la carpeta "Euro Truck Simulator 2_..." matcheaba por título y resolvía a
     # explorer.exe. Excluimos estos del match.
     _SYS_EXE = {
         "explorer.exe", "applicationframehost.exe", "searchhost.exe",
@@ -1829,17 +1890,17 @@ def _meta_find_game_exe_path(obs_window, game_name):
     return None
 
 def _meta_detect_engine(game_dir):
-    """Detecta el motor del juego por firmas de archivos en el directorio de instalaciÃ³n."""
+    """Detecta el motor del juego por firmas de archivos en el directorio de instalación."""
     if not game_dir or not os.path.isdir(game_dir):
         return None
     checks = [
         # (ruta relativa al game_dir, nombre del motor)
-        # â€” orden importa: firmas mÃ¡s especÃ­ficas primero â€”
+        # — orden importa: firmas más específicas primero —
         (os.path.join("Engine", "Binaries"),       "Unreal Engine"),
         (os.path.join("Engine", "Config"),         "Unreal Engine"),
         ("UnityPlayer.dll",                        "Unity"),
         # Source 2: estructura game/bin/win64 con engine2.dll (NO usar vscript.dll,
-        # que tambiÃ©n existe en Source 1 â€” daba falso positivo en Portal 2).
+        # que también existe en Source 1 — daba falso positivo en Portal 2).
         (os.path.join("bin", "win64", "engine2.dll"), "Source 2"),
         (os.path.join("game", "bin", "win64"),     "Source 2"),
         # Source 1: engine.dll / tier0.dll en bin/
@@ -1974,7 +2035,7 @@ def _meta_system_language():
         except Exception:
             return None
 
-# â”€â”€ Key mapping parsers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Key mapping parsers ───────────────────────────────────────────────────────
 
 _UE_KEY_MAP = {
     "SpaceBar": "Space", "LeftShift": "LShift", "RightShift": "RShift",
@@ -1984,7 +2045,7 @@ _UE_KEY_MAP = {
     "MiddleMouseButton": "MButton",
     "MouseScrollUp": "WheelUp", "MouseScrollDown": "WheelDown",
 }
-# Mapeo EXACTO (action name en lowercase â†’ semÃ¡ntica normalizada). Las acciones
+# Mapeo EXACTO (action name en lowercase → semántica normalizada). Las acciones
 # no listadas conservan su nombre real del juego en snake_case (preciso y honesto).
 _UE_ACTION_SEM = {
     "jump": "jump", "dodge": "dodge_roll", "roll": "dodge_roll",
@@ -2037,8 +2098,8 @@ def _parse_ue_input_ini(ini_path):
             sc = float(scale) if scale not in (None, "") else 1.0
         except Exception:
             sc = 1.0
-        # CÃ¡mara (look/turn/yaw/pitch) ANTES que movimiento â€” "LookRight" contiene
-        # "right" pero es cÃ¡mara, no strafe.
+        # Cámara (look/turn/yaw/pitch) ANTES que movimiento — "LookRight" contiene
+        # "right" pero es cámara, no strafe.
         if "look" in al or "turn" in al or "yaw" in al or "pitch" in al:
             if "up" in al or "pitch" in al:
                 mapping.setdefault(k, "look_up" if sc > 0 else "look_down")
@@ -2049,7 +2110,7 @@ def _parse_ue_input_ini(ini_path):
         elif "right" in al or "left" in al or "strafe" in al:
             mapping.setdefault(k, "move_right" if sc > 0 else "move_left")
 
-    # â”€â”€ Formato 1: legacy +ActionMappings / +AxisMappings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Formato 1: legacy +ActionMappings / +AxisMappings ─────────────────────
     legacy = False
     for m in re.finditer(r'\+ActionMappings=\(ActionName="([^"]+)".*?Key=([^,)]+)', content):
         legacy = True
@@ -2058,7 +2119,7 @@ def _parse_ue_input_ini(ini_path):
         legacy = True
         _add_axis(m.group(1), m.group(2), m.group(3).strip())
 
-    # â”€â”€ Formato 2: custom UserActionMappings / UserAxisMappings (Icarus, etc.) â”€
+    # ── Formato 2: custom UserActionMappings / UserAxisMappings (Icarus, etc.) ─
     if not legacy:
         for m in re.finditer(r'ActionName="([^"]+)",Key=(\w+)', content):
             _add_action(m.group(1), m.group(2))
@@ -2067,7 +2128,7 @@ def _parse_ue_input_ini(ini_path):
 
     return mapping
 
-# â”€â”€ BÃºsqueda amplia del juego en cualquier disco (Steam libraries) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Búsqueda amplia del juego en cualquier disco (Steam libraries) ────────────
 
 def _meta_steam_libraries():
     """Retorna todas las rutas de bibliotecas de Steam (cualquier disco)."""
@@ -2101,7 +2162,7 @@ def _meta_steam_libraries():
     return list(dict.fromkeys(libs))   # dedup preservando orden
 
 def _meta_find_install_dir(game_name):
-    """Busca la carpeta de instalaciÃ³n del juego en todas las Steam libraries."""
+    """Busca la carpeta de instalación del juego en todas las Steam libraries."""
     if not game_name:
         return None
     def _n(s):
@@ -2118,7 +2179,7 @@ def _meta_find_install_dir(game_name):
                 en = _n(entry)
                 if not en:
                     continue
-                # match exacto, o substring solo si es largo (>=5) â€” evita que un
+                # match exacto, o substring solo si es largo (>=5) — evita que un
                 # nombre corto matchee la carpeta de otro juego (mismo criterio que Unreal).
                 if (en == target
                         or (len(target) >= 5 and target in en)
@@ -2131,32 +2192,32 @@ def _meta_find_install_dir(game_name):
 def _meta_unreal_key_mapping(game_dir, game_name="", exe_path=""):
     """
     Busca key mapping de un juego Unreal Engine:
-    1. Input.ini del usuario en %LOCALAPPDATA%\\{Proyecto}\\... â†’ binding_source: 'config'
-    2. DefaultInput.ini del juego (en install dir, cualquier disco) â†’ 'default'
+    1. Input.ini del usuario en %LOCALAPPDATA%\\{Proyecto}\\... → binding_source: 'config'
+    2. DefaultInput.ini del juego (en install dir, cualquier disco) → 'default'
 
     IMPORTANTE: el match de la carpeta debe ser CONFIABLE. Si no se identifica el
-    Input.ini del juego correcto, se devuelve None (â†’ se infiere del gameplay).
-    NO se usa "el mÃ¡s reciente" como fallback, porque agarraba el Input.ini de OTRO
+    Input.ini del juego correcto, se devuelve None (→ se infiere del gameplay).
+    NO se usa "el más reciente" como fallback, porque agarraba el Input.ini de OTRO
     juego (bug: a "The Last Caretaker" le asignaba el mapping de Icarus).
     """
     def _n(s):
         return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
 
     # Nombres candidatos para identificar la carpeta del proyecto en LOCALAPPDATA:
-    #  - nombre del proyecto Unreal derivado del exe ("VoyageSteam-Win64-Shipping" â†’ "voyagesteam")
-    #  - nombre de la carpeta de instalaciÃ³n
+    #  - nombre del proyecto Unreal derivado del exe ("VoyageSteam-Win64-Shipping" → "voyagesteam")
+    #  - nombre de la carpeta de instalación
     #  - nombre del juego (Airtable)
     proj_names = set()
     if exe_path:
         base = os.path.basename(exe_path)
         base = re.sub(r"\.exe$", "", base, flags=re.IGNORECASE)
-        # quitar sufijos tÃ­picos de Unreal: -Win64-Shipping, -WinGDK-Shipping, -Shipping, -Win64-Test...
+        # quitar sufijos típicos de Unreal: -Win64-Shipping, -WinGDK-Shipping, -Shipping, -Win64-Test...
         base = re.sub(r"[-_](Win64|WinGDK|Win32)([-_](Shipping|Test|Development))?$", "", base, flags=re.IGNORECASE)
         base = re.sub(r"[-_](Shipping|Test|Development)$", "", base, flags=re.IGNORECASE)
         if _n(base):
             proj_names.add(_n(base))
     if game_dir:
-        # .../{Project}/Binaries/Win64 â†’ {Project}
+        # .../{Project}/Binaries/Win64 → {Project}
         proj_names.add(_n(os.path.basename(os.path.dirname(os.path.dirname(game_dir)))))
     if game_name:
         proj_names.add(_n(game_name))
@@ -2169,15 +2230,15 @@ def _meta_unreal_key_mapping(game_dir, game_name="", exe_path=""):
         for p in proj_names:
             if folder == p:
                 return True
-            # match parcial SOLO si el nombre compartido es largo (>=5 chars) â€” evita
-            # falsos positivos de carpetas cortas (ej: "AS" âŠ‚ "theLASTcaretaker").
+            # match parcial SOLO si el nombre compartido es largo (>=5 chars) — evita
+            # falsos positivos de carpetas cortas (ej: "AS" ⊂ "theLASTcaretaker").
             if len(folder) >= 5 and folder in p:
                 return True
             if len(p) >= 5 and p in folder:
                 return True
         return False
 
-    # â”€â”€ Paso 1: Input.ini del usuario (solo si matchea el proyecto con certeza) â”€
+    # ── Paso 1: Input.ini del usuario (solo si matchea el proyecto con certeza) ─
     local = os.environ.get("LOCALAPPDATA", "")
     if local and proj_names:
         candidates  = glob.glob(os.path.join(local, "*", "Saved", "Config", "WindowsNoEditor", "Input.ini"))
@@ -2190,7 +2251,7 @@ def _meta_unreal_key_mapping(game_dir, game_name="", exe_path=""):
                 _obs_dbg(f"unreal key mapping: config usuario {ini} ({len(mapping)} binds)")
                 return mapping, "config"
 
-    # â”€â”€ Paso 2: DefaultInput.ini del juego (install dir, cualquier disco) â”€â”€â”€â”€â”€â”€
+    # ── Paso 2: DefaultInput.ini del juego (install dir, cualquier disco) ──────
     search_dirs = [d for d in (game_dir, _meta_find_install_dir(game_name)) if d]
     for sd in search_dirs:
         # buscar recursivamente Config/DefaultInput.ini hasta 2 niveles
@@ -2231,7 +2292,7 @@ def _meta_source_key_mapping(game_dir, game_name=""):
         _obs_dbg(f"source key mapping: config.cfg no encontrado (dirs={search_dirs})")
         return None, "unknown"
     _obs_dbg(f"source key mapping: usando {cfg}")
-    # Tokens de teclas de gamepad/controller â€” se excluyen del key_mapping de
+    # Tokens de teclas de gamepad/controller — se excluyen del key_mapping de
     # teclado/mouse (el config.cfg de Source bindea ambos al mismo comando).
     _GAMEPAD_TOKENS = ("_BUTTON", "_TRIGGER", "_SHOULDER", "STICK", "DPAD",
                        "A_BUTTON", "B_BUTTON", "X_BUTTON", "Y_BUTTON", "BACK", "START")
@@ -2242,7 +2303,7 @@ def _meta_source_key_mapping(game_dir, game_name=""):
                 m = re.match(r'bind\s+"([^"]+)"\s+"([^"]+)"', line.strip(), re.IGNORECASE)
                 if m:
                     key, cmd = m.group(1).upper(), m.group(2).lower()
-                    # Filtrar binds de gamepad â€” solo teclado y mouse
+                    # Filtrar binds de gamepad — solo teclado y mouse
                     if any(tok in key for tok in _GAMEPAD_TOKENS):
                         continue
                     sem = _SOURCE_SEM.get(cmd)
@@ -2252,8 +2313,8 @@ def _meta_source_key_mapping(game_dir, game_name=""):
     except Exception:
         return None, "unknown"
 
-# ConvenciÃ³n general de inferencia (piso FPS/acciÃ³n). Hoisteada a nivel de mÃ³dulo
-# para reutilizarla tanto en la inferencia como en el cÃ¡lculo de possible_remaps.
+# Convención general de inferencia (piso FPS/acción). Hoisteada a nivel de módulo
+# para reutilizarla tanto en la inferencia como en el cálculo de possible_remaps.
 _INFER_CONV = {
     "w": "move_forward", "a": "move_left", "s": "move_backward", "d": "move_right",
     "space": "jump", "shift": "sprint", "control": "crouch", "ctrl": "crouch",
@@ -2266,7 +2327,7 @@ _INFER_CONV = {
 _INFER_MOUSE_CONV = {"LEFT": "attack_primary", "RIGHT": "aim_or_secondary",
                      "MIDDLE": "special", "X1": "extra_1", "X2": "extra_2"}
 
-# Teclas multimedia/sistema que NO son acciones de gameplay â€” se ignoran al mapear
+# Teclas multimedia/sistema que NO son acciones de gameplay — se ignoran al mapear
 # y no se reportan como possible_remap (ruido para los AI Labs).
 _NON_GAMEPLAY_KEYS = {
     "Volume_Up", "Volume_Down", "Volume_Mute", "Media_Play_Pause", "Media_Next",
@@ -2276,9 +2337,9 @@ _NON_GAMEPLAY_KEYS = {
 }
 
 def _norm_key_for_conv(k):
-    """Normaliza variantes L/R de modificadores al nombre de la convenciÃ³n.
-    El logger escribe 'LShift'/'LControl'/'LAlt'; la convenciÃ³n usa 'shift'/'control'/'alt'.
-    Sin esto, LShift (sprint) y LControl (crouch) se caÃ­an del mapping (bug histÃ³rico)."""
+    """Normaliza variantes L/R de modificadores al nombre de la convención.
+    El logger escribe 'LShift'/'LControl'/'LAlt'; la convención usa 'shift'/'control'/'alt'.
+    Sin esto, LShift (sprint) y LControl (crouch) se caían del mapping (bug histórico)."""
     kl = (k or "").lower()
     if kl in ("lshift", "rshift"):
         return "shift"
@@ -2289,7 +2350,7 @@ def _norm_key_for_conv(k):
     return kl
 
 def _meta_observed_keys(session_dir):
-    """Cuenta teclas/botones realmente usados en la sesiÃ³n.
+    """Cuenta teclas/botones realmente usados en la sesión.
     Retorna (keys_counter, mouse_counter, keys_observed_dict)."""
     import collections
     keys, mouse = collections.Counter(), collections.Counter()
@@ -2313,8 +2374,8 @@ def _meta_observed_keys(session_dir):
 
 def _meta_infer_key_mapping(session_dir):
     """
-    Infiere el key mapping de las teclas/botones realmente usados en la sesiÃ³n
-    + convenciÃ³n FPS/acciÃ³n. Fallback cuando no se encuentra config ni game_default.
+    Infiere el key mapping de las teclas/botones realmente usados en la sesión
+    + convención FPS/acción. Fallback cuando no se encuentra config ni game_default.
     Retorna (mapping, keys_observed).
     """
     keys, mouse, keys_observed = _meta_observed_keys(session_dir)
@@ -2326,7 +2387,7 @@ def _meta_infer_key_mapping(session_dir):
         elif k in _NON_GAMEPLAY_KEYS:
             continue
         elif keys[k] >= 3:
-            # Tecla usada con frecuencia pero sin acciÃ³n conocida: no la perdemos.
+            # Tecla usada con frecuencia pero sin acción conocida: no la perdemos.
             mapping[k] = "unknown_action"
     for b in mouse:
         if b.upper() in _INFER_MOUSE_CONV:
@@ -2335,10 +2396,10 @@ def _meta_infer_key_mapping(session_dir):
 
 def _meta_possible_remaps(key_mapping, keys_observed):
     """
-    Teclas/botones observados que NO estÃ¡n en el mapping autoritativo (config o
+    Teclas/botones observados que NO están en el mapping autoritativo (config o
     game_default). Posible remap del usuario o bind extra. NO se pisa el mapping:
     se reporta aparte con un guess inferido + conteo. Retorna lista (puede ser []).
-    El default no se 'resta' por falta de uso (no es seÃ±al confiable de remap).
+    El default no se 'resta' por falta de uso (no es señal confiable de remap).
     """
     if not keys_observed:
         return []
@@ -2359,16 +2420,16 @@ def _meta_possible_remaps(key_mapping, keys_observed):
 
 def _meta_activity(session_dir, start_ms, end_ms):
     """
-    Mide actividad de input vs inactividad (cutscenes / menÃºs / AFK).
-    Implementado en pleiada_sync_limits para que el gate AFK de acÃ¡ y el del
-    Synch Checker corran exactamente el mismo cÃ¡lculo.
+    Mide actividad de input vs inactividad (cutscenes / menús / AFK).
+    Implementado en pleiada_sync_limits para que el gate AFK de acá y el del
+    Synch Checker corran exactamente el mismo cálculo.
     """
     return sync_limits.activity(session_dir, start_ms, end_ms)
 
 def _meta_key_mapping(exe_path, engine, game_name=""):
     """
     Dispatcher de key mapping. SIEMPRE intenta primero el config REAL del juego
-    (Source: config.cfg / Unreal: Input.ini), buscÃ¡ndolo en cualquier disco.
+    (Source: config.cfg / Unreal: Input.ini), buscándolo en cualquier disco.
     La inferencia del gameplay queda como fallback (se hace fuera, en build_session_metadata).
     """
     game_dir = os.path.dirname(exe_path) if exe_path else None
@@ -2377,10 +2438,10 @@ def _meta_key_mapping(exe_path, engine, game_name=""):
         return _meta_unreal_key_mapping(game_dir, game_name, exe_path)
     elif "source" in eng:
         return _meta_source_key_mapping(game_dir, game_name)
-    return None, "unknown"  # Unity y otros: sin parser â†’ se infiere del gameplay
+    return None, "unknown"  # Unity y otros: sin parser → se infiere del gameplay
 
 
-# â”€â”€â”€ Integridad y protecciÃ³n de archivos (v0.7 / schema 1.1) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Integridad y protección de archivos (v0.7 / schema 1.1) ──────────────────
 
 def _sha256_file(path):
     """SHA-256 de un archivo, leyendo en bloques de 1 MB (soporta MP4 grandes)."""
@@ -2395,15 +2456,15 @@ def _build_integrity(session_dir):
     """
     Bloque de integridad: SHA-256 de los 4 CSV + el MP4 + el demo .dem (POV de TF2/L4D2,
     si existe), sobre los bytes finales (todo ya cerrado por el AHK y movido por OBS, y el
-    demo ya copiado a la carpeta de sesiÃ³n). Certifica el ORIGINAL en el momento de captura;
-    cualquier ediciÃ³n posterior cambia el hash â†’ la sesiÃ³n se rechaza en el upload. No incluye
-    al propio session_metadata.json (no puede hashearse a sÃ­ mismo).
+    demo ya copiado a la carpeta de sesión). Certifica el ORIGINAL en el momento de captura;
+    cualquier edición posterior cambia el hash → la sesión se rechaza en el upload. No incluye
+    al propio session_metadata.json (no puede hashearse a sí mismo).
 
     Las claves son el nombre real del archivo en disco, que desde v0.8.12 coincide con el
     del objeto en S3 (ver `_safe_filename`). `naming: "s3-safe"` lo certifica: si el campo
-    estÃ¡, el consumidor puede buscar el hash por el nombre del archivo tal cual lo recibe.
+    está, el consumidor puede buscar el hash por el nombre del archivo tal cual lo recibe.
     Los datasets subidos antes de v0.8.12 no lo traen y pueden tener el MP4 con espacios
-    acÃ¡ y con guiones bajos en S3 â€” para esos hay que indexar por las dos formas.
+    acá y con guiones bajos en S3 — para esos hay que indexar por las dos formas.
     """
     files = {}
     names = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv", "video_timeline.csv"]
@@ -2423,9 +2484,9 @@ def _build_integrity(session_dir):
                  "affect this record."),
         "files": files,
     }
-    # Solo se declara si TODOS los nombres ya son safe: el marcador es una garantÃ­a para el
-    # consumidor, asÃ­ que no se emite cuando algÃºn archivo llegÃ³ con un nombre inesperado
-    # (p. ej. una sesiÃ³n vieja reprocesada, con el MP4 con espacios todavÃ­a en disco).
+    # Solo se declara si TODOS los nombres ya son safe: el marcador es una garantía para el
+    # consumidor, así que no se emite cuando algún archivo llegó con un nombre inesperado
+    # (p. ej. una sesión vieja reprocesada, con el MP4 con espacios todavía en disco).
     if files and all(n == _safe_filename(n) for n in files):
         bloque["naming"] = "s3-safe"
     return bloque
@@ -2433,9 +2494,9 @@ def _build_integrity(session_dir):
 
 def _protect_session_files(session_dir):
     """
-    Marca CSVs + MP4 + JSON + demo .dem (POV de TF2/L4D2) como solo-lectura. Disuasivo y seÃ±al de finalidad: el usuario
-    puede leerlos y descartar la sesiÃ³n entera, pero no editarlos accidentalmente. Es
-    removible por el dueÃ±o del equipo â€” la garantÃ­a real de no-ediciÃ³n la da el manifiesto
+    Marca CSVs + MP4 + JSON + demo .dem (POV de TF2/L4D2) como solo-lectura. Disuasivo y señal de finalidad: el usuario
+    puede leerlos y descartar la sesión entera, pero no editarlos accidentalmente. Es
+    removible por el dueño del equipo — la garantía real de no-edición la da el manifiesto
     de integridad (`integrity` en el metadata), verificable en el upload.
     """
     try:
@@ -2454,7 +2515,7 @@ def _protect_session_files(session_dir):
 
 
 def _unprotect_session_files(session_dir):
-    """Revierte el read-only de una sesiÃ³n (para flujos que necesiten reescribir/borrar)."""
+    """Revierte el read-only de una sesión (para flujos que necesiten reescribir/borrar)."""
     try:
         for p in session_dir.iterdir():
             try:
@@ -2469,22 +2530,22 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                            obs_window="", modo="manual"):
     """
     Escribe session_metadata.json en session_dir.
-    Llamar despuÃ©s de run_sync_check(), antes de package_session().
-    Solo escribe un archivo nuevo â€” no modifica ningÃºn CSV ni el video.
+    Llamar después de run_sync_check(), antes de package_session().
+    Solo escribe un archivo nuevo — no modifica ningún CSV ni el video.
     Falla silenciosamente.
     """
     try:
         start_ms, end_ms = _meta_csv_anchors(session_dir)
         duration_ms = (end_ms - start_ms) if (start_ms and end_ms) else None
 
-        # Detectar si el anchor fue moof2 o fallback (fallback tiende a ser mÃºltiplo de 1000)
+        # Detectar si el anchor fue moof2 o fallback (fallback tiende a ser múltiplo de 1000)
         anchor_method    = "moof2"
         anchor_precision = 50
         if start_ms and (start_ms % 1000 < 10 or start_ms % 1000 > 990):
             anchor_method    = "fallback_system_time"
             anchor_precision = 1000
 
-        # IDs anÃ³nimos
+        # IDs anónimos
         session_id = _hashlib.sha256(
             f"{session_dir.name}:{start_ms or 0}".encode()
         ).hexdigest()[:16]
@@ -2504,7 +2565,7 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
         hw      = _meta_hardware()
         os_info = _meta_os()
 
-        # frames_dropped: frames esperados segÃºn el tiempo REAL de la sesiÃ³n (CSV anchors)
+        # frames_dropped: frames esperados según el tiempo REAL de la sesión (CSV anchors)
         # menos los frames realmente capturados en el video. Mide la calidad de captura
         # (OBS que no sostuvo el fps nominal). El video_dur sale del propio frame_count,
         # por eso la referencia de tiempo real es csv_dur, no el video.
@@ -2515,7 +2576,7 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
             _fd = _expected - _fc
             frames_dropped = _fd if _fd > 0 else 0
 
-        # Fase 2 â€” detecciÃ³n activa
+        # Fase 2 — detección activa
         game_dir     = os.path.dirname(exe_path) if exe_path else None
         engine_local = _meta_detect_engine(game_dir)
         engine_igdb  = game.get("engine")
@@ -2523,7 +2584,7 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
         engine_source = ("detected" if engine_local
                          else "igdb" if engine_igdb else None)
         game_version = _meta_game_version(exe_path)
-        # Key mapping â€” jerarquÃ­a: config (archivo real) > game_default (curado en
+        # Key mapping — jerarquía: config (archivo real) > game_default (curado en
         # Airtable) > inferred_from_gameplay > unknown.
         # keys_observed se calcula SIEMPRE (para comparar contra el mapping y reportar
         # possible_remaps con transparencia, sin importar la fuente).
@@ -2534,14 +2595,14 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
         if key_map:
             possible_remaps = _meta_possible_remaps(key_map, keys_observed)
         else:
-            # 2) game_default curado (Airtable) â€” fallback cuando no se puede leer el config.
+            # 2) game_default curado (Airtable) — fallback cuando no se puede leer el config.
             default_km = game.get("default_key_mapping")
             if isinstance(default_km, dict) and default_km:
                 key_map = default_km
                 binding_src = "game_default"
                 possible_remaps = _meta_possible_remaps(key_map, keys_observed)
             else:
-                # 3) Inferir del gameplay de la sesiÃ³n.
+                # 3) Inferir del gameplay de la sesión.
                 key_map, _ = _meta_infer_key_mapping(session_dir)
                 binding_src = "inferred_from_gameplay" if key_map else "unknown"
         # window_mode: usar el exe realmente resuelto (Airtable process_name suele ser null)
@@ -2551,7 +2612,7 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
         sys_lang     = _meta_system_language()
         activity     = _meta_activity(session_dir, start_ms, end_ms)
 
-        # Manifiesto de integridad (SHA-256 de CSVs + MP4) â€” schema 1.1.
+        # Manifiesto de integridad (SHA-256 de CSVs + MP4) — schema 1.1.
         integrity = _build_integrity(session_dir)
 
         metadata = {
@@ -2582,20 +2643,20 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 "mode":         game.get("mode"),
                 "process_name": game.get("process_name"),
                 # v0.8.12: el exe REALMENTE resuelto (OBS window string -> wmic, o
-                # ventana por tÃ­tulo -> PID). Antes se calculaba para el window_mode
-                # y se descartaba, y el metadata devolvÃ­a el `process_name` de
-                # Airtable â€” que estÃ¡ vacÃ­o en 538 de 570 juegos. Circular: guardaba
-                # lo que ya sabÃ­amos en vez de lo que la mÃ¡quina habÃ­a averiguado.
-                # Con esto, cada sesiÃ³n reporta el exe real y se puede completar
+                # ventana por título -> PID). Antes se calculaba para el window_mode
+                # y se descartaba, y el metadata devolvía el `process_name` de
+                # Airtable — que está vacío en 538 de 570 juegos. Circular: guardaba
+                # lo que ya sabíamos en vez de lo que la máquina había averiguado.
+                # Con esto, cada sesión reporta el exe real y se puede completar
                 # Airtable sin preguntarle nada a nadie (ingest_process_name_s3.py).
                 "process_detected": _proc_for_window or None,
-                # v0.8.12: el window string crudo de OBS ("TÃ­tulo:Clase:exe.exe",
-                # con los escapes #XX sin tocar) y el tÃ­tulo ya decodificado.
+                # v0.8.12: el window string crudo de OBS ("Título:Clase:exe.exe",
+                # con los escapes #XX sin tocar) y el título ya decodificado.
                 # Es observabilidad, no enforcement: no bloquea nada, pero a
-                # partir de acÃ¡ toda sesiÃ³n queda auto-verificable â€” capa A de QA
-                # puede comparar el exe real contra el tÃ­tulo declarado y levantar
-                # la bandera sola. Sin esto, un mismatch de tÃ­tulo es indetectable
-                # una vez que la sesiÃ³n ya se subiÃ³.
+                # partir de acá toda sesión queda auto-verificable — capa A de QA
+                # puede comparar el exe real contra el título declarado y levantar
+                # la bandera sola. Sin esto, un mismatch de título es indetectable
+                # una vez que la sesión ya se subió.
                 "obs_window_raw":   obs_window or None,
                 "obs_title":        (_obs_unescape((obs_window or "").split(":")[0].strip())
                                      or None),
@@ -2648,23 +2709,23 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 # comparar contra lo declarado sin recalcular.
                 "longest_idle_s": sync_results.get("longest_idle_s"),
                 "idle_fraccion":  sync_results.get("idle_fraccion"),
-                # Gate de video quieto: la imagen no cambiÃ³ (negro / congelado).
-                # Se guardan tambiÃ©n las medidas crudas para poder revisar
-                # server-side dÃ³nde quedÃ³ el corte sin recalcular.
+                # Gate de video quieto: la imagen no cambió (negro / congelado).
+                # Se guardan también las medidas crudas para poder revisar
+                # server-side dónde quedó el corte sin recalcular.
                 "video_still_rejected": sync_results.get("video_still", False),
                 "video_still_ms":       sync_results.get("video_still_ms"),
                 "video_still_ratio":    sync_results.get("video_still_ratio"),
-                # Gate de input vacÃ­o: quedÃ³ registrado o no lo que hizo el
+                # Gate de input vacío: quedó registrado o no lo que hizo el
                 # jugador. El conteo crudo va entero para poder auditar
-                # server-side por quÃ© se rechazÃ³ (o por quÃ© pasÃ³) sin releer
+                # server-side por qué se rechazó (o por qué pasó) sin releer
                 # los CSV.
                 "sin_input_rejected": sync_results.get("sin_input", False),
                 "sin_input_causa":    sync_results.get("sin_input_causa"),
                 "eventos_input":      sync_results.get("eventos_input"),
             },
 
-            # Actividad de input: separa juego activo de cutscenes/menÃºs/AFK.
-            # Para los AI Labs: ratio de relevancia de la sesiÃ³n grabada.
+            # Actividad de input: separa juego activo de cutscenes/menús/AFK.
+            # Para los AI Labs: ratio de relevancia de la sesión grabada.
             **({"activity": activity} if activity else {}),
 
             "environment": {
@@ -2693,7 +2754,7 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
         _obs_dbg(f"build_session_metadata error: {e}")
 
 
-# â”€â”€â”€ Widgets helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Widgets helpers ──────────────────────────────────────────────────────────
 
 def _hex(color):
     return color
@@ -2716,7 +2777,7 @@ def _mk_section_label(parent, text):
     lbl.pack(fill="x", pady=(0, 6))
     return lbl
 
-# â”€â”€â”€ App principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── App principal ────────────────────────────────────────────────────────────
 
 class PleiadaApp:
 
@@ -2735,7 +2796,7 @@ class PleiadaApp:
         y  = (sh - WIN_H) // 2
         self.root.geometry(f"+{x}+{y}")
 
-        # Ãcono de la ventana (alt-tab, barra de tareas)
+        # Ícono de la ventana (alt-tab, barra de tareas)
         _ico = APP_DIR / "gameplay_recorder.ico"
         if _ico.exists():
             try:
@@ -2743,7 +2804,7 @@ class PleiadaApp:
             except Exception:
                 pass
 
-        # Forzar apariciÃ³n en barra de tareas (overrideredirect=True la oculta por defecto)
+        # Forzar aparición en barra de tareas (overrideredirect=True la oculta por defecto)
         try:
             import ctypes as _ct
             _GWL_EXSTYLE      = -20
@@ -2774,7 +2835,7 @@ class PleiadaApp:
         except Exception:
             pass
 
-        # Estado de la sesiÃ³n
+        # Estado de la sesión
         self.logged_in     = False
         self.user_email    = ""
         self.auth_token    = ""
@@ -2784,22 +2845,31 @@ class PleiadaApp:
         self.recording     = False
         self.rec_seconds   = 0
         self._timer_id     = None
-        self._cd_timer_id  = None   # countdown pre-grabaciÃ³n
+        self._cd_timer_id  = None   # countdown pre-grabación
+        # Estado del panel de deteccion. Se inicializa tambien en _show_idle, que
+        # es donde se crean los widgets; estos defaults existen para que un render
+        # que llegue antes de esa pantalla no reviente con AttributeError.
+        self._det_state    = ""
+        self._det_msg      = ""
+        self._det_last     = None
+        self._rec_started  = False  # PLE-157: True recien cuando OBS acepto StartRecord.
+                                    # Entre Iniciar y el 0 del countdown la sesion
+                                    # existe (carpeta creada) pero no hay nada grabado.
         self._pending_anchor = None  # anchor refinado en background durante countdown
         self._obs_prep     = ("", set())  # (rec_dir_str, existing_vids) preparado antes del countdown
-        self._pkg_anim_id  = None   # after-id de la animaciÃ³n de packaging
+        self._pkg_anim_id  = None   # after-id de la animación de packaging
         self._we_stopped   = False  # True cuando NOSOTROS detenemos OBS (para ignorar el evento)
-        self._auto_stopped = False  # v0.7.1: True si el Ãºltimo stop fue por llegar al lÃ­mite de tiempo
-        self._max_seconds  = MAX_SECONDS  # v0.7.1: se setea por sesiÃ³n desde settings
+        self._auto_stopped = False  # v0.7.1: True si el último stop fue por llegar al límite de tiempo
+        self._max_seconds  = MAX_SECONDS  # v0.7.1: se setea por sesión desde settings
         self._auto_restart_cancelled = False  # v0.7.1: cancelar el ciclo durante la cuenta regresiva
-        self._uploading    = False  # v0.8.7: subida en curso â€” bloquea nav (âš™/salir) y doble subida
+        self._uploading    = False  # v0.8.7: subida en curso — bloquea nav (⚙/salir) y doble subida
         self._recording_exe      = ""   # PLE-37: exe del juego capturado (ej: "Borderlands3.exe")
         self._recording_exe_path = ""   # v0.4 Fase 2: ruta completa del exe (para metadata)
         self._recording_obs_window = ""  # v0.8.12: window string crudo de OBS (para metadata)
         self._ahk_proc     = None
         self._dropdown_win      = None
         self._obs_status        = "idle"   # idle | checking | ok | warn | err
-        self._last_sync_statuses = {}      # key â†’ "ok"/"err"/"missing"/"truncated"/"offset"
+        self._last_sync_statuses = {}      # key → "ok"/"err"/"missing"/"truncated"/"offset"
 
         # v0.5: settings + hotkeys globales
         self._settings        = load_settings()
@@ -2807,33 +2877,33 @@ class PleiadaApp:
         self._capturing_hotkey = None   # "start"/"stop" cuando se reasigna un atajo
 
         # v0.8: auto-update
-        self._update_manifest = None    # manifiesto si hay una versiÃ³n nueva
-        self._update_required = False   # True si VERSION < min_version â†’ bloquea grabar
+        self._update_manifest = None    # manifiesto si hay una versión nueva
+        self._update_required = False   # True si VERSION < min_version → bloquea grabar
         self._updating        = False   # descarga del updater en curso
         self._upd_cancel      = False
 
         self._build_window()
         # v0.4: sincronizar lista de juegos con Airtable en background (no bloquea el arranque)
         threading.Thread(target=sync_games_list, daemon=True).start()
-        # v0.5: listener de hotkeys globales (iniciar/detener grabaciÃ³n sin foco)
+        # v0.5: listener de hotkeys globales (iniciar/detener grabación sin foco)
         threading.Thread(target=self._hotkey_listener, daemon=True).start()
-        # v0.8: chequear si hay una versiÃ³n nueva (no bloquea el arranque)
+        # v0.8: chequear si hay una versión nueva (no bloquea el arranque)
         threading.Thread(target=self._update_check_worker, daemon=True).start()
         self._check_auto_login()
 
-    # â”€â”€ ConstrucciÃ³n de la ventana â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Construcción de la ventana ─────────────────────────────────────────────
 
     def _build_window(self):
-        """Frame raÃ­z: borde 1px + contenido."""
+        """Frame raíz: borde 1px + contenido."""
         outer = tk.Frame(self.root, bg=BORDER2, bd=0)
         outer.pack(fill="both", expand=True, padx=1, pady=1)
 
         self._build_titlebar(outer)
         _mk_separator(outer, color=BORDER2)
 
-        # v0.8: banner de actualizaciÃ³n â€” vive FUERA de self.content para
+        # v0.8: banner de actualización — vive FUERA de self.content para
         # sobrevivir a los cambios de pantalla (_clear_content). Oculto hasta
-        # que el chequeo detecte una versiÃ³n nueva.
+        # que el chequeo detecte una versión nueva.
         self._upd_banner = tk.Frame(outer, bg=CARD2)
 
         self.content = tk.Frame(outer, bg=BG)
@@ -2849,25 +2919,25 @@ class PleiadaApp:
         # son pasos, y de cualquiera se tiene que poder volver. Se oculta cuando
         # no hay a donde ir (pantalla inicial) y mientras se graba: ahi el unico
         # camino valido es Detener o Cancelar.
-        self._back_btn = tk.Label(tb, text="â€¹", fg=DIM, bg=BG2, width=2,
+        self._back_btn = tk.Label(tb, text="‹", fg=DIM, bg=BG2, width=2,
                                   font=("Segoe UI", 14), cursor="hand2",
                                   anchor="center")
         self._back_btn.bind("<Button-1>", lambda e: self._go_back())
         self._back_btn.bind("<Enter>", lambda e: self._back_btn.config(fg=TEXT))
         self._back_btn.bind("<Leave>", lambda e: self._back_btn.config(fg=DIM))
 
-        # Logo mark (âœ¦)
-        tk.Label(tb, text="âœ¦", fg=ACCENT, bg=BG2,
+        # Logo mark (✦)
+        tk.Label(tb, text="✦", fg=ACCENT, bg=BG2,
                  font=("Segoe UI", 11, "bold")).pack(side="left", padx=(14, 0), pady=8)
 
-        # TÃ­tulo + versiÃ³n
+        # Título + versión
         tk.Label(tb, text="Gameplay Recorder", fg=TEXT, bg=BG2,
                  font=("Segoe UI", 11, "bold")).pack(side="left", padx=(6, 2))
         tk.Label(tb, text=VERSION, fg=DIM, bg=BG2,
                  font=("Segoe UI", 9)).pack(side="left")
 
-        # BotÃ³n cerrar â€” la Ã— se ve siempre (Bug 5), centrada en el cuadrado
-        close_btn = tk.Label(tb, text="Ã—", bg="#3a2a3e", fg=DIM, width=2,
+        # Botón cerrar — la × se ve siempre (Bug 5), centrada en el cuadrado
+        close_btn = tk.Label(tb, text="×", bg="#3a2a3e", fg=DIM, width=2,
                              font=("Segoe UI", 12), anchor="center",
                              cursor="hand2", relief="flat")
         close_btn.pack(side="right", padx=(0, 12), pady=10)
@@ -2875,7 +2945,7 @@ class PleiadaApp:
         close_btn.bind("<Enter>",  lambda e: close_btn.config(fg="#ff5f57"))
         close_btn.bind("<Leave>",  lambda e: close_btn.config(fg=DIM))
 
-        # Nombre de usuario (solo display â€” el deslogueo estÃ¡ en Opciones âš™). Bug 3.
+        # Nombre de usuario (solo display — el deslogueo está en Opciones ⚙). Bug 3.
         self._signout_lbl = tk.Label(tb, text="", fg=DIM, bg=BG2,
                                       font=("Segoe UI", 10))
         self._signout_lbl.pack(side="right", padx=(0, 14))
@@ -2884,8 +2954,8 @@ class PleiadaApp:
         # Sep vertical antes de close dot
         tk.Frame(tb, bg=BORDER2, width=1, height=16).pack(side="right", pady=11)
 
-        # v0.5: Ã­cono de Settings (âš™)
-        self._settings_btn = tk.Label(tb, text="âš™", fg=DIM, bg=BG2,
+        # v0.5: ícono de Settings (⚙)
+        self._settings_btn = tk.Label(tb, text="⚙", fg=DIM, bg=BG2,
                                        font=("Segoe UI", 12), cursor="hand2")
         self._settings_btn.pack(side="right", padx=(0, 10))
         self._settings_btn.bind("<Button-1>", lambda e: self._show_settings())
@@ -2901,7 +2971,7 @@ class PleiadaApp:
     def _drag_start(self, e):
         self._drag_x = e.x_root - self.root.winfo_x()
         self._drag_y = e.y_root - self.root.winfo_y()
-        # Bug 4: ocultar el dropdown de bÃºsqueda al mover el floater (sino queda desfasado)
+        # Bug 4: ocultar el dropdown de búsqueda al mover el floater (sino queda desfasado)
         self._hide_dropdown()
 
     def _drag_move(self, e):
@@ -2909,11 +2979,11 @@ class PleiadaApp:
         y = e.y_root - self._drag_y
         self.root.geometry(f"+{x}+{y}")
 
-    # â”€â”€ Auto-update (v0.8) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Auto-update (v0.8) ─────────────────────────────────────────────────────
 
     def _update_check_worker(self):
-        """Corre en un thread daemon al arrancar. Nunca lanza excepciÃ³n."""
-        # Limpiar el updater residual de una actualizaciÃ³n anterior
+        """Corre en un thread daemon al arrancar. Nunca lanza excepción."""
+        # Limpiar el updater residual de una actualización anterior
         try:
             (TEMP_DIR / "PleiadaRecorder_Update.exe").unlink(missing_ok=True)
         except Exception:
@@ -2967,19 +3037,19 @@ class PleiadaApp:
     def _upd_show_offer(self):
         m = self._update_manifest or {}
         if self._update_required:
-            btns = self._upd_row("Esta versiÃ³n ya no es compatible. "
-                                 "ActualizÃ¡ para seguir grabando.", fg="#f5d77a")
+            btns = self._upd_row("Esta versión ya no es compatible. "
+                                 "Actualizá para seguir grabando.", fg="#f5d77a")
         else:
-            btns = self._upd_row(f"Nueva versiÃ³n disponible ({m.get('version', '')})")
-            self._upd_btn(btns, "MÃ¡s tarde", self._upd_hide)
+            btns = self._upd_row(f"Nueva versión disponible ({m.get('version', '')})")
+            self._upd_btn(btns, "Más tarde", self._upd_hide)
         self._upd_btn(btns, "Actualizar ahora", self._upd_start_download, primary=True)
 
     def _upd_show_error(self):
         self._updating = False
-        btns = self._upd_row("No se pudo descargar la actualizaciÃ³n. "
-                             "ProbÃ¡ de nuevo mÃ¡s tarde.", fg="#f5d77a")
+        btns = self._upd_row("No se pudo descargar la actualización. "
+                             "Probá de nuevo más tarde.", fg="#f5d77a")
         if not self._update_required:
-            self._upd_btn(btns, "MÃ¡s tarde", self._upd_hide)
+            self._upd_btn(btns, "Más tarde", self._upd_hide)
         self._upd_btn(btns, "Reintentar", self._upd_start_download, primary=True)
 
     def _upd_start_download(self):
@@ -2988,7 +3058,7 @@ class PleiadaApp:
         if self.recording:
             import tkinter.messagebox as _mb
             _mb.showwarning("Gameplay Recorder",
-                            "TerminÃ¡ la grabaciÃ³n antes de actualizar.")
+                            "Terminá la grabación antes de actualizar.")
             return
         url = (self._update_manifest or {}).get("update_url")
         if not url:
@@ -2996,7 +3066,7 @@ class PleiadaApp:
             return
         self._updating   = True
         self._upd_cancel = False
-        btns = self._upd_row("Descargando actualizaciÃ³n... 0%")
+        btns = self._upd_row("Descargando actualización... 0%")
         self._upd_btn(btns, "Cancelar", self._upd_cancel_download)
         threading.Thread(
             target=self._upd_download_worker,
@@ -3008,7 +3078,7 @@ class PleiadaApp:
 
     def _upd_set_progress(self, pct):
         if self._updating and self._upd_text_lbl.winfo_exists():
-            self._upd_text_lbl.config(text=f"Descargando actualizaciÃ³n... {pct}%")
+            self._upd_text_lbl.config(text=f"Descargando actualización... {pct}%")
 
     def _upd_download_worker(self, url, sha256_expected):
         """Descarga el updater a %TEMP% verificando SHA-256. Thread daemon."""
@@ -3034,10 +3104,10 @@ class PleiadaApp:
                         if pct != last_pct:
                             last_pct = pct
                             self.root.after(0, lambda p=pct: self._upd_set_progress(p))
-            # Integridad: el hash del manifiesto lo publicÃ³ el CI junto al .exe
+            # Integridad: el hash del manifiesto lo publicó el CI junto al .exe
             if ok and sha256_expected and \
                     h.hexdigest().lower() != str(sha256_expected).strip().lower():
-                _obs_dbg("update: SHA-256 no coincide â€” descarga descartada")
+                _obs_dbg("update: SHA-256 no coincide — descarga descartada")
                 ok = False
         except Exception as e:
             _obs_dbg(f"update: error de descarga: {e}")
@@ -3059,21 +3129,21 @@ class PleiadaApp:
         self._upd_row("El Recorder se va a cerrar para actualizarse. "
                       "Se abre solo al terminar.")
         try:
-            # El .exe pide admin en su manifest â†’ ShellExecute dispara UAC solo.
+            # El .exe pide admin en su manifest → ShellExecute dispara UAC solo.
             # Si el usuario rechaza el UAC, startfile lanza OSError.
             os.startfile(str(exe_path),
                          arguments="/SILENT /NORESTART /SUPPRESSMSGBOXES")
         except OSError:
             self._upd_show_error()
             return
-        # El updater cierra la app igual (taskkill) â€” esto es el camino prolijo.
+        # El updater cierra la app igual (taskkill) — esto es el camino prolijo.
         self.root.after(800, self.root.destroy)
 
-    # â”€â”€ Login â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Login ──────────────────────────────────────────────────────────────────
 
     def _check_auto_login(self):
-        # Login optimista: si hay token guardado, entramos. Si el token venciÃ³,
-        # el upload devuelve "auth" y ahÃ­ forzamos re-login con OTP.
+        # Login optimista: si hay token guardado, entramos. Si el token venció,
+        # el upload devuelve "auth" y ahí forzamos re-login con OTP.
         auth = load_auth()
         if auth and auth.get("token") and auth.get("email"):
             self.logged_in  = True
@@ -3093,8 +3163,18 @@ class PleiadaApp:
         def _worker(token=self.auth_token):
             try:
                 calls = pleiada_api.my_calls(token)
+            except pleiada_api.ApiError as e:
+                # PLE-164: el auto-login es optimista y nunca valida el token
+                # guardado. Esta es la primera consulta que hace la app, así que
+                # es acá donde se nota que venció (dura 30 días). Antes se
+                # tragaba en silencio y el usuario se enteraba por un error de
+                # detección que no explicaba nada.
+                if _es_error_de_sesion(e):
+                    self.root.after(0, lambda: self._on_auth_expired(
+                        "Volvé a iniciar sesión con tu email para seguir grabando."))
+                return   # cualquier otro error: se reintenta en el próximo evento
             except Exception:
-                return   # sin red / token viejo: se reintenta en el prÃ³ximo evento
+                return   # sin red: se reintenta en el próximo evento
             def _apply():
                 self.open_calls = calls
             self.root.after(0, _apply)
@@ -3102,7 +3182,7 @@ class PleiadaApp:
 
     def _calls_for_game(self, game_title):
         """Inscripciones activas cuyo Open Call acepta este juego (matching local,
-        espejo del criterio del backend: lista de juegos o genre âˆˆ categorÃ­as)."""
+        espejo del criterio del backend: lista de juegos o genre ∈ categorías)."""
         t = (game_title or "").strip().lower()
         if not t:
             return []
@@ -3116,13 +3196,13 @@ class PleiadaApp:
             if c.get("status") != "activa" or not c.get("call_activo", True):
                 continue
             # `call_activo` significa VISIBLE, y el backend trae activo + completado:
-            # una orden completada hacÃ­a dÃ­as se seguÃ­a ofreciendo como destino de
+            # una orden completada hacía días se seguía ofreciendo como destino de
             # subida (bug 15/08, caso GA-2026-007). El que manda es `call_status`,
             # el status crudo de la orden en Airtable.
-            # Ojo: NO usar `call_estado`, que tambiÃ©n dice "completado" cuando la
-            # orden llegÃ³ al 100% de horas pero sigue activa â€” ese caso tiene que
+            # Ojo: NO usar `call_estado`, que también dice "completado" cuando la
+            # orden llegó al 100% de horas pero sigue activa — ese caso tiene que
             # seguir aceptando subidas hasta el overflow del backend, que es lo que
-            # evita perder la sesiÃ³n que estabas grabando cuando la orden se llenÃ³.
+            # evita perder la sesión que estabas grabando cuando la orden se llenó.
             if c.get("call_status", "activo") == "completado":
                 continue
             rem = c.get("remaining_seconds")
@@ -3139,20 +3219,20 @@ class PleiadaApp:
 
     def _set_signout_label(self, email):
         _uname = email.split('@')[0]
-        _uname = (_uname[:20] + "â€¦") if len(_uname) > 20 else _uname  # PLE-36
+        _uname = (_uname[:20] + "…") if len(_uname) > 20 else _uname  # PLE-36
         self._signout_lbl.config(text=f"  {_uname}")
         self._signout_lbl.pack(side="right", padx=(0, 14))
 
     def _login_header(self, frame):
         tk.Frame(frame, bg=BG, height=30).pack()
-        tk.Label(frame, text="âœ¦", fg=ACCENT, bg=BG,
+        tk.Label(frame, text="✦", fg=ACCENT, bg=BG,
                  font=("Segoe UI", 28)).pack()
         tk.Label(frame, text="Gameplay Recorder", fg=TEXT, bg=BG,
                  font=("Segoe UI", 17, "bold")).pack(pady=(10, 0))
-        tk.Label(frame, text="Gameplay Alliance â€” sesiÃ³n de grabaciÃ³n", fg=DIM, bg=BG,
+        tk.Label(frame, text="Gameplay Alliance — sesión de grabación", fg=DIM, bg=BG,
                  font=("Segoe UI", 11)).pack(pady=(4, 32))
 
-    # â”€â”€ Login paso 1: pedir el cÃ³digo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Login paso 1: pedir el código ───────────────────────────────────────────
 
     def _show_login(self):
         self._clear_content()
@@ -3161,9 +3241,9 @@ class PleiadaApp:
         frame.pack(fill="both", expand=True, padx=36, pady=0)
         self._login_header(frame)
 
-        tk.Label(frame, text="IniciÃ¡ sesiÃ³n", fg=TEXT, bg=BG,
+        tk.Label(frame, text="Iniciá sesión", fg=TEXT, bg=BG,
                  font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x")
-        tk.Label(frame, text="IngresÃ¡ el email con el que te registraste al programa.",
+        tk.Label(frame, text="Ingresá el email con el que te registraste al programa.",
                  fg=DIM, bg=BG, font=("Segoe UI", 10), anchor="w",
                  justify="left", wraplength=WIN_W - 80).pack(fill="x", pady=(4, 22))
 
@@ -3182,7 +3262,7 @@ class PleiadaApp:
                            wraplength=WIN_W - 80, justify="left")
         err_lbl.pack(pady=(0, 6))
 
-        btn = tk.Button(frame, text="Enviar cÃ³digo", fg="#fff", bg=ACCENT,
+        btn = tk.Button(frame, text="Enviar código", fg="#fff", bg=ACCENT,
                         relief="flat", bd=0, cursor="hand2",
                         font=("Segoe UI", 12, "bold"),
                         activebackground="#9080e0", activeforeground="#fff")
@@ -3191,10 +3271,10 @@ class PleiadaApp:
         def on_send():
             email = email_var.get().strip().lower()
             if "@" not in email or "." not in email:
-                err_lbl.config(text="IngresÃ¡ un email vÃ¡lido.")
+                err_lbl.config(text="Ingresá un email válido.")
                 return
             err_lbl.config(text="")
-            btn.config(text="Enviandoâ€¦", state="disabled")
+            btn.config(text="Enviando…", state="disabled")
 
             def _worker():
                 try:
@@ -3203,7 +3283,7 @@ class PleiadaApp:
                 except pleiada_api.ApiError as e:
                     msg = str(e)
                     self.root.after(0, lambda: (
-                        btn.config(text="Enviar cÃ³digo", state="normal"),
+                        btn.config(text="Enviar código", state="normal"),
                         err_lbl.config(text=msg)))
             threading.Thread(target=_worker, daemon=True).start()
 
@@ -3211,7 +3291,7 @@ class PleiadaApp:
         email_entry.bind("<Return>", lambda e: on_send())
         email_entry.focus()
 
-    # â”€â”€ Login paso 2: ingresar el cÃ³digo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Login paso 2: ingresar el código ─────────────────────────────────────────
 
     def _show_otp_step(self, email):
         self._clear_content()
@@ -3219,13 +3299,13 @@ class PleiadaApp:
         frame.pack(fill="both", expand=True, padx=36, pady=0)
         self._login_header(frame)
 
-        tk.Label(frame, text="RevisÃ¡ tu email", fg=TEXT, bg=BG,
+        tk.Label(frame, text="Revisá tu email", fg=TEXT, bg=BG,
                  font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x")
-        tk.Label(frame, text=f"Te enviamos un cÃ³digo de 6 dÃ­gitos a\n{email}",
+        tk.Label(frame, text=f"Te enviamos un código de 6 dígitos a\n{email}",
                  fg=DIM, bg=BG, font=("Segoe UI", 10), anchor="w",
                  justify="left", wraplength=WIN_W - 80).pack(fill="x", pady=(4, 22))
 
-        tk.Label(frame, text="CÃ“DIGO", fg=DIM, bg=BG,
+        tk.Label(frame, text="CÓDIGO", fg=DIM, bg=BG,
                  font=("Segoe UI", 9, "bold"), anchor="w").pack(fill="x", pady=(0, 5))
         code_var = tk.StringVar()
         code_entry = tk.Entry(frame, textvariable=code_var, bg=CARD, fg=TEXT,
@@ -3249,10 +3329,10 @@ class PleiadaApp:
         def on_verify():
             code = code_var.get().strip()
             if len(code) < 6:
-                err_lbl.config(text="El cÃ³digo tiene 6 dÃ­gitos.")
+                err_lbl.config(text="El código tiene 6 dígitos.")
                 return
             err_lbl.config(text="")
-            btn.config(text="Verificandoâ€¦", state="disabled")
+            btn.config(text="Verificando…", state="disabled")
 
             def _worker():
                 try:
@@ -3281,20 +3361,20 @@ class PleiadaApp:
         links = tk.Frame(frame, bg=BG)
         links.pack(fill="x", pady=(16, 0))
 
-        resend_lbl = tk.Label(links, text="Reenviar cÃ³digo", fg=ACCENT, bg=BG,
+        resend_lbl = tk.Label(links, text="Reenviar código", fg=ACCENT, bg=BG,
                               font=("Segoe UI", 10), cursor="hand2")
         resend_lbl.pack(side="left")
 
         def on_resend(e=None):
-            resend_lbl.config(text="Reenviandoâ€¦", fg=DIM)
+            resend_lbl.config(text="Reenviando…", fg=DIM)
             def _worker():
                 try:
                     pleiada_api.request_otp(email)
                     self.root.after(0, lambda: resend_lbl.config(
-                        text="CÃ³digo reenviado", fg=GREEN))
+                        text="Código reenviado", fg=GREEN))
                 except pleiada_api.ApiError:
                     self.root.after(0, lambda: resend_lbl.config(
-                        text="Reenviar cÃ³digo", fg=ACCENT))
+                        text="Reenviar código", fg=ACCENT))
             threading.Thread(target=_worker, daemon=True).start()
         resend_lbl.bind("<Button-1>", on_resend)
 
@@ -3307,7 +3387,7 @@ class PleiadaApp:
         if self.recording:
             return  # no sign out during recording
         if self._uploading:
-            return  # v0.8.7: cerrar sesiÃ³n a mitad de subida romperÃ­a el finalize
+            return  # v0.8.7: cerrar sesión a mitad de subida rompería el finalize
         self.logged_in  = False
         self.auth_token = ""
         self.selected_game = None
@@ -3315,24 +3395,24 @@ class PleiadaApp:
         self._signout_lbl.pack_forget()
         self._show_login()
 
-    # â”€â”€ Settings (v0.5) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Settings (v0.5) ────────────────────────────────────────────────────────
 
     def _show_settings(self):
         if self.recording:
-            return  # no abrir settings durante la grabaciÃ³n
+            return  # no abrir settings durante la grabación
         if self._uploading:
-            return  # v0.8.7: tampoco durante una subida (destruÃ­a la vista de progreso
-                    # y dejaba el thread zombi â€” la Ãºnica salida vÃ¡lida es Cancelar)
+            return  # v0.8.7: tampoco durante una subida (destruía la vista de progreso
+                    # y dejaba el thread zombi — la única salida válida es Cancelar)
         if not self.logged_in:
-            return  # settings solo con sesiÃ³n iniciada
+            return  # settings solo con sesión iniciada
         self._capturing_hotkey = None
         self._clear_content()
         self._set_back(self._show_idle)
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
 
-        # Back arriba â€” siempre visible (v0.7.1)
-        _back = tk.Label(frame, text="â†  Volver", fg=DIM, bg=BG,
+        # Back arriba — siempre visible (v0.7.1)
+        _back = tk.Label(frame, text="←  Volver", fg=DIM, bg=BG,
                          font=("Segoe UI", 10), cursor="hand2", anchor="w")
         _back.pack(fill="x", pady=(0, 10))
         _back.bind("<Button-1>", lambda e: self._show_idle())
@@ -3341,23 +3421,23 @@ class PleiadaApp:
 
         _mk_section_label(frame, "AJUSTES")
 
-        # â€” VersiÃ³n â€”
+        # — Versión —
         vrow = tk.Frame(frame, bg=BG)
         vrow.pack(fill="x", pady=(2, 0))
-        tk.Label(vrow, text="VersiÃ³n:", fg=DIM, bg=BG,
+        tk.Label(vrow, text="Versión:", fg=DIM, bg=BG,
                  font=("Segoe UI", 10)).pack(side="left")
         tk.Label(vrow, text=f"  {VERSION}", fg=TEXT, bg=BG,
                  font=("Segoe UI", 10, "bold")).pack(side="left")
-        tk.Label(vrow, text="âœ“ Actualizado", fg=GREEN, bg=BG,
+        tk.Label(vrow, text="✓ Actualizado", fg=GREEN, bg=BG,
                  font=("Segoe UI", 9)).pack(side="right")
 
         _mk_separator(frame, color=BORDER2, pady=(14, 12))
 
-        # â€” Atajos de teclado â€”
+        # — Atajos de teclado —
         _mk_section_label(frame, "ATAJOS DE TECLADO")
         self._hotkey_btns = {}
-        for key, label in (("hotkey_start", "Iniciar grabaciÃ³n"),
-                           ("hotkey_stop",  "Detener grabaciÃ³n")):
+        for key, label in (("hotkey_start", "Iniciar grabación"),
+                           ("hotkey_stop",  "Detener grabación")):
             hrow = tk.Frame(frame, bg=BG)
             hrow.pack(fill="x", pady=3)
             tk.Label(hrow, text=label + ":", fg=TEXT, bg=BG,
@@ -3369,17 +3449,17 @@ class PleiadaApp:
             btn.pack(side="right")
             btn.bind("<Button-1>", lambda e, k=key: self._begin_capture_hotkey(k))
             self._hotkey_btns[key] = btn
-        tk.Label(frame, text="HacÃ© clic en un atajo y presionÃ¡ la nueva tecla.\n"
-                              "Los atajos funcionan aunque la ventana no estÃ© en foco.",
+        tk.Label(frame, text="Hacé clic en un atajo y presioná la nueva tecla.\n"
+                              "Los atajos funcionan aunque la ventana no esté en foco.",
                  fg=DIM, bg=BG, font=("Segoe UI", 9), justify="left",
                  wraplength=WIN_W - 60, anchor="w").pack(fill="x", pady=(8, 0))
 
         _mk_separator(frame, color=BORDER2, pady=(14, 12))
 
-        # â€” GrabaciÃ³n (v0.7.1) â€”
-        _mk_section_label(frame, "GRABACIÃ“N")
+        # — Grabación (v0.7.1) —
+        _mk_section_label(frame, "GRABACIÓN")
 
-        tk.Label(frame, text="DuraciÃ³n mÃ¡xima de sesiÃ³n", fg=TEXT, bg=BG,
+        tk.Label(frame, text="Duración máxima de sesión", fg=TEXT, bg=BG,
                  font=("Segoe UI", 10), anchor="w").pack(fill="x", pady=(2, 2))
         self._maxdur_lbl = tk.Label(frame, text="", fg=ACCENT, bg=BG,
                                     font=("Cascadia Code", 12, "bold"), anchor="w")
@@ -3396,15 +3476,15 @@ class PleiadaApp:
             _b.bind("<Button-1>", lambda e, m=_mins: self._set_max_minutes(m))
             self._maxdur_preset_btns[_mins] = _b
 
-        tk.Label(frame, text="La grabaciÃ³n se detiene automÃ¡ticamente al alcanzar este tiempo. "
-                             "MÃ¡ximo 1 hora.",
+        tk.Label(frame, text="La grabación se detiene automáticamente al alcanzar este tiempo. "
+                             "Máximo 1 hora.",
                  fg=DIM, bg=BG, font=("Segoe UI", 9), justify="left",
                  wraplength=WIN_W - 60, anchor="w").pack(fill="x", pady=(6, 0))
         self._refresh_maxdur_ui()
 
         ar_row = tk.Frame(frame, bg=BG)
         ar_row.pack(fill="x", pady=(14, 0))
-        tk.Label(ar_row, text="Reiniciar grabaciÃ³n automÃ¡ticamente", fg=TEXT, bg=BG,
+        tk.Label(ar_row, text="Reiniciar grabación automáticamente", fg=TEXT, bg=BG,
                  font=("Segoe UI", 10), anchor="w").pack(side="left")
         self._autorestart_btn = tk.Label(ar_row, text="", bg=CARD, fg=DIM,
                                           font=("Segoe UI", 9, "bold"), cursor="hand2",
@@ -3414,18 +3494,18 @@ class PleiadaApp:
         self._autorestart_btn.bind("<Button-1>", lambda e: self._toggle_auto_restart())
         self._refresh_autorestart_ui()
 
-        tk.Label(frame, text="Cuando una grabaciÃ³n se detiene por alcanzar la duraciÃ³n mÃ¡xima, "
-                             "espera 10 segundos e inicia una nueva sesiÃ³n automÃ¡ticamente. "
-                             "Cada sesiÃ³n se guarda en su propia carpeta â€” no se sobrescriben.",
+        tk.Label(frame, text="Cuando una grabación se detiene por alcanzar la duración máxima, "
+                             "espera 10 segundos e inicia una nueva sesión automáticamente. "
+                             "Cada sesión se guarda en su propia carpeta — no se sobrescriben.",
                  fg=DIM, bg=BG, font=("Segoe UI", 9), justify="left",
                  wraplength=WIN_W - 60, anchor="w").pack(fill="x", pady=(6, 0))
 
         _mk_separator(frame, color=BORDER2, pady=(14, 12))
 
-        # â€” Cuenta (sin tÃ­tulo, v0.7.1) â€”
-        tk.Label(frame, text=self.user_email or "â€”", fg=DIM, bg=BG,
+        # — Cuenta (sin título, v0.7.1) —
+        tk.Label(frame, text=self.user_email or "—", fg=DIM, bg=BG,
                  font=("Segoe UI", 10), anchor="w").pack(fill="x")
-        tk.Button(frame, text="Cerrar sesiÃ³n", fg=TEXT, bg=CARD,
+        tk.Button(frame, text="Cerrar sesión", fg=TEXT, bg=CARD,
                   relief="flat", bd=0, cursor="hand2",
                   font=("Segoe UI", 10), activebackground=CARD2,
                   activeforeground=TEXT, command=self._sign_out,
@@ -3435,7 +3515,7 @@ class PleiadaApp:
         # spacer al fondo (el back vive arriba ahora)
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
 
-    # â”€â”€ Settings: duraciÃ³n mÃ¡xima y auto-reinicio (v0.7.1) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Settings: duración máxima y auto-reinicio (v0.7.1) ─────────────────────
 
     def _set_max_minutes(self, mins):
         try:
@@ -3471,10 +3551,10 @@ class PleiadaApp:
             pass
 
     def _begin_capture_hotkey(self, key):
-        """Entra en modo captura: el prÃ³ximo KeyPress define el atajo."""
+        """Entra en modo captura: el próximo KeyPress define el atajo."""
         self._capturing_hotkey = key
         btn = self._hotkey_btns[key]
-        btn.config(text="PresionÃ¡ una teclaâ€¦", fg=YELLOW)
+        btn.config(text="Presioná una tecla…", fg=YELLOW)
         self.root.bind("<KeyPress>", self._on_capture_keypress)
         self.root.focus_force()
 
@@ -3486,7 +3566,7 @@ class PleiadaApp:
         self.root.unbind("<KeyPress>")
         self._capturing_hotkey = None
         if vk is None:
-            # tecla no soportada â†’ restaurar
+            # tecla no soportada → restaurar
             self._hotkey_btns[key].config(text=self._settings[key]["label"], fg=ACCENT)
             return
         # Evitar que start y stop sean la misma tecla
@@ -3501,7 +3581,7 @@ class PleiadaApp:
         self._hotkey_btns[key].config(text=label, fg=ACCENT)
 
     def _hotkey_listener(self):
-        """Thread daemon: detecta los hotkeys globales vÃ­a GetAsyncKeyState.
+        """Thread daemon: detecta los hotkeys globales vía GetAsyncKeyState.
         Funciona aunque la ventana no tenga foco (incl. fullscreen exclusivo)."""
         try:
             user32 = ctypes.windll.user32
@@ -3523,7 +3603,7 @@ class PleiadaApp:
                 prev[key] = down
 
     def _hotkey_start(self):
-        # Solo si hay sesiÃ³n, juego seleccionado, OBS ok y no grabando
+        # Solo si hay sesión, juego seleccionado, OBS ok y no grabando
         if self.recording or not self.logged_in:
             return
         if self.selected_game:
@@ -3533,7 +3613,55 @@ class PleiadaApp:
         if self.recording:
             self._stop_recording()
 
-    # â”€â”€ Pantalla Idle (selector de juego) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Pantalla Idle (selector de juego) ──────────────────────────────────────
+
+    # Tips de calidad. Van acá y no en el tutorial web porque es lo que el
+    # jugador tiene delante justo antes de apretar Iniciar, que es cuando sirven.
+    # Los íconos se ven MONOCROMOS: Tk 8.6 dibuja el glifo del emoji pero no la
+    # versión a color. Se verificó que los astrales (U+1F3AE y compañía) no
+    # rompen el render — en Tk viejos tiraban TclError. Sin selector de variación
+    # (U+FE0F): Tk lo dibuja como un glifo vacío y corre el texto de la fila.
+    #
+    # El aviso del gate AFK vive en el primer tip. Antes era un párrafo aparte
+    # arriba del panel; se movió acá el 20/8 para que esté donde el jugador lee
+    # las reglas. A propósito NO dice el umbral exacto (pedido de Martín 20/7).
+    _TIPS = (
+        ("\U0001F3AE", "Gameplay puro: nada de menús, inventario ni cinemáticas "
+                       "(y si las hay, salteálas). Períodos largos sin actividad "
+                       "de teclado o mouse van a ser rechazados"),
+        ("⚙", "Ajustá settings ANTES de grabar, nunca durante"),
+        ("\U0001F5A5", "Ultrawide del monitor: configuralo en OBS como monitor normal"),
+        ("\U0001F399", "Muteá tu micrófono"),
+        ("\U0001F3A5", "Cuidá que la imagen se vea nítida y estable"),
+        ("⌨", "Usá los controles DEFAULT del título, sin remapear"),
+        ("\U0001F4DD", "Cargá la metadata de controles en tu perfil "
+                       "(¡suma ticket! \U0001F39F)"),
+        ("\U0001F504", "Variá el contenido, no repitas siempre lo mismo"),
+    )
+
+    def _tips_panel(self, parent):
+        """La ventana es fija (420x730) y el pie no se puede empujar afuera.
+
+        Por eso el icono va DENTRO del mismo label que el texto en vez de en una
+        columna aparte: sin la columna, cada tip gana ~28 px de ancho util y los
+        que antes ocupaban dos renglones entran en uno. El panel completo tiene
+        que caber en el hueco que queda entre el aviso de AFK y el boton Iniciar.
+        """
+        tk.Label(parent, text="\U0001F4A1 TIPS esenciales para tu Gameplay \U0001F4A1",
+                 fg=ACCENT, bg=BG, font=("Segoe UI", 9, "bold")).pack(fill="x", pady=(0, 3))
+        box = tk.Frame(parent, bg=CARD, highlightthickness=1,
+                       highlightbackground=BORDER2)
+        box.pack(fill="x")
+        for ico, txt in self._TIPS:
+            # WIN_W - 64: el frame padre ya come 22 px por lado, el borde 1 y el
+            # padx de abajo 7. Poner mas que eso no ensancha nada, clipea el texto.
+            tk.Label(box, text=f"{ico}  {txt}", fg=DIM, bg=CARD,
+                     font=("Segoe UI", 8), anchor="w", justify="left",
+                     wraplength=WIN_W - 64).pack(fill="x", padx=7, pady=1)
+        tk.Label(parent, text="Cuanto mejor sigas esto, más rápido pasa tu sesión el "
+                              "control de calidad \U0001F680",
+                 fg=DIMMER, bg=BG, font=("Segoe UI", 8), justify="left",
+                 anchor="w", wraplength=WIN_W - 60).pack(fill="x", pady=(3, 0))
 
     def _show_idle(self):
         self._clear_content()
@@ -3543,49 +3671,58 @@ class PleiadaApp:
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
 
-        # â€” SecciÃ³n: Juego (detecciÃ³n automÃ¡tica, v0.9) â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
-        # Ya no hay selector: el juego sale de lo que OBS estÃ¡ capturando y lo
-        # resuelve el backend. Este frame se rellena solo, segÃºn el estado.
-        _mk_section_label(frame, "JUEGO DETECTADO")
+        # — Sección: Juego (detección automática, v0.9) ————————————
+        # Ya no hay selector: el juego sale de lo que OBS está capturando y lo
+        # resuelve el backend. Este frame se rellena solo, según el estado.
+        _mk_section_label(frame, "TÍTULO DETECTADO")
         self._det_box = tk.Frame(frame, bg=CARD, highlightthickness=1,
                                  highlightbackground=BORDER)
         self._det_box.pack(fill="x")
         self._det_calls_box = tk.Frame(frame, bg=BG)
         self._det_calls_box.pack(fill="x", pady=(10, 0))
         self._set_back(None)          # pantalla inicial: no hay paso anterior
-        self._det_state = "esperando"
-        self._det_last  = None      # (exe, tÃ­tulo) ya resuelto: no repreguntar
-        self.selected_call = None   # None = grabaciÃ³n libre
-        self._render_det_esperando("Buscando una ventana de juego en OBSâ€¦")
+        # Los widgets del panel se acaban de crear vacíos, así que el estado
+        # anterior no describe lo que hay en pantalla. Se resetea para que el
+        # primer render NO se saltee por la guarda de "esto ya está dibujado"
+        # (PLE-159) y el panel no quede en blanco al volver a esta pantalla.
+        self._det_state = ""
+        self._det_msg   = ""
+        self._det_last  = None      # (exe, título) ya resuelto: no repreguntar
+        self.selected_call = None   # None = grabación libre
+        self._render_det_esperando("Buscando la ventana del título en OBS…")
         self._detect_start()
 
-        # â€” Separador â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+        # — Separador ————————————————————————————————
         tk.Frame(frame, bg=BORDER2, height=1).pack(fill="x", pady=(0, 0))
 
-        # â€” SecciÃ³n: SesiÃ³n â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+        # — Sección: Sesión ————————————————————————————
         session_row = tk.Frame(frame, bg=BG)
         session_row.pack(fill="x", pady=(14, 0))
-        tk.Label(session_row, text="SESIÃ“N MÃX", fg=DIM, bg=BG,
+        tk.Label(session_row, text="SESIÓN MÁX", fg=DIM, bg=BG,
                   font=("Segoe UI", 8, "bold"), anchor="w").pack(side="left")
-        # v0.7.1: refleja la duraciÃ³n configurada en Ajustes (antes 01:05:00 fijo)
+        # v0.7.1: refleja la duración configurada en Ajustes (antes 01:05:00 fijo)
         _mx = int(self._settings.get("max_session_minutes", 60)) * 60
         tk.Label(session_row, text=f"{_mx // 3600:02d}:{(_mx % 3600) // 60:02d}:{_mx % 60:02d}",
                   fg=TEXT, bg=BG,
                   font=("Cascadia Code", 11), anchor="e").pack(side="right")
 
-        # Aviso del gate AFK â€” el jugador tiene que saberlo ANTES de grabar.
-        # A propÃ³sito NO se menciona el umbral exacto (pedido de MartÃ­n 20/7).
-        tk.Label(frame, text="GrabÃ¡ jugando activamente: las sesiones con perÃ­odos largos "
-                             "sin actividad de teclado o mouse no son vÃ¡lidas para subir.",
-                  fg=DIM, bg=BG, font=("Segoe UI", 9), justify="left",
-                  wraplength=WIN_W - 60, anchor="w").pack(fill="x", pady=(6, 0))
+        # Acá vivía el aviso del gate AFK ("Grabá jugando activamente..."), que se
+        # sacó el 20/8 a pedido de Martín para hacerle lugar a los tips. Queda
+        # anotado que con eso la app YA NO avisa del gate antes de grabar: el
+        # jugador se entera cuando le rechazan la sesión.
 
         # spacer
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
 
-        # â€” BotÃ³n Iniciar â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+        if TIPS_VISIBLES:
+            self._tips_panel(frame)
+
+        # spacer
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+
+        # — Botón Iniciar ————————————————————————————
         self._rec_btn_idle = tk.Button(
-            frame, text="  Iniciar grabaciÃ³n", fg=DIMMER, bg=CARD,
+            frame, text="  Iniciar grabación", fg=DIMMER, bg=CARD,
             relief="flat", bd=0, cursor="arrow",
             font=("Segoe UI", 12, "bold"),
             activebackground=CARD, activeforeground=DIMMER,
@@ -3594,8 +3731,8 @@ class PleiadaApp:
         self._rec_btn_idle.pack(fill="x", ipady=14, pady=(0, 2))
         self._update_record_btn()
 
-        # â€” Acceso a "Mis grabaciones" (subir sesiones grabadas antes) â€”â€”â€”â€”â€”â€”
-        sessions_btn = tk.Label(frame, text="ðŸ“¤  Mis grabaciones",
+        # — Acceso a "Mis grabaciones" (subir sesiones grabadas antes) ——————
+        sessions_btn = tk.Label(frame, text="📤  Mis grabaciones",
                                 fg=ACCENT, bg=BG, font=("Segoe UI", 10),
                                 cursor="hand2", anchor="center")
         sessions_btn.pack(fill="x", pady=(8, 0))
@@ -3603,17 +3740,17 @@ class PleiadaApp:
         sessions_btn.bind("<Leave>", lambda e: sessions_btn.config(fg=ACCENT))
         sessions_btn.bind("<Button-1>", lambda e: self._show_sessions_list())
 
-        # â€” Footer â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+        # — Footer ————————————————————————————————————
         _mk_separator(frame, color=BORDER2, pady=(12, 0))
         footer = tk.Frame(frame, bg=BG)
         footer.pack(fill="x", pady=(10, 0))
-        tk.Label(footer, text="SESIÃ“N", fg=DIM, bg=BG,
+        tk.Label(footer, text="SESIÓN", fg=DIM, bg=BG,
                   font=("Segoe UI", 8, "bold"), anchor="w").pack(side="left")
         tk.Label(footer, text="No iniciada", fg=DIMMER, bg=BG,
                   font=("Cascadia Code", 10), anchor="e").pack(side="right")
 
-        # â€” Link tutorial â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
-        tutorial_lbl = tk.Label(frame, text="Ver tutorial de configuraciÃ³n â†—",
+        # — Link tutorial ————————————————————————————
+        tutorial_lbl = tk.Label(frame, text="Ver tutorial de configuración ↗",
                                  fg=DIMMER, bg=BG, font=("Segoe UI", 9),
                                  cursor="hand2", anchor="w")
         tutorial_lbl.pack(fill="x", pady=(6, 0))
@@ -3629,19 +3766,19 @@ class PleiadaApp:
 
     def _on_search_changed(self, *args):
         q = self._search_var.get()
-        # Si el usuario modificÃ³ el texto y habÃ­a un juego seleccionado â†’ deseleccionar
+        # Si el usuario modificó el texto y había un juego seleccionado → deseleccionar
         if self.selected_game and q != self.selected_game["game"]:
             self.selected_game = None
-            self._chevron_lbl.config(text="âŒ„", fg=DIM, cursor="")
+            self._chevron_lbl.config(text="⌄", fg=DIM, cursor="")
             self._chevron_lbl.unbind("<Button-1>")
             self._game_tag_lbl.config(text="")
-            self._hint_lbl.config(text="EscribÃ­ el nombre del juego para buscar.", fg=DIM)
+            self._hint_lbl.config(text="Escribí el nombre del juego para buscar.", fg=DIM)
             self._obs_dot.config(fg=DIMMER)
-            self._obs_lbl.config(text="SeleccionÃ¡ un juego para verificar OBS.", fg=DIM)
+            self._obs_lbl.config(text="Seleccioná un juego para verificar OBS.", fg=DIM)
             self._warn_frame.pack_forget()
             self._obs_status = "idle"
             self._update_record_btn()
-        # Sin texto â†’ lista completa alfabÃ©tica (con scroll). Con texto â†’ filtra.
+        # Sin texto → lista completa alfabética (con scroll). Con texto → filtra.
         results = fuzzy_search(q.strip())
         if results:
             self._show_dropdown(results)
@@ -3660,7 +3797,7 @@ class PleiadaApp:
         dd.configure(bg=CARD2)
         self._dropdown_win = dd
 
-        # Calcular posiciÃ³n
+        # Calcular posición
         self.root.update_idletasks()
         rx  = self.root.winfo_rootx()
         sx  = self._sel_outer.winfo_x()
@@ -3675,8 +3812,8 @@ class PleiadaApp:
                   font=("Segoe UI", 8, "bold"), anchor="w",
                   pady=8, padx=10).pack(fill="x")
 
-        # â”€â”€ Bug 7: tk.Listbox nativo (liviano, sin lag con cientos de items,
-        #    scroll incorporado) en lugar de cientos de Frames+Labels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Bug 7: tk.Listbox nativo (liviano, sin lag con cientos de items,
+        #    scroll incorporado) en lugar de cientos de Frames+Labels ──────────
         VISIBLE = 10
         body = tk.Frame(outer, bg=CARD2)
         body.pack(fill="both", expand=True, padx=4, pady=(0, 4))
@@ -3704,7 +3841,7 @@ class PleiadaApp:
         lb.bind("<Return>", _pick)
         self._dd_listbox = lb
 
-        # Altura del Toplevel segÃºn el contenido real
+        # Altura del Toplevel según el contenido real
         dd.update_idletasks()
         total_h = outer.winfo_reqheight()
         dd.geometry(f"{sw}x{total_h}+{rx + sx}+{y_off}")
@@ -3727,7 +3864,7 @@ class PleiadaApp:
         outer = tk.Frame(dd, bg=CARD2, bd=1, relief="solid",
                           highlightthickness=1, highlightbackground=BORDER)
         outer.pack(fill="both", expand=True)
-        tk.Label(outer, text="Sin resultados â€” revisÃ¡ la ortografÃ­a.", fg=DIM, bg=CARD2,
+        tk.Label(outer, text="Sin resultados — revisá la ortografía.", fg=DIM, bg=CARD2,
                   font=("Segoe UI", 10)).pack(expand=True)
         self._dropdown_visible = True
 
@@ -3751,14 +3888,14 @@ class PleiadaApp:
         self._hide_dropdown()
         self.selected_game = game_dict
         self._search_var.set(game_dict["game"])
-        # Entry sigue editable â€” el usuario puede volver a buscar
+        # Entry sigue editable — el usuario puede volver a buscar
         self._sel_outer.config(highlightbackground=BORDER)
         self._game_tag_lbl.config(text="")
-        # Mostrar Ã— para limpiar la selecciÃ³n
-        self._chevron_lbl.config(text="Ã—", fg=TEXT, cursor="hand2")
+        # Mostrar × para limpiar la selección
+        self._chevron_lbl.config(text="×", fg=TEXT, cursor="hand2")
         self._chevron_lbl.bind("<Button-1>", lambda e: self._clear_game_selection())
         # Update hint
-        self._hint_lbl.config(text="âœ“  Juego seleccionado.", fg=GREEN)
+        self._hint_lbl.config(text="✓  Juego seleccionado.", fg=GREEN)
         # Check OBS game match
         self._check_obs_game()
         self._update_record_btn()
@@ -3767,24 +3904,33 @@ class PleiadaApp:
         self.selected_game = None
         self._search_var.set("")
         self._search_entry.focus()
-        self._chevron_lbl.config(text="âŒ„", fg=DIM, cursor="")
+        self._chevron_lbl.config(text="⌄", fg=DIM, cursor="")
         self._chevron_lbl.unbind("<Button-1>")
         self._game_tag_lbl.config(text="")
-        self._hint_lbl.config(text="EscribÃ­ el nombre del juego para buscar.", fg=DIM)
+        self._hint_lbl.config(text="Escribí el nombre del juego para buscar.", fg=DIM)
         self._obs_dot.config(fg=DIMMER)
-        self._obs_lbl.config(text="SeleccionÃ¡ un juego para verificar OBS.", fg=DIM)
+        self._obs_lbl.config(text="Seleccioná un juego para verificar OBS.", fg=DIM)
         self._warn_frame.pack_forget()
         self._obs_status = "idle"
         self._update_record_btn()
 
-    # â”€â”€ DetecciÃ³n automÃ¡tica del juego (v0.9) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Detección automática del juego (v0.9) ─────────────────────────────────
 
     def _detect_start(self):
         self._det_active = True
+        # PLE-162: la pantalla es nueva, asi que no hay ningun turno tomado. Si
+        # el turno anterior quedo marcado como ocupado (worker que murio con la
+        # pantalla vieja), sin esto el poll no vuelve a consultar NUNCA: entra
+        # siempre por la rama de "ocupado" y se reagenda solo, cada 2,5 s.
+        self._det_busy = False
         self._detect_poll()
 
     def _detect_stop(self):
         self._det_active = False
+        # PLE-162: los workers en vuelo pertenecen a la pantalla que se esta
+        # yendo. Se les cambia el numero de generacion para que, cuando vuelvan,
+        # descarten su resultado en vez de dibujarlo sobre los widgets nuevos.
+        self._det_gen = getattr(self, "_det_gen", 0) + 1
         tid = getattr(self, "_det_timer_id", None)
         if tid:
             try:
@@ -3804,7 +3950,7 @@ class PleiadaApp:
            simultaneos contra el backend.
         2. La clave de "esto ya lo resolvi" es el EXE cuando existe, no el par
            (exe, titulo). Hay juegos que cambian el titulo de la ventana en vivo
-           â€”reloj, FPS, mapaâ€” y con el titulo adentro cada vuelta parecia un
+           —reloj, FPS, mapa— y con el titulo adentro cada vuelta parecia un
            juego distinto y se reconsultaba.
         3. Si la consulta falla, NO se limpia la clave. Antes se limpiaba "para
            que reintente", y el reintento fallaba igual: resolviendo -> error ->
@@ -3817,6 +3963,7 @@ class PleiadaApp:
             self._det_timer_id = self.root.after(2500, self._detect_poll)
             return
         self._det_busy = True
+        gen = getattr(self, "_det_gen", 0)
 
         def _fin():
             """Libera el turno y agenda el proximo tick."""
@@ -3825,7 +3972,35 @@ class PleiadaApp:
                 self._det_timer_id = self.root.after(2500, self._detect_poll)
 
         def _ui(fn, *a):
-            self.root.after(0, lambda: (fn(*a), _fin()))
+            """Dibuja el resultado y SIEMPRE libera el turno.
+
+            PLE-162: antes era `after(0, lambda: (fn(*a), _fin()))`. Si el
+            usuario cambiaba de pantalla mientras el worker estaba en vuelo, el
+            render se encontraba con `self._det_box` ya destruido, tiraba
+            TclError —queda en crash.log— y, como la tupla se corta en el
+            primer elemento, `_fin()` no corria. `_det_busy` quedaba en True
+            para siempre y la deteccion no volvia a consultar nada: habia que
+            cerrar la app. Ahora el turno se libera pase lo que pase, y el
+            resultado de una pantalla que ya no existe se descarta.
+            """
+            def _aplicar():
+                try:
+                    _dibujar(fn, *a)
+                finally:
+                    _fin()
+            self.root.after(0, _aplicar)
+
+        def _dibujar(fn, *a):
+            """Corre un render solo si la pantalla que lo pidio sigue viva."""
+            if gen != getattr(self, "_det_gen", 0):
+                return                      # resultado de una visita anterior
+            box = getattr(self, "_det_box", None)
+            try:
+                if box is None or not box.winfo_exists():
+                    return                  # la pantalla ya no esta
+            except tk.TclError:
+                return
+            fn(*a)
 
         def _worker():
             try:
@@ -3847,18 +4022,33 @@ class PleiadaApp:
             if wrong:
                 _ui(self._render_det_bloqueado, "Modo de captura incorrecto: " + wrong,
                     "Cambia la fuente a Captura de Videojuego (Game Capture) y "
-                    "apuntala a la ventana del juego.")
+                    "apuntala a la ventana del título.")
                 return
             if not title and not exe:
                 _ui(self._render_det_esperando,
-                    "Abri el juego y apunta la fuente de OBS a su ventana.")
+                    "Abrí el título y apuntá la fuente de OBS a su ventana.")
+                return
+
+            # PLE-154: el exe sale de la config de la fuente, no de lo que se
+            # esta capturando. Si ese proceso no existe, el juego esta cerrado y
+            # no hay nada que detectar todavia. La clave se limpia para que la
+            # deteccion vuelva sola cuando el juego abra.
+            if exe and _exe_corriendo(exe) is False:
+                # La guarda de no-redibujar vive adentro del render (PLE-159),
+                # asi que aca alcanza con pedirlo: si ya esta en pantalla, no hace
+                # nada. La clave tambien la limpia el render.
+                _ui(self._render_det_esperando,
+                    f"OBS apunta a {exe}, pero ese título no está corriendo. "
+                    "Abrilo y volvé a esta pantalla.")
                 return
 
             clave = exe.lower() if exe else ("t:" + title.lower())
             if clave == getattr(self, "_det_last", None):
                 _fin()                      # ya resuelto: ni render ni consulta
                 return
-            self.root.after(0, lambda t=title: self._render_det_resolviendo(t))
+            # Mismo guardado que _ui: este render tambien puede llegar tarde,
+            # con la pantalla ya cambiada (PLE-162).
+            self.root.after(0, lambda t=title: _dibujar(self._render_det_resolviendo, t))
             _obs_dbg(f"deteccion: resolviendo exe={exe!r} titulo={title!r}")
             try:
                 res = pleiada_api.resolve_game(self.auth_token, exe, title)
@@ -3867,9 +4057,18 @@ class PleiadaApp:
                 # intentar y el ciclo de parpadeo arranca de nuevo.
                 self._det_last = clave
                 _obs_dbg(f"deteccion: resolve_game fallo ({e.code or 'sin codigo'}): {e}")
+                # PLE-164: la sesion vencida no es un error de deteccion. Con el
+                # cartel de "no pudimos verificar el titulo" el usuario no tiene
+                # como salir —Reintentar falla igual— y el unico camino es
+                # desloguearse a mano. Se lo manda directo al re-login.
+                if _es_error_de_sesion(e):
+                    _ui(self._on_auth_expired,
+                        "Volvé a iniciar sesión para poder grabar.")
+                    return
                 _ui(self._render_det_error, str(e), e.code or "")
                 return
             self._det_last = clave
+            self._det_exe  = exe   # PLE-154: lo revalida el boton Iniciar
             _obs_dbg(f"deteccion: estado={res.get('estado')!r} juego={(res.get('juego') or {}).get('name')!r}")
             _ui(self._apply_resolve, res)
 
@@ -3882,7 +4081,7 @@ class PleiadaApp:
         self._render_det_resolviendo("")
         self._detect_poll()
 
-    # â€” Render de cada estado â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+    # — Render de cada estado —————————————————————————————
 
     def _det_clear(self):
         for box in (getattr(self, "_det_box", None), getattr(self, "_det_calls_box", None)):
@@ -3890,15 +4089,38 @@ class PleiadaApp:
                 for w in box.winfo_children():
                     w.destroy()
 
-    def _render_det_esperando(self, msg):
-        self._det_state = "esperando"
+    def _det_olvidar(self):
+        """Descarta el titulo resuelto Y la clave que decia que estaba resuelto.
+
+        PLE-159: eran dos pasos separados y se desincronizaron. Al cerrar OBS, el
+        panel tiraba `selected_game` pero `_det_last` seguia con el exe de antes;
+        cuando OBS volvia, el poll comparaba la clave, la encontraba igual y
+        cortaba con "ya resuelto" sin volver a renderizar ni consultar nada. El
+        panel quedaba en "Esperando el titulo" para siempre y solo se salia
+        reiniciando la app. Lo mismo pasaba al detener una grabacion desde OBS o
+        al corregir el modo de captura.
+
+        `_render_det_error` NO llama aca a proposito: ahi la clave se conserva
+        para no reintentar cada 2,5 s contra un backend que ya fallo (bug de
+        parpadeo del 19/08).
+        """
         self.selected_game = None
         self.selected_call = None
+        self._det_last     = None
+
+    def _render_det_esperando(self, msg):
+        # PLE-159: la clave de "ya lo resolvi" se limpia EN LA MISMA LINEA en que
+        # se descarta el juego resuelto. Ver _det_olvidar().
+        self._det_olvidar()
+        if self._det_state == "esperando" and self._det_msg == msg:
+            return                  # ya esta esto en pantalla: no redibujar
+        self._det_state = "esperando"
+        self._det_msg   = msg
         self._det_clear()
         row = tk.Frame(self._det_box, bg=CARD)
         row.pack(fill="x", padx=14, pady=12)
         tk.Label(row, text="\u25cb", fg=DIM, bg=CARD, font=("Segoe UI", 10)).pack(side="left")
-        tk.Label(row, text="Esperando el juego", fg=TEXT, bg=CARD,
+        tk.Label(row, text="Esperando el título", fg=TEXT, bg=CARD,
                  font=("Segoe UI", 11, "bold")).pack(side="left", padx=(8, 0))
         tk.Label(self._det_calls_box, text=msg, fg=DIM, bg=BG, font=("Segoe UI", 10),
                  justify="left", anchor="w", wraplength=WIN_W - 60).pack(fill="x")
@@ -3927,9 +4149,14 @@ class PleiadaApp:
         self._update_record_btn()
 
     def _render_det_bloqueado(self, titulo, msg):
+        # PLE-159: mismo caso que _render_det_esperando. Acá caen "OBS ya está
+        # grabando" y "modo de captura incorrecto", que también se quedaban
+        # pegados después de que el usuario corregía el problema en OBS.
+        self._det_olvidar()
+        if self._det_state == "bloqueado" and self._det_msg == titulo + msg:
+            return
         self._det_state = "bloqueado"
-        self.selected_game = None
-        self.selected_call = None
+        self._det_msg   = titulo + msg
         self._det_clear()
         row = tk.Frame(self._det_box, bg=CARD)
         row.pack(fill="x", padx=14, pady=12)
@@ -3944,7 +4171,7 @@ class PleiadaApp:
         """Fallo la consulta al backend. Se queda quieto: reintentar es del usuario.
 
         Reintentar solo cada 2,5 s no arregla nada cuando el error es estable
-        â€”sesion vencida, backend caido, sin internetâ€” y convierte la pantalla en
+        —sesion vencida, backend caido, sin internet— y convierte la pantalla en
         un parpadeo del que no se puede leer ni el motivo.
         """
         self._det_state = "error"
@@ -3953,17 +4180,19 @@ class PleiadaApp:
         self._det_clear()
         row = tk.Frame(self._det_box, bg=CARD)
         row.pack(fill="x", padx=14, pady=12)
-        tk.Label(row, text="\u26a0", fg=YELLOW, bg=CARD,
+        # PLE-164: \u2715 rojo, como el resto de los estados en los que no se puede
+        # grabar. El \u26a0 amarillo se leia como un aviso menor \u2014algo que se iba a
+        # arreglar solo\u2014 cuando en realidad la grabacion esta frenada.
+        tk.Label(row, text="\u2715", fg=RED, bg=CARD,
                  font=("Segoe UI", 10)).pack(side="left")
-        tk.Label(row, text="No pudimos verificar el titulo", fg=TEXT, bg=CARD,
+        tk.Label(row, text="No pudimos verificar el t\u00edtulo", fg=TEXT, bg=CARD,
                  font=("Segoe UI", 11, "bold")).pack(side="left", padx=(8, 0))
         tk.Label(self._det_calls_box, text=msg, fg=DIM, bg=BG, font=("Segoe UI", 10),
                  justify="left", anchor="w", wraplength=WIN_W - 60).pack(fill="x")
-        if code in ("sesion_invalida", "auth"):
-            tk.Label(self._det_calls_box,
-                     text="ProbÃ¡ cerrar sesiÃ³n y volver a entrar desde Ajustes.",
-                     fg=DIMMER, bg=BG, font=("Segoe UI", 9), anchor="w",
-                     wraplength=WIN_W - 60).pack(fill="x", pady=(4, 0))
+        # El caso de sesión vencida ya no llega hasta acá: se va derecho a
+        # _on_auth_expired, que tiene el botón para volver a entrar. Acá quedan
+        # los errores en los que Reintentar sí puede servir (backend caído, sin
+        # internet, Airtable que no responde).
         b = tk.Label(self._det_calls_box, text="Reintentar", fg=ACCENT, bg=BG,
                      font=("Segoe UI", 10), cursor="hand2", anchor="w")
         b.pack(fill="x", pady=(10, 0))
@@ -4079,7 +4308,7 @@ class PleiadaApp:
         self._update_record_btn()
 
     def _check_obs_game(self):
-        """Verifica en OBS quÃ© juego estÃ¡ capturado (en thread)."""
+        """Verifica en OBS qué juego está capturado (en thread)."""
         self._obs_dot.config(fg=ACCENT)
         self._obs_lbl.config(text="Verificando OBS...", fg=DIM)
         self._obs_status = "checking"
@@ -4093,30 +4322,30 @@ class PleiadaApp:
                 self.root.after(0, lambda m=str(e): self._set_obs_status("auth_error", m))
                 return
             except Exception:
-                # OBS no estÃ¡ corriendo o no responde â€” tratar como advertencia
+                # OBS no está corriendo o no responde — tratar como advertencia
                 self.root.after(0, lambda: self._set_obs_status(
-                    "warn", "OBS no estÃ¡ corriendo o no responde al WebSocket."))
+                    "warn", "OBS no está corriendo o no responde al WebSocket."))
                 return
 
-            # Check 1 â€” OBS ya grabando
+            # Check 1 — OBS ya grabando
             if is_recording:
                 self.root.after(0, lambda: self._set_obs_status(
                     "already_recording",
-                    "OBS ya estÃ¡ grabando. DetenÃ© la grabaciÃ³n desde OBS antes de continuar."
+                    "OBS ya está grabando. Detené la grabación desde OBS antes de continuar."
                 ))
                 return
 
-            # Check 2 â€” modo de captura incorrecto (Display/Window Capture)
+            # Check 2 — modo de captura incorrecto (Display/Window Capture)
             if wrong_source:
                 self.root.after(0, lambda ws=wrong_source: self._set_obs_status(
                     "wrong_source", ws
                 ))
                 return
 
-            # Check 3 â€” verificar que el juego correcto estÃ¡ en Game Capture
+            # Check 3 — verificar que el juego correcto está en Game Capture
             if not win_title:
                 status = "warn"
-                msg    = "OBS no detecta ningÃºn juego capturado. RevisÃ¡ la fuente Game Capture."
+                msg    = "OBS no detecta ningún juego capturado. Revisá la fuente Game Capture."
             else:
                 if _obs_title_matches(selected, win_match or win_title):
                     status = "ok"
@@ -4153,28 +4382,28 @@ class PleiadaApp:
             self._obs_lbl.config(text=msg, fg=GREEN)
             self._warn_frame.pack_forget()
         elif status == "warn":
-            self._obs_lbl.config(text="No se detectÃ³ Game Capture en OBS.", fg=YELLOW)
+            self._obs_lbl.config(text="No se detectó Game Capture en OBS.", fg=YELLOW)
             self._warn_txt.config(text=msg)
             self._warn_frame.pack(fill="x", pady=(8, 0))
         elif status == "mismatch":
             self._obs_lbl.config(text="Juego incorrecto en OBS.", fg=RED)
-            self._warn_txt.config(text=msg + "\n\nCambiÃ¡ la fuente Game Capture antes de grabar.")
+            self._warn_txt.config(text=msg + "\n\nCambiá la fuente Game Capture antes de grabar.")
             self._warn_frame.pack(fill="x", pady=(8, 0))
         elif status == "already_recording":
-            self._obs_lbl.config(text="OBS ya estÃ¡ grabando.", fg=RED)
+            self._obs_lbl.config(text="OBS ya está grabando.", fg=RED)
             self._warn_txt.config(
-                text=msg + "\n\nLa grabaciÃ³n debe iniciarse desde el Recorder, no desde OBS.")
+                text=msg + "\n\nLa grabación debe iniciarse desde el Recorder, no desde OBS.")
             self._warn_frame.pack(fill="x", pady=(8, 0))
         elif status == "wrong_source":
             # msg contiene el nombre legible del modo incorrecto (ej: "Captura de Pantalla")
             self._obs_lbl.config(text=f"Modo de captura incorrecto: {msg}.", fg=RED)
             self._warn_txt.config(
-                text=f"EstÃ¡s usando '{msg}' en OBS, que no es compatible con Gameplay Recorder.\n\n"
-                     f"CambiÃ¡ la fuente a 'Captura de Videojuego' (Game Capture) y apuntala "
+                text=f"Estás usando '{msg}' en OBS, que no es compatible con Gameplay Recorder.\n\n"
+                     f"Cambiá la fuente a 'Captura de Videojuego' (Game Capture) y apuntala "
                      f"al proceso del juego.")
             self._warn_frame.pack(fill="x", pady=(8, 0))
         elif status == "auth_error":
-            self._obs_lbl.config(text="OBS WebSocket: autenticaciÃ³n fallida.", fg=RED)
+            self._obs_lbl.config(text="OBS WebSocket: autenticación fallida.", fg=RED)
             self._warn_txt.config(text=msg)
             self._warn_frame.pack(fill="x", pady=(8, 0))
         self._update_record_btn()
@@ -4211,7 +4440,7 @@ class PleiadaApp:
                 activebackground=CARD, activeforeground=DIMMER
             )
 
-    # â”€â”€ Iniciar / Detener grabaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Iniciar / Detener grabación ────────────────────────────────────────────
 
     def _start_recording(self):
         # v0.9: se sacaron la guarda por "mismatch" de OBS y el chequeo por
@@ -4223,12 +4452,23 @@ class PleiadaApp:
             return
         if self._update_required:
             return
+        # PLE-154: el hotkey global entra por aca sin pasar por el estado del
+        # boton, y entre la deteccion y el click el juego pudo cerrarse. Mismo
+        # criterio que la deteccion: solo se frena con un NO explicito.
+        if _exe_corriendo(getattr(self, "_det_exe", "")) is False:
+            import tkinter.messagebox as _mb
+            _mb.showwarning(
+                "Título no detectado",
+                f"'{self.selected_game.get('game', '')}' ya no está corriendo.\n\n"
+                "Abrí el título de nuevo antes de empezar a grabar."
+            )
+            return
         self._detect_stop()
 
         self._show_recording_starting()
 
         def _worker():
-            # 1. Crear carpeta de sesiÃ³n
+            # 1. Crear carpeta de sesión
             game   = re.sub(r'[\\/:*?"<>|]', "", self.selected_game["game"])
             dt     = time.strftime("%d_%m_%y__%H_%M_%S")
             sname  = f"{game}_{dt} recording"
@@ -4237,9 +4477,9 @@ class PleiadaApp:
             sdir.mkdir(parents=True, exist_ok=True)
             self.session_dir = sdir
 
-            # 2. Asegurarse de que OBS estÃ© corriendo (lanzarlo si hace falta).
-            #    Esto puede tardar hasta ~30 s si OBS no estÃ¡ abierto.
-            #    NO iniciamos la grabaciÃ³n todavÃ­a â€” eso ocurre en countdown=0.
+            # 2. Asegurarse de que OBS esté corriendo (lanzarlo si hace falta).
+            #    Esto puede tardar hasta ~30 s si OBS no está abierto.
+            #    NO iniciamos la grabación todavía — eso ocurre en countdown=0.
             try:
                 if not obs_is_running():
                     if not launch_obs():
@@ -4256,7 +4496,7 @@ class PleiadaApp:
             except Exception:
                 pass
 
-            # 4. Guardia final + obtener rec_dir (una sola conexiÃ³n WebSocket)
+            # 4. Guardia final + obtener rec_dir (una sola conexión WebSocket)
             rec_dir_str   = ""
             existing_vids = set()
             try:
@@ -4267,8 +4507,8 @@ class PleiadaApp:
                 if rec_status.get("d", {}).get("responseData", {}).get("outputActive", False):
                     ws.close()
                     self.root.after(0, lambda: self._recording_start_error(
-                        "OBS empezÃ³ a grabar mientras preparabas la sesiÃ³n.\n"
-                        "DetenÃ© la grabaciÃ³n en OBS y volvÃ© a intentarlo."
+                        "OBS empezó a grabar mientras preparabas la sesión.\n"
+                        "Detené la grabación en OBS y volvé a intentarlo."
                     ))
                     return
 
@@ -4282,7 +4522,7 @@ class PleiadaApp:
                     inp_resp = obs_send(ws, "GetInputList")
                     inputs   = inp_resp.get("d", {}).get("responseData", {}).get("inputs", [])
 
-                    # PLE-33: solo bloquear si la fuente incompatible estÃ¡ activa en la escena
+                    # PLE-33: solo bloquear si la fuente incompatible está activa en la escena
                     try:
                         _sr2  = obs_send(ws, "GetCurrentProgramScene")
                         _csn  = _sr2.get("d", {}).get("responseData", {}).get("currentProgramSceneName", "")
@@ -4307,7 +4547,7 @@ class PleiadaApp:
                         ))
                         return
 
-                    # Sin fuentes incompatibles â€” verificar que game_capture apunta al juego correcto
+                    # Sin fuentes incompatibles — verificar que game_capture apunta al juego correcto
                     gc_src = next((i for i in inputs if i.get("inputKind") == "game_capture"), None)
                     if gc_src:
                         sr     = obs_send(ws, "GetInputSettings", {"inputName": gc_src["inputName"]})
@@ -4336,7 +4576,7 @@ class PleiadaApp:
                             ))
                             return
                 except Exception:
-                    pass   # si falla la verificaciÃ³n, continuamos igualmente
+                    pass   # si falla la verificación, continuamos igualmente
 
                 r = obs_send(ws, "GetRecordDirectory")
                 ws.close()
@@ -4347,15 +4587,16 @@ class PleiadaApp:
                 self.root.after(0, lambda m=str(e): self._recording_start_error(m))
                 return
             except Exception:
-                pass   # OBS no responde â€” continuamos sin rec_dir
+                pass   # OBS no responde — continuamos sin rec_dir
 
             # 5. Guardar prep para el thread que arranca en countdown=0
             self._obs_prep = (rec_dir_str, existing_vids)
 
-            # 6. Mostrar countdown â€” OBS aÃºn no estÃ¡ grabando
+            # 6. Mostrar countdown — OBS aún no está grabando
             self.recording = True
+            self._rec_started = False   # PLE-157: recien pasa a True en _launch_at_zero
             self.root.after(0, self._show_countdown)
-            # (La grabaciÃ³n real arranca en _launch_at_zero, cuando el countdown llega a 0)
+            # (La grabación real arranca en _launch_at_zero, cuando el countdown llega a 0)
 
         threading.Thread(target=_worker, daemon=True).start()
 
@@ -4365,14 +4606,14 @@ class PleiadaApp:
         if hasattr(self, "_obs_lbl"):
             self._obs_lbl.config(text=msg, fg=RED)
         if hasattr(self, "_warn_txt") and "\n" in msg:
-            # Mensaje largo (ej: auth error) â†’ tambiÃ©n en el panel de advertencia
+            # Mensaje largo (ej: auth error) → también en el panel de advertencia
             try:
                 self._warn_txt.config(text=msg)
                 self._warn_frame.pack(fill="x", pady=(8, 0))
             except Exception:
                 pass
 
-    def _cancel_recording(self):
+    def _cancel_recording(self, preguntar=True):
         """Descarta la sesion en curso: ni dataset ni analisis.
 
         Es lo contrario de Detener, que cierra bien y deja la sesion lista para
@@ -4381,20 +4622,65 @@ class PleiadaApp:
         el usuario no espera por un analisis de algo que descarto.
 
         El MP4 se deja donde OBS lo dejo. Es lo unico que sobrevive: si alguien
-        cancela porque se equivoco de juego, el video sigue siendo suyo â€” pero
+        cancela porque se equivoco de juego, el video sigue siendo suyo — pero
         no queda como sesion, asi que no se puede subir despues.
+
+        PLE-157: tambien es el camino durante el countdown. Ahi la carpeta de
+        sesion ya existe (se crea antes de mostrar el numero) pero OBS todavia
+        no arranco, asi que no hay ni video ni CSV que cerrar. Se distingue con
+        `_rec_started` para no prometer un video que no existe ni mandarle un
+        StopRecord a un OBS que no esta grabando.
         """
         if not self.recording:
             return
-        import tkinter.messagebox as _mb
-        if not _mb.askyesno(
-                "Cancelar grabaciÃ³n",
-                "Se descarta esta sesiÃ³n: no se genera el dataset y no vas a "
-                "poder subirla.\n\n"
-                "El video queda en tu carpeta de grabaciones de OBS.\n\n"
-                "Â¿Cancelar la grabaciÃ³n?",
-                default="no", icon="warning"):
+        # PLE-160: el messagebox de tkinter corre un loop de eventos ANIDADO, asi
+        # que los after() siguen disparando detras del popup. El countdown seguia
+        # corriendo mientras el usuario decidia: llegaba a cero, OBS arrancaba a
+        # grabar, y el "si" se procesaba con el estado viejo — se borraba la
+        # carpeta y OBS quedaba grabando solo, sin que la app lo supiera.
+        #
+        # Se congela el countdown ANTES de preguntar. Si contesta que no, se
+        # reanuda donde estaba. Asi, mientras el cartel esta abierto, no hay
+        # ninguna transicion posible.
+        # Con el cartel abierto los after() siguen corriendo, y el atajo de teclado
+        # tambien: sin esta guarda se pueden apilar dos carteles de cancelacion.
+        if getattr(self, "_cancel_preguntando", False):
             return
+        _cd_pendiente = None
+        if not self._rec_started and self._cd_timer_id:
+            self.root.after_cancel(self._cd_timer_id)
+            self._cd_timer_id = None
+            _cd_pendiente = self._cd_remaining
+
+        ya_graba = self._rec_started
+        import tkinter.messagebox as _mb
+        if ya_graba:
+            _msg = ("Se descarta esta sesión: no se genera el dataset y no vas a "
+                    "poder subirla.\n\n"
+                    "El video queda en tu carpeta de grabaciones de OBS.\n\n"
+                    "¿Cancelar la grabación?")
+        else:
+            _msg = ("Todavía no empezó a grabar: se descarta la sesión y no queda "
+                    "ningún archivo.\n\n"
+                    "¿Cancelar la grabación?")
+        if preguntar:
+            self._cancel_preguntando = True
+            try:
+                sigue = _mb.askyesno("Cancelar grabación", _msg,
+                                     default="no", icon="warning")
+            finally:
+                self._cancel_preguntando = False
+            if not sigue:
+                if _cd_pendiente is not None:  # dijo que no: sigue donde estaba
+                    self._cd_remaining = _cd_pendiente
+                    self._tick_countdown()
+                return
+
+        # Releer el estado: si el countdown ya se habia ido a cero antes de que
+        # el usuario apretara Cancelar, _launch_at_zero puede haber arrancado la
+        # grabacion mientras el cartel estaba abierto. El valor de arriba servia
+        # para elegir el TEXTO; para decidir que hay que detener manda este.
+        ya_graba = self._rec_started
 
         self._we_stopped = True     # el listener no lo toma como caida de OBS
         self.recording   = False
@@ -4411,17 +4697,23 @@ class PleiadaApp:
         self._show_cancelling()
 
         def _worker():
-            try:
-                stop_ahk_logger(str(sdir) if sdir else "")
-            except Exception as e:
-                _obs_dbg(f"cancel: stop_ahk_logger: {e}")
-            # session_dir=None -> OBS cierra el archivo pero NO se mueve a la
-            # carpeta de sesion, que es justamente lo que se va a borrar.
             video = ""
-            try:
-                video = obs_stop_recording(None) or ""
-            except Exception as e:
-                _obs_dbg(f"cancel: obs_stop_recording: {e}")
+            if ya_graba:
+                try:
+                    stop_ahk_logger(str(sdir) if sdir else "")
+                except Exception as e:
+                    _obs_dbg(f"cancel: stop_ahk_logger: {e}")
+                # session_dir=None -> OBS cierra el archivo pero NO se mueve a la
+                # carpeta de sesion, que es justamente lo que se va a borrar.
+                try:
+                    video = obs_stop_recording(None) or ""
+                except Exception as e:
+                    _obs_dbg(f"cancel: obs_stop_recording: {e}")
+            else:
+                # PLE-157: cancelado en el countdown. AHK no arranco y OBS no
+                # esta grabando: no hay video, y el StopRecord solo generaria un
+                # error del lado de OBS.
+                _obs_dbg("cancel: durante el countdown, no habia nada que detener")
             if sdir:
                 try:
                     _unprotect_session_files(sdir)
@@ -4441,9 +4733,9 @@ class PleiadaApp:
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
-        tk.Label(frame, text="Cancelandoâ€¦", fg=TEXT, bg=BG,
+        tk.Label(frame, text="Cancelando…", fg=TEXT, bg=BG,
                  font=("Segoe UI", 13, "bold")).pack()
-        tk.Label(frame, text="Cerrando la grabaciÃ³n y descartando la sesiÃ³n.",
+        tk.Label(frame, text="Cerrando la grabación y descartando la sesión.",
                  fg=DIM, bg=BG, font=("Segoe UI", 10),
                  wraplength=WIN_W - 60).pack(pady=(8, 0))
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
@@ -4453,14 +4745,14 @@ class PleiadaApp:
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
-        tk.Label(frame, text="GrabaciÃ³n cancelada", fg=TEXT, bg=BG,
+        tk.Label(frame, text="Grabación cancelada", fg=TEXT, bg=BG,
                  font=("Segoe UI", 13, "bold")).pack()
-        tk.Label(frame, text="No se generÃ³ el dataset y la sesiÃ³n no queda "
+        tk.Label(frame, text="No se generó el dataset y la sesión no queda "
                              "disponible para subir.",
                  fg=DIM, bg=BG, font=("Segoe UI", 10), justify="center",
                  wraplength=WIN_W - 60).pack(pady=(8, 0))
         if video_path:
-            tk.Label(frame, text="El video quedÃ³ en:", fg=DIMMER, bg=BG,
+            tk.Label(frame, text="El video quedó en:", fg=DIMMER, bg=BG,
                      font=("Segoe UI", 9)).pack(pady=(14, 0))
             tk.Label(frame, text=video_path, fg=DIM, bg=BG,
                      font=("Cascadia Code", 8), wraplength=WIN_W - 60,
@@ -4474,6 +4766,13 @@ class PleiadaApp:
 
     def _stop_recording(self):
         if not self.recording:
+            return
+        # PLE-157: en el countdown todavia no se grabo nada. Detener aca correria
+        # la verificacion sobre una carpeta vacia y la dejaria en disco, que es
+        # justo lo que el ticket reporta. Cae aca el hotkey de stop, no solo el
+        # boton: el usuario que lo aprieta antes del 0 esta cancelando.
+        if not getattr(self, "_rec_started", False):
+            self._cancel_recording()
             return
         self._we_stopped = True   # le decimos al listener que NOSOTROS paramos
         self.recording = False
@@ -4520,7 +4819,7 @@ class PleiadaApp:
                     break
                 time.sleep(0.5)
 
-            # 4b. Copiar el demo POV (TF2/L4D2) a la carpeta de sesiÃ³n â†’ el miembro sube UNA sola
+            # 4b. Copiar el demo POV (TF2/L4D2) a la carpeta de sesión → el miembro sube UNA sola
             #     carpeta. Best-effort: si no se encuentra el .dem, no rompe nada (queda en el juego).
             dn   = getattr(self, "_demo_name", "")
             exep = getattr(self, "_recording_exe_path", "")
@@ -4539,7 +4838,7 @@ class PleiadaApp:
                 except Exception:
                     pass
 
-            # 5. Correr sync check â€” acumular statuses por archivo para mostrarlos en resultado
+            # 5. Correr sync check — acumular statuses por archivo para mostrarlos en resultado
             _keys = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv", "video_timeline.csv", "video"]
             self._last_sync_statuses = {}
 
@@ -4551,101 +4850,101 @@ class PleiadaApp:
             results = run_sync_check(sdir, progress_cb=_on_progress)
 
             # 6. Guardar metadata sidecar localmente (siempre, ok o fallido).
-            #    Ya NO se empaqueta un .pleiada â€” los archivos quedan sueltos en la
-            #    carpeta de sesiÃ³n (CSVs + MP4 + session_metadata.json).
+            #    Ya NO se empaqueta un .pleiada — los archivos quedan sueltos en la
+            #    carpeta de sesión (CSVs + MP4 + session_metadata.json).
             self.root.after(0, self._show_packaging_anim)   # "Guardando localmente los archivos..."
             build_session_metadata(sdir, self.selected_game, results,
                                    exe_path=self._recording_exe_path,
                                    obs_window=self._recording_obs_window,
                                    modo=("manual" if getattr(self, "selected_call", None)
                                          else "libre"))
-            # Bug 2: registrar el check del metadata json para mostrarlo en el anÃ¡lisis
+            # Bug 2: registrar el check del metadata json para mostrarlo en el análisis
             self._last_sync_statuses["metadata"] = ("ok"
                 if (sdir / "session_metadata.json").exists() else "err")
 
-            # 6b. Estado de subida (para la lista "Mis grabaciones"): vÃ¡lida/no vÃ¡lida,
-            #     todavÃ­a no subida.
+            # 6b. Estado de subida (para la lista "Mis grabaciones"): válida/no válida,
+            #     todavía no subida.
             write_session_state(sdir, valid=bool(results.get("session_ok")),
                                 uploaded=False,
                                 game=(self.selected_game or {}).get("game", ""))
 
-            # 6c. ProtecciÃ³n read-only â€” SOLO si la sesiÃ³n pasÃ³ el sync check. Las
-            #     rechazadas se descartan (el usuario borra la carpeta), asÃ­ que no se
-            #     protegen â†’ evita conflictos con cualquier borrado posterior.
+            # 6c. Protección read-only — SOLO si la sesión pasó el sync check. Las
+            #     rechazadas se descartan (el usuario borra la carpeta), así que no se
+            #     protegen → evita conflictos con cualquier borrado posterior.
             if results.get("session_ok"):
                 _protect_session_files(sdir)
 
-            # 7. Mostrar resultado â€” o encadenar el auto-reinicio (v0.7.1)
+            # 7. Mostrar resultado — o encadenar el auto-reinicio (v0.7.1)
             _auto = self._auto_stopped and self._settings.get("auto_restart")
             self._auto_stopped = False
             if _auto and results.get("session_ok"):
-                self.root.after(0, self._begin_auto_restart)   # â†’ cuenta regresiva â†’ nueva sesiÃ³n
+                self.root.after(0, self._begin_auto_restart)   # → cuenta regresiva → nueva sesión
             else:
-                # auto-stop con sesiÃ³n rechazada â†’ cortar el ciclo y avisar (decisiÃ³n del usuario)
+                # auto-stop con sesión rechazada → cortar el ciclo y avisar (decisión del usuario)
                 _note = "auto_restart_halted" if _auto else None
                 self.root.after(0, lambda n=_note: self._show_result(
                     results["session_ok"], results, None, n))
 
         threading.Thread(target=_worker, daemon=True).start()
 
-    # â”€â”€ Pantalla: iniciando grabaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Pantalla: iniciando grabación ──────────────────────────────────────────
 
     def _show_recording_starting(self):
         self._clear_content()
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True)
         tk.Label(frame, text="", bg=BG).pack(expand=True)
-        tk.Label(frame, text="â³  Iniciando grabaciÃ³n...", fg=DIM, bg=BG,
+        tk.Label(frame, text="⏳  Iniciando grabación...", fg=DIM, bg=BG,
                   font=("Segoe UI", 13)).pack()
-        tk.Label(frame, text="Conectando a OBS, por favor esperÃ¡.", fg=DIMMER, bg=BG,
+        tk.Label(frame, text="Conectando a OBS, por favor esperá.", fg=DIMMER, bg=BG,
                   font=("Segoe UI", 10)).pack(pady=(8, 0))
         tk.Label(frame, text="", bg=BG).pack(expand=True)
 
-    # â”€â”€ Pantalla: cuenta regresiva pre-grabaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Pantalla: cuenta regresiva pre-grabación ──────────────────────────────
 
     _COUNTDOWN_SECS = 10   # PLE-34: reducido de 15 a 10 segundos
 
     def _show_countdown(self):
         self._clear_content()
-        game  = (self.selected_game or {}).get("game", "â€”")
+        game  = (self.selected_game or {}).get("game", "—")
         genre = (self.selected_game or {}).get("genre", "")
 
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=18)
 
-        # â€” Status row â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+        # — Status row ————————————————————————————————————————
         status_row = tk.Frame(frame, bg=BG)
         status_row.pack(fill="x")
-        self._cd_dot = tk.Label(status_row, text="â—", fg=YELLOW, bg=BG,
+        self._cd_dot = tk.Label(status_row, text="●", fg=YELLOW, bg=BG,
                                  font=("Segoe UI", 10, "bold"))
         self._cd_dot.pack(side="left")
         tk.Label(status_row, text="INICIANDO", fg=YELLOW, bg=BG,
                   font=("Segoe UI", 9, "bold")).pack(side="left", padx=(6, 0))
 
-        # â€” Nombre del juego â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+        # — Nombre del juego ———————————————————————————————————
         tk.Label(frame, text=game, fg=TEXT, bg=BG,
                   font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x", pady=(14, 4))
         tk.Label(frame, text=genre, fg=DIM, bg=BG,
                   font=("Segoe UI", 10), anchor="w").pack(fill="x")
 
-        # â€” NÃºmero grande de countdown (misma fuente que el timer) â€”â€”â€”â€”â€”â€”â€”â€”
+        # — Número grande de countdown (misma fuente que el timer) ————————
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
         self._cd_num_lbl = tk.Label(frame, text=str(self._COUNTDOWN_SECS),
                                      fg=YELLOW, bg=BG,
                                      font=("Cascadia Code", 52, "normal"))
         self._cd_num_lbl.pack()
-        tk.Label(frame, text="La grabaciÃ³n comenzarÃ¡ en...", fg=DIM, bg=BG,
+        tk.Label(frame, text="La grabación comenzará en...", fg=DIM, bg=BG,
                   font=("Segoe UI", 10)).pack(pady=(10, 0))
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
 
         _mk_separator(frame, color=BORDER2, pady=(0, 14))
 
-        # â€” BotÃ³n cancelar â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+        # — Botón cancelar ———————————————————————————————————
         tk.Button(frame, text="Cancelar", fg=DIMMER, bg=CARD,
                    relief="flat", bd=0, cursor="hand2",
                    font=("Segoe UI", 10), activebackground=CARD2,
                    activeforeground=DIM,
-                   command=self._stop_recording,
+                   command=self._cancel_recording,
                    highlightthickness=1, highlightbackground=BORDER2).pack(
             fill="x", ipady=8)
 
@@ -4658,15 +4957,15 @@ class PleiadaApp:
             return
         if self._cd_remaining <= 0:
             self._cd_timer_id = None
-            # Mostrar â–¶ brevemente mientras el thread de OBS arranca
+            # Mostrar ▶ brevemente mientras el thread de OBS arranca
             try:
-                self._cd_num_lbl.config(text="â–¶", fg=GREEN)
+                self._cd_num_lbl.config(text="▶", fg=GREEN)
             except Exception:
                 pass
-            # OBS StartRecord ocurre en thread separado â€” no bloquea la UI
+            # OBS StartRecord ocurre en thread separado — no bloquea la UI
             threading.Thread(target=self._launch_at_zero, daemon=True).start()
             return
-        # Color: amarillo mientras queda tiempo, rojo en los Ãºltimos 5
+        # Color: amarillo mientras queda tiempo, rojo en los últimos 5
         col = RED if self._cd_remaining <= 5 else YELLOW
         self._cd_num_lbl.config(text=str(self._cd_remaining), fg=col)
         self._cd_remaining -= 1
@@ -4686,12 +4985,12 @@ class PleiadaApp:
 
     def _launch_at_zero(self):
         """Corre en thread separado cuando el countdown llega a 0.
-        EnvÃ­a StartRecord a OBS, captura el anchor timestamp, arranca AHK
-        y muestra la pantalla de grabaciÃ³n activa."""
+        Envía StartRecord a OBS, captura el anchor timestamp, arranca AHK
+        y muestra la pantalla de grabación activa."""
         if not self.recording:
             return
 
-        # a. VerificaciÃ³n final de fuente OBS â€” el usuario pudo cambiar algo durante el countdown
+        # a. Verificación final de fuente OBS — el usuario pudo cambiar algo durante el countdown
         try:
             _is_rec, win_title, win_match, wrong_source = obs_check_status()
             if wrong_source:
@@ -4721,7 +5020,7 @@ class PleiadaApp:
         except Exception:
             pass   # si OBS no responde en este punto, continuamos igual
 
-        # b. Enviar StartRecord (OBS ya estÃ¡ corriendo â€” _worker lo garantizÃ³)
+        # b. Enviar StartRecord (OBS ya está corriendo — _worker lo garantizó)
         try:
             ok = _obs_do_start()
         except OBSAuthError as e:
@@ -4733,8 +5032,23 @@ class PleiadaApp:
             self.recording = False
             self.root.after(0, self._recording_start_error)
             return
+        self._rec_started = True   # PLE-157: desde aca si hay algo que detener
 
-        # b. Anchor timestamp â€” capturado justo al confirmar STARTED
+        # PLE-160, ultima ventana: el countdown pudo llegar a cero justo cuando el
+        # usuario apretaba Cancelar, y entonces esto arranco con el cartel ya
+        # abierto. Si mientras tanto confirmo, `recording` esta en False y hay que
+        # deshacer lo que acabamos de hacer: si no, OBS se queda grabando sin que
+        # la app lo sepa, que es exactamente el sintoma del ticket.
+        if not self.recording:
+            _obs_dbg("launch: cancelado mientras arrancaba — deteniendo OBS")
+            try:
+                obs_stop_recording(None)
+            except Exception as e:
+                _obs_dbg(f"launch: obs_stop_recording tras cancelar: {e}")
+            self._rec_started = False
+            return
+
+        # b. Anchor timestamp — capturado justo al confirmar STARTED
         anchor_ts = int(time.time() * 1000)
 
         # c. Escribir anchor file (AHK lo lee al arrancar)
@@ -4743,7 +5057,7 @@ class PleiadaApp:
         except Exception:
             pass
 
-        # c.bis Auto-record del demo POV (TF2/L4D2) por netcon â€” el miembro no toca la consola.
+        # c.bis Auto-record del demo POV (TF2/L4D2) por netcon — el miembro no toca la consola.
         self._demo_name = ""
         if _autodemo_game(self.selected_game):
             self._demo_name = f"pleiada_{anchor_ts}"
@@ -4751,10 +5065,10 @@ class PleiadaApp:
 
         # d. Resolver el exe del juego ANTES de lanzar AHK (el filtro de ventana lo usa).
         #    BUGFIX v0.5: antes start_ahk_logger se llamaba con el _recording_exe de la
-        #    grabaciÃ³n ANTERIOR (se resolvÃ­a despuÃ©s), y en la 2da grabaciÃ³n de una sesiÃ³n
+        #    grabación ANTERIOR (se resolvía después), y en la 2da grabación de una sesión
         #    el filtro bloqueaba toda la captura por exe equivocado.
         self._we_stopped = False
-        self._recording_exe = ""   # resetear: no arrastrar el exe de una grabaciÃ³n previa
+        self._recording_exe = ""   # resetear: no arrastrar el exe de una grabación previa
         _win = ""
         try:
             _sr = obs_connect()
@@ -4771,14 +5085,14 @@ class PleiadaApp:
         except Exception:
             self._recording_exe = ""
         # Cachear ruta completa del exe (juego corriendo): OBS exe -> wmic, con fallback
-        # a buscar la ventana del juego por tÃ­tulo.
+        # a buscar la ventana del juego por título.
         self._recording_exe_path = _meta_find_game_exe_path(
             _win, (self.selected_game or {}).get("game", "")
         )
-        # v0.8.12: el window string CRUDO de OBS, tal cual llegÃ³. Va a la metadata
-        # como observabilidad: sin esto no hay forma de auditar a posteriori quÃ©
-        # estaba capturando OBS cuando se grabÃ³, y un mismatch de tÃ­tulo queda
-        # indetectable una vez subida la sesiÃ³n.
+        # v0.8.12: el window string CRUDO de OBS, tal cual llegó. Va a la metadata
+        # como observabilidad: sin esto no hay forma de auditar a posteriori qué
+        # estaba capturando OBS cuando se grabó, y un mismatch de título queda
+        # indetectable una vez subida la sesión.
         self._recording_obs_window = _win or ""
 
         # e. Arrancar AHK con el exe YA resuelto (filtro de ventana correcto) +
@@ -4794,14 +5108,14 @@ class PleiadaApp:
         self._start_obs_stop_listener()
         self._start_obs_source_monitor()
 
-        # f. Mostrar pantalla de grabaciÃ³n activa
+        # f. Mostrar pantalla de grabación activa
         self.root.after(0, lambda: self._show_recording_active(anchor_ts))
 
-    # â”€â”€ OBS stop listener â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── OBS stop listener ─────────────────────────────────────────────────────
 
     def _start_obs_stop_listener(self):
-        """Abre una conexiÃ³n WebSocket dedicada y escucha RecordStateChanged en background.
-        Si OBS detiene la grabaciÃ³n sin que nosotros lo hayamos pedido, cancela la sesiÃ³n."""
+        """Abre una conexión WebSocket dedicada y escucha RecordStateChanged en background.
+        Si OBS detiene la grabación sin que nosotros lo hayamos pedido, cancela la sesión."""
 
         def _listener():
             ws = None
@@ -4819,12 +5133,12 @@ class PleiadaApp:
                             if (ed.get("eventType") == "RecordStateChanged" and
                                     ed.get("eventData", {}).get("outputState")
                                     == "OBS_WEBSOCKET_OUTPUT_STOPPED"):
-                                # OBS dejÃ³ de grabar â€” Â¿fuimos nosotros?
+                                # OBS dejó de grabar — ¿fuimos nosotros?
                                 if not self._we_stopped and self.recording:
                                     self.root.after(0, self._obs_external_stop)
                                 break
                     except Exception as exc:
-                        # Timeout es la excepciÃ³n esperada del polling â€” continuar
+                        # Timeout es la excepción esperada del polling — continuar
                         exc_name = type(exc).__name__
                         if "timeout" in exc_name.lower():
                             continue
@@ -4840,10 +5154,10 @@ class PleiadaApp:
         threading.Thread(target=_listener, daemon=True).start()
 
     def _obs_external_stop(self):
-        """Llamado en el main thread cuando OBS detuvo la grabaciÃ³n externamente.
-        Cancela la sesiÃ³n: para AHK abruptamente, elimina archivos, vuelve al idle."""
+        """Llamado en el main thread cuando OBS detuvo la grabación externamente.
+        Cancela la sesión: para AHK abruptamente, elimina archivos, vuelve al idle."""
         if not self.recording:
-            return   # ya fue detenida normalmente justo a la vez â€” ignorar
+            return   # ya fue detenida normalmente justo a la vez — ignorar
 
         self._we_stopped = True
         self.recording   = False
@@ -4861,10 +5175,10 @@ class PleiadaApp:
         sdir = self.session_dir
         obs_prep = self._obs_prep   # capturar antes de resetear
 
-        # Parar AHK de golpe (sin esperar ANCHOR_END â€” la sesiÃ³n se descarta)
+        # Parar AHK de golpe (sin esperar ANCHOR_END — la sesión se descarta)
         stop_ahk_logger(None)
 
-        # Eliminar carpeta de sesiÃ³n con todos los CSVs
+        # Eliminar carpeta de sesión con todos los CSVs
         if sdir and sdir.exists():
             try:
                 shutil.rmtree(str(sdir), ignore_errors=True)
@@ -4873,7 +5187,7 @@ class PleiadaApp:
 
         self.session_dir = None
 
-        # Eliminar el MP4 que OBS guardÃ³ (estÃ¡ en el dir de grabaciÃ³n de OBS, no en sdir)
+        # Eliminar el MP4 que OBS guardó (está en el dir de grabación de OBS, no en sdir)
         threading.Thread(
             target=self._delete_obs_video, args=(obs_prep,), daemon=True
         ).start()
@@ -4883,33 +5197,33 @@ class PleiadaApp:
         if hasattr(self, "_obs_lbl"):
             try:
                 self._obs_lbl.config(
-                    text="OBS detuvo la grabaciÃ³n.", fg=RED)
+                    text="OBS detuvo la grabación.", fg=RED)
             except Exception:
                 pass
         if hasattr(self, "_warn_txt"):
             try:
                 self._warn_txt.config(
-                    text="OBS detuvo la grabaciÃ³n antes de que el Recorder terminara.\n\n"
-                         "La sesiÃ³n fue cancelada. Siempre usÃ¡ el botÃ³n 'Detener' del Recorder "
+                    text="OBS detuvo la grabación antes de que el Recorder terminara.\n\n"
+                         "La sesión fue cancelada. Siempre usá el botón 'Detener' del Recorder "
                          "para finalizar correctamente."
                 )
                 self._warn_frame.pack(fill="x", pady=(8, 0))
             except Exception:
                 pass
 
-    # â”€â”€ EliminaciÃ³n segura del MP4 descartado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Eliminación segura del MP4 descartado ─────────────────────────────────
 
     def _delete_obs_video(self, obs_prep):
-        """Busca y elimina permanentemente el MP4 que OBS creÃ³ para una sesiÃ³n cancelada.
+        """Busca y elimina permanentemente el MP4 que OBS creó para una sesión cancelada.
         Corre en thread background porque OBS puede tardar unos segundos en terminar de
-        escribir el archivo despuÃ©s de StopRecord.
+        escribir el archivo después de StopRecord.
 
-        obs_prep: tupla (rec_dir_str, existing_vids_set) capturada antes de la grabaciÃ³n.
+        obs_prep: tupla (rec_dir_str, existing_vids_set) capturada antes de la grabación.
         """
         rec_dir_str, existing_vids = obs_prep
         if not rec_dir_str or not os.path.isdir(rec_dir_str):
             _obs_dbg("_delete_obs_video: rec_dir desconocido, buscando en carpeta Videos")
-            # Fallback: buscar en ~/Videos el MP4 mÃ¡s reciente (Ãºltimos 5 min)
+            # Fallback: buscar en ~/Videos el MP4 más reciente (últimos 5 min)
             rec_dir_str = str(Path.home() / "Videos")
             existing_vids = set()
 
@@ -4925,37 +5239,37 @@ class PleiadaApp:
                 break
 
         if not new_file:
-            _obs_dbg("_delete_obs_video: no se encontrÃ³ MP4 nuevo para eliminar")
+            _obs_dbg("_delete_obs_video: no se encontró MP4 nuevo para eliminar")
             return
 
         # Esperar a que OBS suelte el handle del archivo (hasta 10 s adicionales)
         for _ in range(20):
             try:
                 os.remove(new_file)
-                _obs_dbg(f"_delete_obs_video: eliminado permanentemente â†’ {new_file}")
+                _obs_dbg(f"_delete_obs_video: eliminado permanentemente → {new_file}")
                 return
             except (PermissionError, OSError):
                 time.sleep(0.5)
 
-        _obs_dbg(f"_delete_obs_video: no se pudo eliminar (handle ocupado) â†’ {new_file}")
+        _obs_dbg(f"_delete_obs_video: no se pudo eliminar (handle ocupado) → {new_file}")
 
-    # â”€â”€ Monitor de fuente OBS durante grabaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Monitor de fuente OBS durante grabación ───────────────────────────────
 
     def _start_obs_source_monitor(self):
-        """Sondea la fuente de OBS cada 3 s durante la grabaciÃ³n.
+        """Sondea la fuente de OBS cada 3 s durante la grabación.
         Detecta:
-        - Fuente incorrecta o ventana cambiada â†’ cancela la sesiÃ³n.
-        - PLE-37: el proceso del juego cerrÃ³ â†’ cancela la sesiÃ³n automÃ¡ticamente.
+        - Fuente incorrecta o ventana cambiada → cancela la sesión.
+        - PLE-37: el proceso del juego cerró → cancela la sesión automáticamente.
         """
 
         def _game_process_running(exe_name):
-            """Retorna True si el proceso exe_name estÃ¡ corriendo."""
+            """Retorna True si el proceso exe_name está corriendo."""
             if not exe_name:
-                return True   # sin exe conocido â†’ no bloquear
+                return True   # sin exe conocido → no bloquear
             try:
                 # /FO CSV no trunca el nombre del proceso (TABLE lo corta a 25 chars,
                 # rompiendo exes largos tipo "{Proyecto}-Win64-Shipping.exe" de Unreal,
-                # lo que cancelaba la sesiÃ³n por falso "el juego se cerrÃ³").
+                # lo que cancelaba la sesión por falso "el juego se cerró").
                 result = subprocess.run(
                     ["tasklist", "/FI", f"IMAGENAME eq {exe_name}", "/FO", "CSV", "/NH"],
                     capture_output=True, text=True,
@@ -4963,10 +5277,10 @@ class PleiadaApp:
                 )
                 return exe_name.lower() in result.stdout.lower()
             except Exception:
-                return True   # error â†’ beneficio de la duda
+                return True   # error → beneficio de la duda
 
         def _monitor():
-            time.sleep(4)   # dar tiempo a que la grabaciÃ³n arranque bien
+            time.sleep(4)   # dar tiempo a que la grabación arranque bien
             game_not_found_count = 0   # PLE-37: contador de checks sin proceso
 
             while self.recording and not self._we_stopped:
@@ -4984,15 +5298,15 @@ class PleiadaApp:
                 # Verificar fuente de OBS
                 if wrong_source:
                     problem_msg = (
-                        f"Cambiaste la fuente en OBS a '{wrong_source}' durante la grabaciÃ³n.\n\n"
-                        "La sesiÃ³n fue cancelada automÃ¡ticamente."
+                        f"Cambiaste la fuente en OBS a '{wrong_source}' durante la grabación.\n\n"
+                        "La sesión fue cancelada automáticamente."
                     )
                 elif win_title:
                     selected = (self.selected_game or {}).get("game", "")
                     if not _obs_title_matches(selected, win_match or win_title):
                         problem_msg = (
-                            f"OBS cambiÃ³ a capturar '{win_title}' durante la grabaciÃ³n.\n\n"
-                            "La sesiÃ³n fue cancelada automÃ¡ticamente."
+                            f"OBS cambió a capturar '{win_title}' durante la grabación.\n\n"
+                            "La sesión fue cancelada automáticamente."
                         )
 
                 # PLE-37: verificar que el proceso del juego sigue corriendo
@@ -5003,11 +5317,11 @@ class PleiadaApp:
                         if game_not_found_count >= 2:   # 2 checks consecutivos sin el proceso
                             game_display = rec_exe.replace(".exe", "")
                             problem_msg = (
-                                f"El juego '{game_display}' se cerrÃ³ durante la grabaciÃ³n.\n\n"
-                                "La sesiÃ³n fue cancelada automÃ¡ticamente."
+                                f"El juego '{game_display}' se cerró durante la grabación.\n\n"
+                                "La sesión fue cancelada automáticamente."
                             )
                     else:
-                        game_not_found_count = 0   # reset si el proceso volviÃ³ a aparecer
+                        game_not_found_count = 0   # reset si el proceso volvió a aparecer
 
                 if problem_msg and not self._we_stopped and self.recording:
                     self.root.after(0, lambda m=problem_msg: self._obs_mid_recording_cancel(m))
@@ -5018,8 +5332,8 @@ class PleiadaApp:
         threading.Thread(target=_monitor, daemon=True).start()
 
     def _obs_mid_recording_cancel(self, reason_msg):
-        """Llamado en el main thread cuando la fuente de OBS cambiÃ³ durante la grabaciÃ³n.
-        Para OBS (sigue grabando), para AHK, elimina sesiÃ³n, vuelve al idle."""
+        """Llamado en el main thread cuando la fuente de OBS cambió durante la grabación.
+        Para OBS (sigue grabando), para AHK, elimina sesión, vuelve al idle."""
         if not self.recording:
             return
 
@@ -5038,7 +5352,7 @@ class PleiadaApp:
         # Parar AHK de golpe
         stop_ahk_logger(None)
 
-        # Parar OBS (sigue grabando â€” a diferencia del stop externo, aquÃ­ debemos detenerlo)
+        # Parar OBS (sigue grabando — a diferencia del stop externo, aquí debemos detenerlo)
         try:
             ws = obs_connect()
             obs_send(ws, "StopRecord")
@@ -5046,7 +5360,7 @@ class PleiadaApp:
         except Exception:
             pass
 
-        # Eliminar carpeta de sesiÃ³n con todos los CSVs
+        # Eliminar carpeta de sesión con todos los CSVs
         if sdir and sdir.exists():
             try:
                 shutil.rmtree(str(sdir), ignore_errors=True)
@@ -5055,7 +5369,7 @@ class PleiadaApp:
 
         self.session_dir = None
 
-        # Eliminar el MP4 que OBS guardÃ³ (necesita esperar a que OBS termine de escribirlo)
+        # Eliminar el MP4 que OBS guardó (necesita esperar a que OBS termine de escribirlo)
         threading.Thread(
             target=self._delete_obs_video, args=(obs_prep,), daemon=True
         ).start()
@@ -5064,7 +5378,7 @@ class PleiadaApp:
         self._show_idle()
         if hasattr(self, "_obs_lbl"):
             try:
-                self._obs_lbl.config(text="GrabaciÃ³n cancelada automÃ¡ticamente.", fg=RED)
+                self._obs_lbl.config(text="Grabación cancelada automáticamente.", fg=RED)
             except Exception:
                 pass
         if hasattr(self, "_warn_txt"):
@@ -5074,31 +5388,31 @@ class PleiadaApp:
             except Exception:
                 pass
 
-    # â”€â”€ Pantalla: grabando â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Pantalla: grabando ─────────────────────────────────────────────────────
 
     def _show_recording_active(self, anchor_ts):
         self._clear_content()
         self.rec_seconds = 0
-        # v0.7.1: duraciÃ³n mÃ¡xima de ESTA sesiÃ³n desde settings (clamp ya aplicado al cargar)
+        # v0.7.1: duración máxima de ESTA sesión desde settings (clamp ya aplicado al cargar)
         self._max_seconds  = int(self._settings.get("max_session_minutes", 60)) * 60
         self._auto_stopped = False
-        game = (self.selected_game or {}).get("game", "â€”")
+        game = (self.selected_game or {}).get("game", "—")
 
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=18)
 
-        # Status row â€” right items primero para evitar overlap en ventanas angostas
+        # Status row — right items primero para evitar overlap en ventanas angostas
         status_row = tk.Frame(frame, bg=BG)
         status_row.pack(fill="x")
-        # Derecha: lÃ­mite + countdown (se packean antes para reservar espacio)
+        # Derecha: límite + countdown (se packean antes para reservar espacio)
         _mh, _mm, _ms = self._max_seconds // 3600, (self._max_seconds % 3600) // 60, self._max_seconds % 60
         self._countdown_lbl = tk.Label(status_row, text=f"{_mh:02d}:{_mm:02d}:{_ms:02d}", fg=DIM, bg=BG,
                                         font=("Cascadia Code", 11))
         self._countdown_lbl.pack(side="right")
-        tk.Label(status_row, text="lÃ­mite  ", fg=DIMMER, bg=BG,
+        tk.Label(status_row, text="límite  ", fg=DIMMER, bg=BG,
                   font=("Segoe UI", 9)).pack(side="right")
         # Izquierda: dot + GRABANDO
-        self._rec_dot = tk.Label(status_row, text="â—", fg=RED, bg=BG,
+        self._rec_dot = tk.Label(status_row, text="●", fg=RED, bg=BG,
                                   font=("Segoe UI", 10, "bold"))
         self._rec_dot.pack(side="left")
         tk.Label(status_row, text="GRABANDO", fg=RED, bg=BG,
@@ -5122,7 +5436,7 @@ class PleiadaApp:
         _mk_separator(frame, color=BORDER2, pady=(0, 14))
 
         # Stop button
-        stop_btn = tk.Button(frame, text="  â¹  Detener grabaciÃ³n", fg=RED, bg="#1a0808",
+        stop_btn = tk.Button(frame, text="  ⏹  Detener grabación", fg=RED, bg="#1a0808",
                               relief="flat", bd=0, cursor="hand2",
                               font=("Segoe UI", 12, "bold"),
                               activebackground="#2a1010", activeforeground=RED,
@@ -5130,9 +5444,9 @@ class PleiadaApp:
                               highlightthickness=1, highlightbackground="#7a2020")
         stop_btn.pack(fill="x", ipady=12)
 
-        # Cancelar: descarta la sesion en vez de cerrarla. Va abajo y en gris â€”
+        # Cancelar: descarta la sesion en vez de cerrarla. Va abajo y en gris —
         # Detener es la accion normal y tiene que seguir siendo la obvia.
-        cancel_btn = tk.Button(frame, text="Cancelar grabaciÃ³n", fg=DIM, bg=BG,
+        cancel_btn = tk.Button(frame, text="Cancelar grabación", fg=DIM, bg=BG,
                                relief="flat", bd=0, cursor="hand2",
                                font=("Segoe UI", 10),
                                activebackground=BG, activeforeground=TEXT,
@@ -5176,24 +5490,24 @@ class PleiadaApp:
         self._rec_dot.config(fg=RED if cur == BG else BG)
         self.root.after(700, self._pulse_dot)
 
-    # â”€â”€ Auto-reinicio de grabaciÃ³n (v0.7.1) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Auto-reinicio de grabación (v0.7.1) ────────────────────────────────────
 
     def _begin_auto_restart(self):
-        """Tras un auto-stop por tiempo con sesiÃ³n OK: cuenta regresiva de 10 s â†’ nueva sesiÃ³n."""
+        """Tras un auto-stop por tiempo con sesión OK: cuenta regresiva de 10 s → nueva sesión."""
         self._auto_restart_cancelled = False
         self._auto_restart_left = 10
         self._clear_content()
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
-        tk.Label(frame, text="âœ“ SesiÃ³n guardada", fg=GREEN, bg=BG,
+        tk.Label(frame, text="✓ Sesión guardada", fg=GREEN, bg=BG,
                  font=("Segoe UI", 12, "bold")).pack()
-        tk.Label(frame, text="Reiniciando grabaciÃ³n en", fg=DIM, bg=BG,
+        tk.Label(frame, text="Reiniciando grabación en", fg=DIM, bg=BG,
                  font=("Segoe UI", 11)).pack(pady=(12, 0))
         self._restart_big = tk.Label(frame, text="10", fg=TEXT, bg=BG,
                                      font=("Cascadia Code", 52, "normal"))
         self._restart_big.pack()
-        tk.Label(frame, text="Cada sesiÃ³n se guarda en su propia carpeta â€” no se sobrescriben.",
+        tk.Label(frame, text="Cada sesión se guarda en su propia carpeta — no se sobrescriben.",
                  fg=DIMMER, bg=BG, font=("Segoe UI", 9), wraplength=WIN_W - 60).pack(pady=(0, 10))
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
         _mk_separator(frame, color=BORDER2, pady=(0, 14))
@@ -5207,9 +5521,9 @@ class PleiadaApp:
         if self._auto_restart_cancelled:
             return
         if self._auto_restart_left <= 0:
-            if not self.selected_game:     # el juego se deseleccionÃ³ â†’ no reiniciar
+            if not self.selected_game:     # el juego se deseleccionó → no reiniciar
                 self._show_idle(); return
-            self._start_recording()        # crea carpeta nueva con timestamp â†’ no se pisa nada
+            self._start_recording()        # crea carpeta nueva con timestamp → no se pisa nada
             return
         try:
             self._restart_big.config(text=str(self._auto_restart_left))
@@ -5223,14 +5537,14 @@ class PleiadaApp:
         self.session_dir = None
         self._show_idle()
 
-    # â”€â”€ Pantalla: verificando â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Pantalla: verificando ──────────────────────────────────────────────────
 
     def _show_syncing(self, sdir):
         self._clear_content()
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
 
-        tk.Label(frame, text="VERIFICANDO SESIÃ“N", fg=DIM, bg=BG,
+        tk.Label(frame, text="VERIFICANDO SESIÓN", fg=DIM, bg=BG,
                   font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 14))
 
         # Verify panel
@@ -5250,7 +5564,7 @@ class PleiadaApp:
         for i, (key, label) in enumerate(items):
             row = tk.Frame(verify, bg="#0b0b1d")
             row.pack(fill="x", padx=14, pady=4)
-            mark = tk.Label(row, text="Â·", fg=ACCENT, bg="#0b0b1d",
+            mark = tk.Label(row, text="·", fg=ACCENT, bg="#0b0b1d",
                              font=("Cascadia Code", 10), width=2)
             mark.pack(side="left")
             tk.Label(row, text=label, fg=TEXT, bg="#0b0b1d",
@@ -5273,19 +5587,19 @@ class PleiadaApp:
             return
         mark, val = self._sync_rows[key]
         if status == "ok":
-            mark.config(text="âœ“", fg=GREEN)
+            mark.config(text="✓", fg=GREEN)
             val.config(text="ok", fg=GREEN)
         elif status == "missing":
-            mark.config(text="âœ—", fg=RED)
+            mark.config(text="✗", fg=RED)
             val.config(text="falta", fg=RED)
         elif status == "err":
-            mark.config(text="âœ—", fg=RED)
+            mark.config(text="✗", fg=RED)
             val.config(text="error", fg=RED)
         elif status == "truncated":
-            mark.config(text="âœ—", fg=RED)
+            mark.config(text="✗", fg=RED)
             val.config(text="truncado", fg=RED)
         elif status == "offset":
-            mark.config(text="âš ", fg=YELLOW)
+            mark.config(text="⚠", fg=YELLOW)
             val.config(text="desfase", fg=YELLOW)
 
     def _show_packaging_anim(self):
@@ -5319,13 +5633,13 @@ class PleiadaApp:
             return
         self._pkg_anim_id = self.root.after(380, self._animate_packaging_dots)
 
-    # â”€â”€ Pantalla: resultado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Pantalla: resultado ────────────────────────────────────────────────────
 
     def _show_result(self, ok, results, out_path, note=None):
         self._clear_content()
 
-        # PLE-45: botones anclados al fondo â€” siempre visibles sin importar
-        # resoluciÃ³n o escalado de pantalla. Se packean ANTES que el canvas
+        # PLE-45: botones anclados al fondo — siempre visibles sin importar
+        # resolución o escalado de pantalla. Se packean ANTES que el canvas
         # para que Tkinter les reserve espacio antes de expandir el scroll.
         tk.Frame(self.content, bg=BORDER2, height=1).pack(side="bottom", fill="x")
         btn_outer = tk.Frame(self.content, bg=BG, padx=22, pady=10)
@@ -5333,7 +5647,7 @@ class PleiadaApp:
         btn_row = tk.Frame(btn_outer, bg=BG)
         btn_row.pack(fill="x")
 
-        # Canvas scrollable â€” ocupa el espacio restante por encima del btn_row
+        # Canvas scrollable — ocupa el espacio restante por encima del btn_row
         canvas = tk.Canvas(self.content, bg=BG, bd=0, highlightthickness=0)
         canvas.pack(side="top", fill="both", expand=True)
 
@@ -5348,16 +5662,16 @@ class PleiadaApp:
         frame.bind("<Configure>", _on_frame_configure)
         canvas.bind("<Configure>", _on_canvas_configure)
 
-        # Mousewheel scroll (anÃ¡lisis scrolleable si el contenido excede el Ã¡rea)
+        # Mousewheel scroll (análisis scrolleable si el contenido excede el área)
         canvas.bind_all("<MouseWheel>", lambda e: canvas.yview_scroll(-1*(e.delta//120), "units"))
 
-        # â”€â”€ Botones â€” definidos acÃ¡ para capturar canvas en el closure â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Botones — definidos acá para capturar canvas en el closure ────────
         def go_again():
             canvas.unbind_all("<MouseWheel>")
             self.session_dir = None
             self._show_idle()
 
-        tk.Button(btn_row, text="Nueva grabaciÃ³n", fg=TEXT, bg=CARD,
+        tk.Button(btn_row, text="Nueva grabación", fg=TEXT, bg=CARD,
                    relief="flat", bd=0, cursor="hand2",
                    font=("Segoe UI", 11), activebackground=CARD2,
                    activeforeground=TEXT, command=go_again,
@@ -5375,62 +5689,62 @@ class PleiadaApp:
         inner = tk.Frame(frame, bg=BG)
         inner.pack(fill="both", expand=True, padx=22, pady=16)
 
-        # v0.7.1: aviso si el reinicio automÃ¡tico se detuvo por una sesiÃ³n rechazada
+        # v0.7.1: aviso si el reinicio automático se detuvo por una sesión rechazada
         if note == "auto_restart_halted":
-            tk.Label(inner, text="âš   Reinicio automÃ¡tico detenido â€” la Ãºltima grabaciÃ³n no pasÃ³ "
-                                 "la verificaciÃ³n de sincronizaciÃ³n.",
+            tk.Label(inner, text="⚠  Reinicio automático detenido — la última grabación no pasó "
+                                 "la verificación de sincronización.",
                      fg=YELLOW, bg=BG, font=("Segoe UI", 10), justify="left",
                      wraplength=WIN_W - 80, anchor="w").pack(fill="x", pady=(0, 10))
 
-        # â”€â”€ Notify card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Notify card ───────────────────────────────────────────────────────
         if ok:
             card_bg  = "#06140d"
             card_brd = "#1e6644"
-            icon_txt = "âœ“"
+            icon_txt = "✓"
             icon_col = GREEN
-            title    = "Â¡SesiÃ³n lista para enviar!"
-            body     = ("La sesiÃ³n fue analizada y se encuentra sincronizada. "
+            title    = "¡Sesión lista para enviar!"
+            body     = ("La sesión fue analizada y se encuentra sincronizada. "
                         "Verifica que no haya nada personal en los archivos, no los "
                         "modifiques, y comienza la subida a la plataforma")
         else:
             card_bg  = "#140606"
             card_brd = "#7a2020"
-            icon_txt = "âœ—"
+            icon_txt = "✗"
             icon_col = RED
-            title    = "SesiÃ³n no apta para enviar"
+            title    = "Sesión no apta para enviar"
             if results and results.get("short_session"):
-                # PLE-41: sesiÃ³n demasiado corta
-                body = "La sesiÃ³n durÃ³ menos de 30 segundos.\nGrabÃ¡ al menos 30 segundos de gameplay para que los datos sean vÃ¡lidos."
+                # PLE-41: sesión demasiado corta
+                body = "La sesión duró menos de 30 segundos.\nGrabá al menos 30 segundos de gameplay para que los datos sean válidos."
             elif results and results.get("video_still"):
                 # Gate de video quieto. Va ANTES que el de AFK: si disparan los
                 # dos, la causa real suele ser que OBS no estaba capturando, y
-                # decirle "estuviste inactivo" lo manda a buscar donde no estÃ¡.
+                # decirle "estuviste inactivo" lo manda a buscar donde no está.
                 # Tampoco se menciona el umbral (misma regla que AFK).
-                body = ("La sesiÃ³n tiene un perÃ­odo largo donde la imagen no cambiÃ³ "
-                        "(pantalla negra o congelada).\nVerificÃ¡ que OBS estÃ© capturando "
-                        "el juego e iniciÃ¡ una nueva sesiÃ³n.")
+                body = ("La sesión tiene un período largo donde la imagen no cambió "
+                        "(pantalla negra o congelada).\nVerificá que OBS esté capturando "
+                        "el juego e iniciá una nueva sesión.")
             elif results and results.get("sin_input"):
-                # Gate de input vacÃ­o. Va ANTES que el de AFK porque es mÃ¡s
-                # especÃ­fico: AFK dirÃ­a "estuviste inactivo" cuando en realidad
-                # el jugador jugÃ³ toda la sesiÃ³n y lo que fallÃ³ fue la captura.
-                # Las dos causas se resuelven distinto, asÃ­ que el texto cambia.
+                # Gate de input vacío. Va ANTES que el de AFK porque es más
+                # específico: AFK diría "estuviste inactivo" cuando en realidad
+                # el jugador jugó toda la sesión y lo que falló fue la captura.
+                # Las dos causas se resuelven distinto, así que el texto cambia.
                 if results.get("sin_input_causa") == "captura_bloqueada":
-                    body = ("No se registrÃ³ lo que hiciste con el teclado y el mouse, "
-                            "aunque el video se grabÃ³ bien.\nSuele pasar cuando el juego "
+                    body = ("No se registró lo que hiciste con el teclado y el mouse, "
+                            "aunque el video se grabó bien.\nSuele pasar cuando el juego "
                             "corre como administrador o su anticheat bloquea la captura. "
-                            "AbrÃ­ el Recorder como administrador e iniciÃ¡ una nueva sesiÃ³n; "
+                            "Abrí el Recorder como administrador e iniciá una nueva sesión; "
                             "si vuelve a pasar con este juego, avisanos.")
                 else:
-                    body = ("La sesiÃ³n no tiene actividad de teclado ni de mouse.\nSi jugaste "
-                            "con joystick, todavÃ­a no podemos registrarlo: grabÃ¡ con teclado "
-                            "y mouse e iniciÃ¡ una nueva sesiÃ³n.")
+                    body = ("La sesión no tiene actividad de teclado ni de mouse.\nSi jugaste "
+                            "con joystick, todavía no podemos registrarlo: grabá con teclado "
+                            "y mouse e iniciá una nueva sesión.")
             elif results and results.get("afk"):
                 # Gate AFK: demasiado tiempo continuo sin inputs.
-                # A propÃ³sito NO se menciona el umbral exacto (pedido de MartÃ­n 20/7).
-                body = ("La sesiÃ³n tiene un perÃ­odo largo sin actividad de teclado o mouse "
-                        "(AFK).\nGrabÃ¡ jugando activamente e iniciÃ¡ una nueva sesiÃ³n.")
+                # A propósito NO se menciona el umbral exacto (pedido de Martín 20/7).
+                body = ("La sesión tiene un período largo sin actividad de teclado o mouse "
+                        "(AFK).\nGrabá jugando activamente e iniciá una nueva sesión.")
             else:
-                body = "Los archivos no pasaron el sync check.\nDescartÃ¡ esta sesiÃ³n e iniciÃ¡ una nueva."
+                body = "Los archivos no pasaron el sync check.\nDescartá esta sesión e iniciá una nueva."
 
         notify = tk.Frame(inner, bg=card_bg, highlightthickness=1,
                            highlightbackground=card_brd)
@@ -5447,8 +5761,8 @@ class PleiadaApp:
                   font=("Segoe UI", 10), anchor="w", justify="left",
                   wraplength=WIN_W - 130).pack(fill="x", pady=(3, 0))
 
-        # â”€â”€ Panel de anÃ¡lisis (siempre visible) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        _mk_section_label(inner, "ANÃLISIS DE SINCRONIZACIÃ“N")
+        # ── Panel de análisis (siempre visible) ───────────────────────────────
+        _mk_section_label(inner, "ANÁLISIS DE SINCRONIZACIÓN")
 
         vbg = "#0b0b1d"
         verify = tk.Frame(inner, bg=vbg, highlightthickness=1, highlightbackground=BORDER2)
@@ -5464,15 +5778,15 @@ class PleiadaApp:
         ]
         statuses = self._last_sync_statuses
         status_labels = {
-            "ok":       ("âœ“", GREEN,  "ok"),
-            "missing":  ("âœ—", RED,    "falta"),
-            "err":      ("âœ—", RED,    "error"),
-            "truncated":("âœ—", RED,    "truncado"),
-            "offset":   ("âš ", YELLOW, "desfase"),
+            "ok":       ("✓", GREEN,  "ok"),
+            "missing":  ("✗", RED,    "falta"),
+            "err":      ("✗", RED,    "error"),
+            "truncated":("✗", RED,    "truncado"),
+            "offset":   ("⚠", YELLOW, "desfase"),
         }
         for key, label in file_items:
             s = statuses.get(key, "pending")
-            mark_txt, col, val_txt = status_labels.get(s, ("Â·", DIMMER, "â€”"))
+            mark_txt, col, val_txt = status_labels.get(s, ("·", DIMMER, "—"))
             row = tk.Frame(verify, bg=vbg)
             row.pack(fill="x", padx=14, pady=3)
             tk.Label(row, text=mark_txt, fg=col, bg=vbg,
@@ -5482,7 +5796,7 @@ class PleiadaApp:
             tk.Label(row, text=val_txt, fg=col, bg=vbg,
                       font=("Cascadia Code", 10), anchor="e").pack(side="right")
 
-        # LÃ­nea de detalle numÃ©rico
+        # Línea de detalle numérico
         if results:
             diff    = results.get("signed_diff")
             csv_dur = results.get("csv_dur")
@@ -5494,26 +5808,26 @@ class PleiadaApp:
             drow.pack(fill="x", padx=14, pady=(4, 10))
 
             if truncated:
-                tk.Label(drow, text="Video truncado â€” OBS cerrÃ³ sin finalizar la grabaciÃ³n.",
+                tk.Label(drow, text="Video truncado — OBS cerró sin finalizar la grabación.",
                           fg=RED, bg=vbg, font=("Cascadia Code", 9), wraplength=WIN_W - 80,
                           justify="left", anchor="w").pack(fill="x")
             elif diff is not None and csv_dur and vid_dur:
                 # Derecha primero para evitar overlap con items de izquierda
                 diff_col = GREEN if ok else RED
-                tk.Label(drow, text=f"Î” {diff:+d} ms", fg=diff_col, bg=vbg,
+                tk.Label(drow, text=f"Δ {diff:+d} ms", fg=diff_col, bg=vbg,
                           font=("Cascadia Code", 9, "bold")).pack(side="right")
                 tk.Label(drow, text=f"CSV: {csv_dur} ms", fg=DIM, bg=vbg,
                           font=("Cascadia Code", 9)).pack(side="left")
                 tk.Label(drow, text=f"Video: {vid_dur} ms", fg=DIM, bg=vbg,
                           font=("Cascadia Code", 9)).pack(side="left", padx=(14, 0))
             elif not results.get("csvs_ok"):
-                tk.Label(drow, text="Uno o mÃ¡s archivos CSV estÃ¡n incompletos o faltan.",
+                tk.Label(drow, text="Uno o más archivos CSV están incompletos o faltan.",
                           fg=RED, bg=vbg, font=("Cascadia Code", 9), wraplength=WIN_W - 80,
                           justify="left", anchor="w").pack(fill="x")
 
-        # â”€â”€ SesiÃ³n / archivo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Sesión / archivo ──────────────────────────────────────────────────
         if self.session_dir:
-            _mk_section_label(inner, "SESIÃ“N")
+            _mk_section_label(inner, "SESIÓN")
             srow = tk.Frame(inner, bg=BG)
             srow.pack(fill="x", pady=(0, 8))
             tk.Label(srow, text=self.session_dir.name, fg=DIM, bg=BG,
@@ -5521,26 +5835,26 @@ class PleiadaApp:
                       justify="left").pack(side="left", fill="x", expand=True)
             def _open_folder(d=self.session_dir):
                 subprocess.Popen(["explorer", str(d)])
-            folder_btn = tk.Label(srow, text="ðŸ“", bg=BG, fg=YELLOW,
+            folder_btn = tk.Label(srow, text="📁", bg=BG, fg=YELLOW,
                                    font=("Segoe UI Emoji", 16), cursor="hand2",
                                    padx=4)
             folder_btn.pack(side="right", anchor="e")
             folder_btn.bind("<Button-1>", lambda e: _open_folder())
 
-        # (botones movidos al fondo fijo de self.content â€” ver inicio de _show_result)
+        # (botones movidos al fondo fijo de self.content — ver inicio de _show_result)
 
-    # â”€â”€ Upload a S3 (vistas in-window) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Upload a S3 (vistas in-window) ─────────────────────────────────────────
 
     def _start_upload_flow(self, session_dir, return_to):
         """Punto de entrada del flujo de subida. Refresca las inscripciones ANTES
-        de decidir: el usuario pudo inscribirse en el dashboard despuÃ©s de abrir el
-        Recorder, y si no refrescamos, la lista quedarÃ­a vieja y bloquearÃ­a la subida.
+        de decidir: el usuario pudo inscribirse en el dashboard después de abrir el
+        Recorder, y si no refrescamos, la lista quedaría vieja y bloquearía la subida.
         """
         self._clear_content()
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
-        tk.Label(frame, text="Verificando tus Ã³rdenesâ€¦", fg=TEXT, bg=BG,
+        tk.Label(frame, text="Verificando tus órdenes…", fg=TEXT, bg=BG,
                  font=("Segoe UI", 12, "bold")).pack()
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
 
@@ -5565,8 +5879,8 @@ class PleiadaApp:
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
 
-        # â”€â”€ Sin call elegible: el upload estÃ¡ bloqueado (el backend lo
-        #    rechazarÃ­a igual â€” esto solo se lo explica al usuario antes). â”€â”€
+        # ── Sin call elegible: el upload está bloqueado (el backend lo
+        #    rechazaría igual — esto solo se lo explica al usuario antes). ──
         if not matches:
             tk.Label(frame, text="Subir Data Set", fg=TEXT, bg=BG,
                      font=("Segoe UI", 14, "bold"), anchor="w").pack(fill="x", pady=(0, 12))
@@ -5576,15 +5890,15 @@ class PleiadaApp:
             notify.pack(fill="x")
             juego = meta["game_title"] or "este juego"
             if self.open_calls:
-                body = (f"{juego} no entra en ninguna de tus Ã³rdenes activas.\n\n"
+                body = (f"{juego} no entra en ninguna de tus órdenes activas.\n\n"
                         "Las subidas solo se habilitan para juegos elegibles de una "
-                        "orden en la que estÃ©s inscripto. RevisÃ¡ las Ã³rdenes abiertas "
+                        "orden en la que estés inscripto. Revisá las órdenes abiertas "
                         "en el dashboard de Gameplay Alliance.")
             else:
-                body = ("No estÃ¡s inscripto en ninguna orden abierta.\n\n"
+                body = ("No estás inscripto en ninguna orden abierta.\n\n"
                         "Para subir contenido, primero inscribite en una orden desde "
-                        "el dashboard de Gameplay Alliance y grabÃ¡ un juego elegible.")
-            tk.Label(notify, text="âš   Subida no disponible", fg=YELLOW, bg=card_bg,
+                        "el dashboard de Gameplay Alliance y grabá un juego elegible.")
+            tk.Label(notify, text="⚠  Subida no disponible", fg=YELLOW, bg=card_bg,
                      font=("Segoe UI", 11, "bold"), anchor="w").pack(
                 fill="x", padx=14, pady=(10, 2))
             tk.Label(notify, text=body, fg=DIM, bg=card_bg, font=("Segoe UI", 10),
@@ -5602,7 +5916,7 @@ class PleiadaApp:
             def _open_dashboard():
                 import webbrowser
                 webbrowser.open("https://gameplayalliance.gg/dashboard/")
-            tk.Button(btns, text="Ver Ã³rdenes abiertas", fg="#fff", bg=ACCENT, relief="flat",
+            tk.Button(btns, text="Ver órdenes abiertas", fg="#fff", bg=ACCENT, relief="flat",
                       bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
                       activebackground="#9080e0", command=_open_dashboard).pack(
                 side="right", fill="x", expand=True, ipady=10, padx=(6, 0))
@@ -5610,19 +5924,19 @@ class PleiadaApp:
 
         tk.Label(frame, text="Subir Data Set", fg=TEXT, bg=BG,
                  font=("Segoe UI", 14, "bold"), anchor="w").pack(fill="x", pady=(0, 6))
-        tk.Label(frame, text="Â¿QuerÃ©s subir esta sesiÃ³n a Gameplay Alliance?",
+        tk.Label(frame, text="¿Querés subir esta sesión a Gameplay Alliance?",
                  fg=DIM, bg=BG, font=("Segoe UI", 11), anchor="w",
                  justify="left", wraplength=WIN_W - 60).pack(fill="x", pady=(0, 16))
 
         card = tk.Frame(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
         card.pack(fill="x")
         dur_min = max(1, meta["duration_seconds"] // 60) if meta["duration_seconds"] else None
-        rows = [("SesiÃ³n",   session_dir.name),
+        rows = [("Sesión",   session_dir.name),
                 ("Archivos", f"{info['count']} ({info['size_label']})")]
         if meta["game_title"]:
             rows.insert(0, ("Juego", meta["game_title"]))
         if dur_min:
-            rows.append(("DuraciÃ³n", f"{dur_min} min"))
+            rows.append(("Duración", f"{dur_min} min"))
         for label, value in rows:
             row = tk.Frame(card, bg=CARD)
             row.pack(fill="x", padx=14, pady=8)
@@ -5632,7 +5946,7 @@ class PleiadaApp:
                      anchor="w", justify="left", wraplength=WIN_W - 150).pack(
                 side="left", fill="x", expand=True)
 
-        # â”€â”€ Open Call de destino (1 match: fijo; varios: selector) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Open Call de destino (1 match: fijo; varios: selector) ────────────
         call_var = tk.StringVar(value=matches[0]["call_id"])
         _mk_section_label(frame, "ORDEN DE DESTINO")
         sel = tk.Frame(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
@@ -5641,10 +5955,10 @@ class PleiadaApp:
             row = tk.Frame(sel, bg=CARD)
             row.pack(fill="x", padx=10, pady=4)
             rem = m.get("remaining_seconds")
-            extra = f" Â· te quedan {rem // 3600}h {(rem % 3600) // 60:02d}m" if rem is not None else ""
+            extra = f" · te quedan {rem // 3600}h {(rem % 3600) // 60:02d}m" if rem is not None else ""
             txt = f"{m.get('titulo', m['call_id'])}  ({m['call_id']}){extra}"
             if len(matches) == 1:
-                tk.Label(row, text="â†’ " + txt, fg=TEXT, bg=CARD,
+                tk.Label(row, text="→ " + txt, fg=TEXT, bg=CARD,
                          font=("Segoe UI", 10), anchor="w", justify="left",
                          wraplength=WIN_W - 100).pack(fill="x")
             else:
@@ -5671,9 +5985,9 @@ class PleiadaApp:
 
     def _upload_progress_view(self, session_dir, return_to, call_id=""):
         # v0.8.7 (bug QA): nunca dos subidas a la vez. Antes, navegar fuera de esta
-        # vista (âš™ Ajustes) dejaba el thread subiendo en background; un reintento
+        # vista (⚙ Ajustes) dejaba el thread subiendo en background; un reintento
         # apilaba OTRO thread sobre los mismos archivos y las conexiones se mataban
-        # entre sÃ­ (<urlopen error EOF occurred in violation of protocol>).
+        # entre sí (<urlopen error EOF occurred in violation of protocol>).
         if self._uploading:
             return
         self._uploading = True
@@ -5686,7 +6000,7 @@ class PleiadaApp:
 
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
 
-        status_var = tk.StringVar(value="Iniciandoâ€¦")
+        status_var = tk.StringVar(value="Iniciando…")
         tk.Label(frame, textvariable=status_var, fg=TEXT, bg=BG,
                  font=("Segoe UI", 11), anchor="w", justify="left").pack(fill="x")
         detail_var = tk.StringVar(value="")
@@ -5719,21 +6033,21 @@ class PleiadaApp:
         def on_progress(sent, total, filename, speed, eta):
             if cancelled[0]:
                 return
-            short = filename if len(filename) <= 28 else "â€¦" + filename[-25:]
+            short = filename if len(filename) <= 28 else "…" + filename[-25:]
             pct   = (sent / total * 100) if total else 0
             mb    = 1024 * 1024
-            detail = f"{sent/mb:.1f} / {total/mb:.1f} MB Â· {pct:.0f}%"
+            detail = f"{sent/mb:.1f} / {total/mb:.1f} MB · {pct:.0f}%"
             if speed:
-                detail += f" Â· {speed/mb:.1f} MB/s"
+                detail += f" · {speed/mb:.1f} MB/s"
             etatxt = _fmt_eta(eta)
             if etatxt:
-                detail += f" Â· {etatxt}"
+                detail += f" · {etatxt}"
             self.root.after(0, lambda: status_var.set(f"Subiendo {short}"))
             self.root.after(0, lambda: detail_var.set(detail))
             self.root.after(0, lambda: pct_var.set(pct))
 
         def on_done(status, msg):
-            self._uploading = False   # el worker terminÃ³ (ok/error/cancelado): se libera la subida
+            self._uploading = False   # el worker terminó (ok/error/cancelado): se libera la subida
             if cancelled[0]:
                 return
             if status == "ok":
@@ -5750,7 +6064,7 @@ class PleiadaApp:
                 self.root.after(0, self._on_upload_auth_expired)
             elif status == "gate":
                 # rechazo por reglas del Open Call: no ofrecer "Reintentar" a ciegas
-                self._refresh_open_calls()   # el estado local quedÃ³ viejo
+                self._refresh_open_calls()   # el estado local quedó viejo
                 self.root.after(0, lambda: self._upload_result_view(
                     "gate", msg, session_dir, return_to))
             else:
@@ -5771,30 +6085,30 @@ class PleiadaApp:
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
 
         if status in ("ok", "already"):
-            tk.Label(frame, text="âœ“", fg=GREEN, bg=BG,
+            tk.Label(frame, text="✓", fg=GREEN, bg=BG,
                      font=("Segoe UI", 34, "bold")).pack()
-            text = ("SesiÃ³n subida correctamente\na Gameplay Alliance."
+            text = ("Sesión subida correctamente\na Gameplay Alliance."
                     if status == "ok" else
                     "Este Data Set ya estaba subido.")
             tk.Label(frame, text=text, fg=TEXT, bg=BG, font=("Segoe UI", 12, "bold"),
                      justify="center").pack(pady=(8, 0))
         elif status == "gate":
-            # El backend rechazÃ³ por reglas del Open Call (cupo, elegibilidad, cierre)
-            tk.Label(frame, text="âš ", fg=YELLOW, bg=BG,
+            # El backend rechazó por reglas del Open Call (cupo, elegibilidad, cierre)
+            tk.Label(frame, text="⚠", fg=YELLOW, bg=BG,
                      font=("Segoe UI", 34, "bold")).pack()
-            tk.Label(frame, text="La subida no estÃ¡ habilitada.", fg=TEXT, bg=BG,
+            tk.Label(frame, text="La subida no está habilitada.", fg=TEXT, bg=BG,
                      font=("Segoe UI", 12, "bold")).pack(pady=(8, 0))
-            tk.Label(frame, text=msg or "Este contenido no entra en tus Ã³rdenes activas.",
+            tk.Label(frame, text=msg or "Este contenido no entra en tus órdenes activas.",
                      fg=DIM, bg=BG, font=("Segoe UI", 10), justify="center",
                      wraplength=WIN_W - 60).pack(pady=(4, 0))
         else:
-            tk.Label(frame, text="âœ—", fg=RED, bg=BG,
+            tk.Label(frame, text="✗", fg=RED, bg=BG,
                      font=("Segoe UI", 34, "bold")).pack()
-            tk.Label(frame, text="No se pudo subir la sesiÃ³n.", fg=TEXT, bg=BG,
+            tk.Label(frame, text="No se pudo subir la sesión.", fg=TEXT, bg=BG,
                      font=("Segoe UI", 12, "bold")).pack(pady=(8, 0))
             # v0.8.5: mostrar el motivo real del servidor si vino (antes se
-            # tragaba el msg y TODO error parecÃ­a "problema de conexiÃ³n" â€” bug QA)
-            tk.Label(frame, text=msg or "RevisÃ¡ tu conexiÃ³n e intentÃ¡ de nuevo.",
+            # tragaba el msg y TODO error parecía "problema de conexión" — bug QA)
+            tk.Label(frame, text=msg or "Revisá tu conexión e intentá de nuevo.",
                      fg=DIM, bg=BG, font=("Segoe UI", 10), justify="center",
                      wraplength=WIN_W - 60).pack(pady=(4, 0))
 
@@ -5821,13 +6135,23 @@ class PleiadaApp:
                 side="right", fill="x", expand=True, ipady=10, padx=(6, 0))
 
     def _on_upload_auth_expired(self):
+        self._on_auth_expired("Volvé a iniciar sesión con tu email para subir la grabación.")
+
+    def _on_auth_expired(self, motivo=""):
+        """Pantalla única de sesión vencida (PLE-164).
+
+        Antes vivía solo en el camino de subida. La detección, que es lo primero
+        que consulta el backend al abrir la app, no tenía salida: mostraba un
+        error de título y el usuario tenía que adivinar que la solución era
+        desloguearse desde Ajustes.
+        """
         self._clear_content()
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
-        tk.Label(frame, text="Tu sesiÃ³n venciÃ³.", fg=TEXT, bg=BG,
+        tk.Label(frame, text="Tu sesión venció.", fg=TEXT, bg=BG,
                  font=("Segoe UI", 13, "bold")).pack()
-        tk.Label(frame, text="VolvÃ© a iniciar sesiÃ³n con tu email para subir la grabaciÃ³n.",
+        tk.Label(frame, text=motivo or "Volvé a iniciar sesión con tu email.",
                  fg=DIM, bg=BG, font=("Segoe UI", 10), justify="center",
                  wraplength=WIN_W - 60).pack(pady=(6, 0))
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
@@ -5837,11 +6161,11 @@ class PleiadaApp:
             save_auth("", "")
             self._signout_lbl.pack_forget()
             self._show_login()
-        tk.Button(frame, text="Iniciar sesiÃ³n", fg="#fff", bg=ACCENT, relief="flat",
+        tk.Button(frame, text="Iniciar sesión", fg="#fff", bg=ACCENT, relief="flat",
                   bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
                   activebackground="#9080e0", command=_relogin).pack(fill="x", ipady=10)
 
-    # â”€â”€ Lista de grabaciones (grabar varias, subir por separado) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Lista de grabaciones (grabar varias, subir por separado) ────────────────
 
     def _show_sessions_list(self):
         self._clear_content()
@@ -5851,7 +6175,7 @@ class PleiadaApp:
 
         head = tk.Frame(outer, bg=BG, padx=22, pady=16)
         head.pack(fill="x")
-        back = tk.Label(head, text="â†", fg=ACCENT, bg=BG, font=("Segoe UI", 16),
+        back = tk.Label(head, text="←", fg=ACCENT, bg=BG, font=("Segoe UI", 16),
                         cursor="hand2")
         back.pack(side="left")
         back.bind("<Button-1>", lambda e: self._show_idle())
@@ -5868,7 +6192,7 @@ class PleiadaApp:
 
         sessions = list_local_sessions()
         if not sessions:
-            tk.Label(lst, text="No hay grabaciones todavÃ­a.", fg=DIM, bg=BG,
+            tk.Label(lst, text="No hay grabaciones todavía.", fg=DIM, bg=BG,
                      font=("Segoe UI", 11), pady=40).pack()
             return
         for sdir, state in sessions:
@@ -5887,12 +6211,12 @@ class PleiadaApp:
         meta = tk.Frame(inner, bg=CARD)
         meta.pack(fill="x", pady=(6, 0))
         badge = {
-            "uploaded":   ("âœ“ Subida",   GREEN),
+            "uploaded":   ("✓ Subida",   GREEN),
             "pending":    ("Pendiente",  YELLOW),
-            "invalid":    ("No vÃ¡lida",  RED),
+            "invalid":    ("No válida",  RED),
             "incomplete": ("Incompleta", DIMMER),
         }
-        txt, col = badge.get(state.get("status"), ("â€”", DIMMER))
+        txt, col = badge.get(state.get("status"), ("—", DIMMER))
         tk.Label(meta, text=txt, fg=col, bg=CARD,
                  font=("Segoe UI", 9, "bold")).pack(side="left")
         tk.Label(meta, text=state.get("size_label", ""), fg=DIM, bg=CARD,
@@ -5905,9 +6229,9 @@ class PleiadaApp:
                       command=lambda d=sdir: self._start_upload_flow(
                           d, self._show_sessions_list)).pack(side="right", ipady=2, ipadx=12)
 
-    # â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Helpers ───────────────────────────────────────────────────────────────
 
-    # â”€â”€ Navegacion (v0.9) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Navegacion (v0.9) ─────────────────────────────────────────────────────
 
     def _set_back(self, destino=None):
         """Muestra el Atras y a donde vuelve. None lo oculta.
@@ -5945,7 +6269,7 @@ class PleiadaApp:
             self.content.unbind_all("<MouseWheel>")
         except Exception:
             pass
-        # Cancelar animaciÃ³n de packaging si estÃ¡ corriendo
+        # Cancelar animación de packaging si está corriendo
         if getattr(self, "_pkg_anim_id", None):
             try:
                 self.root.after_cancel(self._pkg_anim_id)
@@ -5965,19 +6289,25 @@ class PleiadaApp:
 
     def _on_close(self):
         if self.recording:
-            self._stop_recording()
+            # PLE-157: cerrando en pleno countdown no hay nada que cerrar bien.
+            # Se descarta sin preguntar: la app se esta yendo igual y un modal
+            # aca solo retrasa el cierre.
+            if getattr(self, "_rec_started", False):
+                self._stop_recording()
+            else:
+                self._cancel_recording(preguntar=False)
         self.root.after(500, self.root.destroy)
 
     def run(self):
         self.root.mainloop()
 
 
-# â”€â”€â”€ Entry point â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Entry point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     _install_crash_logging()   # v0.7.1: captura crashes/ANR a %APPDATA%\Pleiada\logs
 
-    # PLE-18: DPI awareness â€” evita que Windows clipee contenido en pantallas escaladas.
+    # PLE-18: DPI awareness — evita que Windows clipee contenido en pantallas escaladas.
     # Debe llamarse ANTES de crear cualquier ventana Tk.
     try:
         import ctypes as _ct_dpi
@@ -5986,19 +6316,35 @@ if __name__ == "__main__":
         except Exception:
             _ct_dpi.windll.user32.SetProcessDPIAware()        # fallback para Windows < 8.1
 
-        # PLE-44: escalar WIN_W/WIN_H segÃºn el DPI del sistema para evitar textos
+        # PLE-44: escalar WIN_W/WIN_H según el DPI del sistema para evitar textos
         # cortados en pantallas con escalado 125%/150%. Con DpiAwareness(2) el proceso
-        # recibe pÃ­xeles fÃ­sicos, pero las fuentes en puntos escalan con el DPI â€”
-        # sin este ajuste la ventana queda angosta relativa al tamaÃ±o de letra.
+        # recibe píxeles físicos, pero las fuentes en puntos escalan con el DPI —
+        # sin este ajuste la ventana queda angosta relativa al tamaño de letra.
         _sys_dpi = _ct_dpi.windll.user32.GetDpiForSystem()
         if _sys_dpi and _sys_dpi != 96:
             _dpi_scale = _sys_dpi / 96.0
-            WIN_W = int(420 * _dpi_scale)
-            WIN_H = int(640 * _dpi_scale)
+            # PLE-161: escalar desde las constantes REALES. Antes esto multiplicaba
+            # un 640 hardcodeado que quedó viejo cuando la ventana pasó a 730 de
+            # alto: a 125% pedía 800 px para un contenido de 912, y a 150% pedía
+            # 960 para 1095. Faltaban ~110-135 px y el pie —la fila SESIÓN y el
+            # link del tutorial— quedaba afuera.
+            _alto_pedido = int(WIN_H * _dpi_scale)
+            WIN_W = int(WIN_W * _dpi_scale)
+            # Techo por pantalla: a 150% sobre 1080 de alto, la ventana entera no
+            # entra en el monitor. Antes que dejarla cortada por abajo, se recorta
+            # acá y se esconde el panel de tips.
+            _alto_pantalla = _ct_dpi.windll.user32.GetSystemMetrics(1)   # SM_CYSCREEN
+            if _alto_pantalla:
+                WIN_H = min(_alto_pedido, max(400, _alto_pantalla - 60))
+            else:
+                WIN_H = _alto_pedido
+            # Los tips son el bloque más grande y el menos esencial: si no entró
+            # todo lo que pedíamos, se ocultan y el resto de la pantalla entra.
+            TIPS_VISIBLES = WIN_H >= _alto_pedido
     except Exception:
         pass
 
-    # PLE-38: Single-instance guard â€” impide abrir dos grabaciones en paralelo.
+    # PLE-38: Single-instance guard — impide abrir dos grabaciones en paralelo.
     # Usamos un Windows Named Mutex. Si ya existe, hay otra instancia corriendo.
     _mutex = None
     try:
@@ -6011,7 +6357,7 @@ if __name__ == "__main__":
             _r = _tk2.Tk(); _r.withdraw()
             _mb.showwarning(
                 "Gameplay Recorder",
-                "Gameplay Recorder ya estÃ¡ abierto.\n\nCerrÃ¡ la ventana existente antes de abrir una nueva."
+                "Gameplay Recorder ya está abierto.\n\nCerrá la ventana existente antes de abrir una nueva."
             )
             _r.destroy()
             import sys as _sys2; _sys2.exit(0)

@@ -62,7 +62,27 @@
   ],
   "developer": "The Fun Pimps",
   "igdb_id": "5574",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "c": "crouch",
+   "r": "reload",
+   "f": "flashlight",
+   "g": "drop_item",
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "MouseLeft": "fire",
+   "MouseRight": "attack_secondary",
+   "LShift": "sprint",
+   "Space": "jump",
+   "LControl": "crouch",
+   "e": "interact",
+   "1": "slot_1",
+   "2": "slot_2",
+   "3": "slot_3",
+   "4": "slot_4",
+   "5": "slot_5"
+  }
  },
  {
   "game": "[Chilla's Art] Night Security | 夜間警備",
@@ -586,7 +606,19 @@
   ],
   "developer": "Frictional Games",
   "igdb_id": "131785",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "Space": "jump",
+   "LControl": "crouch",
+   "LShift": "sprint",
+   "e": "lean_right",
+   "q": "lean_left",
+   "MouseLeft": "interact",
+   "MouseRight": "cancel_interact"
+  }
  },
  {
   "game": "Amnesia: The Bunker",
@@ -675,7 +707,18 @@
   ],
   "developer": "Embark Studios",
   "igdb_id": "185258",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "Space": "jump",
+   "LShift": "sprint",
+   "LControl": "crouch",
+   "c": "crouch"
+  }
  },
  {
   "game": "Arcade Paradise",
@@ -816,7 +859,31 @@
   ],
   "developer": "Studio Wildcard",
   "igdb_id": "10239",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "LShift": "sprint",
+   "Space": "jump",
+   "c": "crouch",
+   "x": "prone",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "r": "reload",
+   "e": "interact",
+   "LControl": "melee",
+   "q": "toggle_fists",
+   "i": "inventory",
+   "m": "map",
+   "o": "drop_item",
+   "Tab": "console",
+   "1": "slot_1",
+   "2": "slot_2",
+   "3": "slot_3",
+   "4": "slot_4",
+   "5": "slot_5"
+  }
  },
  {
   "game": "Arma 3",
@@ -1489,7 +1556,20 @@
   ],
   "developer": "Crowbar Collective",
   "igdb_id": "6739",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "a": "move_left",
+   "d": "move_right",
+   "e": "interact",
+   "r": "reload",
+   "s": "move_backward",
+   "w": "move_forward",
+   "z": "aim",
+   "Space": "jump",
+   "LShift": "sprint",
+   "LControl": "crouch",
+   "MouseLeft": "fire",
+   "MouseRight": "attack_secondary"
+  }
  },
  {
   "game": "Black Myth: Wukong",
@@ -1538,20 +1618,28 @@
   "igdb_id": "136879",
   "default_key_mapping": {
    "w": "move_forward",
-   "a": "move_left",
    "s": "move_backward",
+   "a": "move_left",
    "d": "move_right",
+   "MouseLeft": "fire",
+   "MouseRight": "attack_heavy",
+   "MouseMiddle": "lock_on",
+   "LShift": "sprint",
    "LControl": "jump",
    "Space": "dodge",
-   "LShift": "sprint",
-   "MouseLeft": "light_attack",
-   "MouseRight": "heavy_attack",
+   "e": "interact",
+   "q": "use_consumable",
+   "r": "use_gourd",
+   "z": "smash_stance",
+   "c": "thrust_stance",
+   "x": "pillar_stance",
+   "m": "map",
+   "p": "photo_mode",
+   "v": "staff_spin",
    "1": "spell_1",
    "2": "spell_2",
    "3": "spell_3",
-   "4": "spell_4",
-   "q": "use_item",
-   "e": "interact"
+   "4": "spell_4"
   }
  },
  {
@@ -2216,7 +2304,27 @@
   ],
   "developer": "Techland",
   "igdb_id": "1976",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "Space": "jump",
+   "LShift": "sprint",
+   "LControl": "crouch",
+   "MouseLeft": "fire",
+   "r": "reload",
+   "f": "melee",
+   "g": "throw_dynamite",
+   "q": "concentration",
+   "e": "interact",
+   "o": "objective",
+   "u": "skills_menu",
+   "1": "slot_longarm",
+   "2": "slot_sidearm",
+   "3": "slot_dual",
+   "4": "slot_dynamite"
+  }
  },
  {
   "game": "Captain Wayne: Vacation Desperation",
@@ -2550,7 +2658,21 @@
   ],
   "developer": "Remedy Entertainment",
   "igdb_id": "103329",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "Space": "jump",
+   "LShift": "sprint",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "v": "melee",
+   "f": "interact",
+   "q": "shield",
+   "e": "launch",
+   "LControl": "dodge"
+  }
  },
  {
   "game": "Cooking Simulator",
@@ -3258,7 +3380,20 @@
   ],
   "developer": "Bohemia Interactive",
   "igdb_id": "2117",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "c": "change_stance",
+   "q": "lean_left",
+   "e": "lean_right",
+   "LControl": "sprint",
+   "MouseLeft": "fire",
+   "f": "world_interact",
+   "g": "throw_item",
+   "l": "toggle_nvg"
+  }
  },
  {
   "game": "Dead by Daylight",
@@ -3487,7 +3622,19 @@
   ],
   "developer": "Ghost Ship Games",
   "igdb_id": "27134",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "MouseLeft": "fire",
+   "MouseRight": "mine",
+   "Space": "jump",
+   "LShift": "sprint",
+   "r": "reload",
+   "e": "interact",
+   "c": "call_mule"
+  }
  },
  {
   "game": "Delta Force",
@@ -3706,7 +3853,22 @@
   ],
   "developer": "id Software",
   "igdb_id": "7351",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "q": "sprint",
+   "w": "move_forward",
+   "r": "attack_secondary",
+   "a": "move_left",
+   "s": "move_backward",
+   "d": "move_right",
+   "f": "interact",
+   "c": "crouch",
+   "Space": "jump",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "MouseMiddle": "attack_secondary",
+   "e": "interact",
+   "LShift": "walk"
+  }
  },
  {
   "game": "DOOM Eternal",
@@ -3799,7 +3961,17 @@
   ],
   "developer": "id Software",
   "igdb_id": "302704",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "MouseLeft": "fire",
+   "LShift": "sprint",
+   "Space": "jump",
+   "MouseRight": "block",
+   "r": "shield_throw"
+  }
  },
  {
   "game": "Dota 2",
@@ -7759,7 +7931,23 @@
   ],
   "developer": "Avalanche Studios",
   "igdb_id": "2552",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "LControl": "jump",
+   "e": "interact",
+   "q": "cancel_action",
+   "r": "enter_vehicle",
+   "t": "select_vehicle",
+   "MouseLeft": "fire",
+   "MouseRight": "block",
+   "LShift": "sprint",
+   "Space": "dodge",
+   "1": "binoculars",
+   "2": "call_chum"
+  }
  },
  {
   "game": "Mage Arena",
@@ -8264,22 +8452,29 @@
   "developer": "4A Games",
   "igdb_id": "80853",
   "default_key_mapping": {
+   "Tab": "weapon_wheel",
+   "q": "heal",
    "w": "move_forward",
+   "e": "interact",
+   "r": "reload",
+   "t": "change_filter",
+   "LControl": "crouch",
    "a": "move_left",
    "s": "move_backward",
    "d": "move_right",
-   "LShift": "sprint",
-   "Space": "jump",
-   "LCtrl": "crouch",
-   "e": "use",
-   "MouseLeft": "fire",
-   "MouseRight": "aim",
-   "r": "reload",
-   "v": "melee",
    "f": "flashlight",
    "g": "gas_mask",
-   "q": "medkit",
-   "Tab": "weapons_inventory"
+   "LShift": "sprint",
+   "z": "crouch",
+   "x": "sprint",
+   "c": "throw_grenade",
+   "v": "melee",
+   "n": "night_vision",
+   "m": "map",
+   "Space": "jump",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "MouseMiddle": "melee"
   }
  },
  {
@@ -8341,6 +8536,36 @@
   }
  },
  {
+  "game": "Metro: Last Light",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "4A Engine",
+  "themes": [
+   "Action",
+   "Fantasy",
+   "Horror",
+   "Survival"
+  ],
+  "languages": [
+   "Czech",
+   "Dutch",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)",
+   "Ukrainian"
+  ],
+  "developer": "4A Games",
+  "igdb_id": "539",
+  "default_key_mapping": null
+ },
+ {
   "game": "Metro: Last Light Redux",
   "perspective": "First Person",
   "genre": "FPS",
@@ -8368,28 +8593,29 @@
   "developer": "4A Games",
   "igdb_id": "50199",
   "default_key_mapping": {
+   "Tab": "weapon_wheel",
+   "q": "heal",
    "w": "move_forward",
+   "e": "interact",
+   "r": "reload",
+   "t": "change_filter",
+   "LControl": "crouch",
    "a": "move_left",
    "s": "move_backward",
    "d": "move_right",
-   "LShift": "sprint",
-   "Space": "jump",
-   "LCtrl": "crouch",
-   "e": "interact",
-   "MouseLeft": "fire",
-   "MouseRight": "aim",
-   "r": "reload",
-   "v": "melee",
-   "c": "throw_secondary",
    "f": "flashlight",
    "g": "gas_mask",
+   "LShift": "sprint",
+   "z": "crouch",
+   "x": "sprint",
+   "c": "throw_grenade",
+   "v": "melee",
    "n": "night_vision",
-   "q": "medkit",
    "m": "map",
-   "Tab": "weapons_inventory",
-   "1": "weapon_1",
-   "2": "weapon_2",
-   "3": "weapon_3"
+   "Space": "jump",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "MouseMiddle": "melee"
   }
  },
  {
@@ -8549,7 +8775,25 @@
   ],
   "developer": "Cold Symmetry",
   "igdb_id": "132050",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "MouseLeft": "fire",
+   "MouseRight": "attack_heavy",
+   "f": "parry",
+   "LControl": "harden",
+   "Space": "dodge",
+   "z": "cycle_abilities",
+   "x": "kick",
+   "i": "equipment_menu",
+   "Tab": "lock_on",
+   "CapsLock": "equip_ballistazooka",
+   "Escape": "menu",
+   "1": "weapon_ability_1",
+   "2": "weapon_ability_2"
+  }
  },
  {
   "game": "Mount & Blade II",
@@ -9347,7 +9591,21 @@
   ],
   "developer": "Red Barrels",
   "igdb_id": "1910",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "LControl": "crouch",
+   "MouseLeft": "interact",
+   "LShift": "sprint",
+   "MouseRight": "toggle_camcorder",
+   "f": "toggle_nightvision",
+   "q": "lean_left",
+   "e": "lean_right",
+   "r": "reload_battery",
+   "Space": "jump"
+  }
  },
  {
   "game": "Outlast II",
@@ -9865,7 +10123,23 @@
   ],
   "developer": "Valve",
   "igdb_id": "72",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "Space": "jump",
+   "LControl": "crouch",
+   "MouseLeft": "fire",
+   "MouseRight": "attack_secondary",
+   "e": "interact",
+   "MouseMiddle": "aim",
+   "Tab": "partner_view",
+   "f": "comms_menu",
+   "q": "gesture_menu",
+   "c": "push_to_talk",
+   "t": "chat"
+  }
  },
  {
   "game": "Prison Simulator",
@@ -10560,7 +10834,23 @@
   ],
   "developer": "Roblox Corporation",
   "igdb_id": "17269",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "Space": "jump",
+   "MouseLeft": "use_tool",
+   "MouseRight": "rotate_camera",
+   "Backspace": "drop_tool",
+   "i": "zoom_in",
+   "o": "zoom_out",
+   "Tab": "leaderboard",
+   "Escape": "menu",
+   "1": "slot_1",
+   "2": "slot_2",
+   "3": "slot_3"
+  }
  },
  {
   "game": "Roboquest",
@@ -11431,7 +11721,22 @@
   ],
   "developer": "Sloclap",
   "igdb_id": "144022",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "MouseLeft": "fire",
+   "MouseRight": "attack_heavy",
+   "Space": "parry",
+   "q": "interact",
+   "LShift": "dodge",
+   "x": "takedown",
+   "e": "pick_up_weapon",
+   "r": "throw_weapon",
+   "LControl": "directional_throw",
+   "f": "focus"
+  }
  },
  {
   "game": "Silent Hill 2 (Remake)",
@@ -13511,7 +13816,34 @@
   ],
   "developer": "Hinterland Studio Inc.",
   "igdb_id": "8347",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "LShift": "sprint",
+   "LControl": "crouch",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "r": "reload",
+   "h": "save",
+   "Space": "radial_menu",
+   "Tab": "survival_panel",
+   "z": "auto_walk",
+   "q": "rotate_left",
+   "e": "rotate_right",
+   "f": "status",
+   "i": "inventory",
+   "c": "clothing",
+   "k": "crafting",
+   "g": "cooking",
+   "j": "journal",
+   "m": "map",
+   "1": "equip_light",
+   "2": "equip_weapon",
+   "3": "drop_decoy",
+   "4": "start_fire"
+  }
  },
  {
   "game": "The Lord of the Rings: Return to Moria",
@@ -13539,7 +13871,19 @@
   ],
   "developer": "Free Range Games",
   "igdb_id": "204460",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "Space": "jump",
+   "LControl": "dodge",
+   "z": "crouch",
+   "LShift": "sprint",
+   "MouseLeft": "fire",
+   "MouseRight": "block",
+   "e": "interact"
+  }
  },
  {
   "game": "The Outlast Trials",
@@ -13867,7 +14211,19 @@
   ],
   "developer": "The Astronauts",
   "igdb_id": "2939",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "LShift": "sprint",
+   "LControl": "crouch",
+   "MouseRight": "aim",
+   "MouseLeft": "interact",
+   "q": "select_prev",
+   "e": "select_next",
+   "Space": "open_vision"
+  }
  },
  {
   "game": "The Witcher 3: Wild Hunt",
@@ -14438,7 +14794,21 @@
   ],
   "developer": "M2H",
   "igdb_id": "8036",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "LShift": "sprint",
+   "Space": "jump",
+   "c": "crouch",
+   "LControl": "prone",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "r": "reload",
+   "f": "melee",
+   "e": "interact"
+  }
  },
  {
   "game": "Verho: Curse of Faces",
@@ -14651,19 +15021,21 @@
   "developer": "Digital Extremes",
   "igdb_id": "2903",
   "default_key_mapping": {
-   "Space": "jump",
-   "w": "move_forward",
-   "a": "move_left",
-   "s": "move_backward",
    "d": "move_right",
-   "LControl": "descend",
+   "a": "move_left",
+   "Right": "move_right",
+   "Left": "move_left",
+   "Space": "jump",
    "MouseLeft": "fire",
    "MouseRight": "aim",
-   "MouseMiddle": "alt_fire",
+   "MouseMiddle": "attack_secondary",
+   "m": "map",
+   "f": "next_item",
    "r": "reload",
+   "w": "move_forward",
+   "s": "move_backward",
    "v": "crouch",
-   "LShift": "sprint",
-   "x": "context_action"
+   "LShift": "sprint"
   }
  },
  {
