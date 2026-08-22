@@ -14,7 +14,7 @@ import pleiada_api
 import pleiada_sync_limits as sync_limits
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.5"
+VERSION = "v0.9.6"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -5859,24 +5859,51 @@ class PleiadaApp:
                  font=("Segoe UI", 12, "bold")).pack()
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
 
-        def _worker(token=self.auth_token):
+        juego = (session_uploader.session_meta(session_dir) or {}).get("game_title", "")
+
+        def _worker(token=self.auth_token, juego=juego):
             calls = None
             try:
                 calls = pleiada_api.my_calls(token)
             except Exception:
                 calls = None   # sin red / token viejo: seguimos con lo que haya
+            # PLE-168: además de las inscripciones, se le pregunta al BACKEND qué
+            # órdenes aceptan este título. El matching local necesita el género, y
+            # el género sale de la copia del catálogo que tiene la app — que no
+            # conoce los títulos que entraron por detección automática. Resultado:
+            # la pantalla principal (que pregunta al backend) mostraba la orden y
+            # la de subida (que miraba la copia local) decía que no había ninguna.
+            # Dos pantallas de la misma app contradiciéndose sobre lo mismo.
+            del_backend = None
+            try:
+                if juego:
+                    del_backend = pleiada_api.calls_for_game(token, juego)
+            except Exception:
+                del_backend = None   # sin red: queda el matching local
             def _done():
                 if calls is not None:
                     self.open_calls = calls
-                self._upload_confirm_view(session_dir, return_to)
+                self._upload_confirm_view(session_dir, return_to, del_backend)
             self.root.after(0, _done)
         threading.Thread(target=_worker, daemon=True).start()
 
-    def _upload_confirm_view(self, session_dir, return_to):
+    def _upload_confirm_view(self, session_dir, return_to, calls_backend=None):
         self._clear_content()
         info = session_uploader.session_info(session_dir)
         meta = session_uploader.session_meta(session_dir)
         matches = self._calls_for_game(meta["game_title"])
+        # PLE-168: el backend es el que manda — es el mismo criterio que decidió
+        # la orden antes de grabar y el mismo que aplica el gate al subir. El
+        # matching local queda de respaldo para cuando no hay red.
+        if calls_backend:
+            _ids = {c.get("call_id") for c in matches}
+            for c in calls_backend:
+                if c.get("call_id") and c["call_id"] not in _ids:
+                    # Se completa con la inscripción local, para que la pantalla
+                    # tenga los campos que muestra (título de la orden, precio).
+                    _local = next((e for e in (self.open_calls or [])
+                                   if e.get("call_id") == c["call_id"]), None)
+                    matches.append({**c, **_local} if _local else c)
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
 
