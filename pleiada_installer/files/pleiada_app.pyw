@@ -3186,10 +3186,15 @@ class PleiadaApp:
         t = (game_title or "").strip().lower()
         if not t:
             return []
-        genre = ""
+        # 22-08: el catálogo pasó a multi-género — "Souls-like, Role-playing (RPG)".
+        # Ni IGDB ni Steam dan uno solo (2,7 y 3,1 por juego), y quedarse con el
+        # primero dejaba títulos afuera de órdenes en las que sí entraban. Acá se
+        # parte por coma; comparar el string entero no matchearía nada.
+        generos = []
         for g in load_games():
             if (g.get("game") or "").strip().lower() == t:
-                genre = (g.get("genre") or "").strip().lower()
+                generos = [p.strip().lower()
+                           for p in (g.get("genre") or "").split(",") if p.strip()]
                 break
         out = []
         for c in self.open_calls or []:
@@ -3213,7 +3218,7 @@ class PleiadaApp:
                     out.append(c)
             else:
                 cats = {(x or "").strip().lower() for x in c.get("categorias", [])}
-                if genre and genre in cats:
+                if any(g in cats for g in generos):
                     out.append(c)
         return out
 
