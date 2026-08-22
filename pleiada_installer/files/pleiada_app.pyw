@@ -14,7 +14,7 @@ import pleiada_api
 import pleiada_sync_limits as sync_limits
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.4"
+VERSION = "v0.9.5"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -4547,34 +4547,30 @@ class PleiadaApp:
                         ))
                         return
 
-                    # Sin fuentes incompatibles — verificar que game_capture apunta al juego correcto
-                    gc_src = next((i for i in inputs if i.get("inputKind") == "game_capture"), None)
-                    if gc_src:
-                        sr     = obs_send(ws, "GetInputSettings", {"inputName": gc_src["inputName"]})
-                        window = sr.get("d", {}).get("responseData", {}).get("inputSettings", {}).get("window", "")
-                        selected_name = (self.selected_game or {}).get("game", "")
-                        if window:
-                            _parts    = window.split(":")
-                            win_title = _parts[0].strip()
-                            _exe_part = ""
-                            for _pp in _parts[1:]:
-                                _pp = _pp.strip()
-                                if _pp.lower().endswith(".exe"):
-                                    _exe_part = re.sub(r'\.exe$', '', _pp, flags=re.IGNORECASE)
-                                    break
-                            win_match = f"{win_title} {_exe_part}".strip()
-                        else:
-                            win_title = win_match = ""
-                        if win_title and not _obs_title_matches(selected_name, win_match or win_title):
-                            ws.close()
-                            self.root.after(0, lambda wt=win_title, sn=selected_name: (
-                                self._show_idle(),
-                                self._set_obs_status(
-                                    "mismatch",
-                                    f'OBS captura "{wt}" pero seleccionaste "{sn}".'
-                                )
-                            ))
-                            return
+                    # PLE-167: acá vivía la segunda guarda de "mismatch", que
+                    # comparaba el título de la ventana de OBS contra el nombre
+                    # del juego y, si no se parecían, hacía _show_idle().
+                    #
+                    # Es la misma guarda que la v0.9 sacó del principio de
+                    # _start_recording —y por el mismo motivo—: comparaba contra
+                    # un juego DECLARADO por el usuario, y ya no hay declaración.
+                    # Esta copia sobrevivió acá adentro y volvió a morder apenas
+                    # el backend empezó a devolver candidatos: el usuario elige
+                    # "Metro: Last Light", OBS sigue diciendo "Metro LL", la
+                    # guarda no las reconoce como lo mismo y la pantalla se
+                    # reinicia sola al apretar Iniciar. Medido: rebotan también
+                    # "Counter-Strike 2" contra una ventana "Counter-Strike".
+                    #
+                    # Encima el aviso no llegaba nunca: _set_obs_status corta y
+                    # vuelve porque esos widgets ya no existen en la pantalla de
+                    # v0.9. El usuario solo veía la pantalla volver atrás.
+                    #
+                    # El título ya NO se declara: sale de lo que OBS captura y lo
+                    # resuelve el backend. Que el nombre del catálogo no sea
+                    # igual al de la ventana es lo NORMAL —abreviaturas,
+                    # ediciones, sufijos técnicos—, no un error que justifique
+                    # frenar la grabación.
+                    pass
                 except Exception:
                     pass   # si falla la verificación, continuamos igualmente
 
@@ -5000,18 +4996,14 @@ class PleiadaApp:
                     self._set_obs_status("wrong_source", ws)
                 ))
                 return
-            if win_title:
-                selected = (self.selected_game or {}).get("game", "")
-                if not _obs_title_matches(selected, win_match or win_title):
-                    self.recording = False
-                    self.root.after(0, lambda wt=win_title, sn=selected: (
-                        self._show_idle(),
-                        self._set_obs_status(
-                            "mismatch",
-                            f'OBS captura "{wt}" pero seleccionaste "{sn}".'
-                        )
-                    ))
-                    return
+            # PLE-167: acá había una tercera copia de la guarda de mismatch, y
+            # era la peor de las tres: corría con el countdown ya en cero, así
+            # que el usuario veía arrancar la cuenta y la pantalla se le volvía
+            # al principio justo al final. Se saca por el mismo motivo que las
+            # otras dos: el título ya no lo declara el usuario, y que el nombre
+            # del catálogo no coincida con el de la ventana es lo normal.
+            # La verificación de la FUENTE (arriba) se conserva: esa sí protege
+            # el dataset y no depende del nombre.
         except OBSAuthError as e:
             self.recording = False
             msg = str(e)
@@ -5285,7 +5277,12 @@ class PleiadaApp:
 
             while self.recording and not self._we_stopped:
                 try:
-                    _, win_title, win_match, wrong_source = obs_check_status()
+                    # PLE-167: se cambió obs_check_status() por obs_capture_target(),
+                    # que devuelve el EXE aparte en vez del título pegado. Lo que se
+                    # vigila acá es que OBS no pase a capturar otro juego, y el exe
+                    # identifica eso; el título no, porque cambia solo (reloj, mapa,
+                    # FPS) y encima nunca coincide con el nombre del catálogo.
+                    _, win_title, exe_actual, wrong_source = obs_capture_target()
                 except Exception:
                     time.sleep(3)
                     continue
@@ -5301,9 +5298,13 @@ class PleiadaApp:
                         f"Cambiaste la fuente en OBS a '{wrong_source}' durante la grabación.\n\n"
                         "La sesión fue cancelada automáticamente."
                     )
-                elif win_title:
-                    selected = (self.selected_game or {}).get("game", "")
-                    if not _obs_title_matches(selected, win_match or win_title):
+                elif exe_actual and self._recording_exe:
+                    # Se compara contra el exe que OBS tenía configurado cuando
+                    # arrancó ESTA grabación, no contra el nombre del título.
+                    # Antes se comparaba el nombre y saltaba solo: elegir
+                    # "Metro: Last Light" con una ventana "Metro LL" cancelaba la
+                    # sesión a los pocos segundos, sin que el usuario tocara nada.
+                    if exe_actual.strip().lower() != self._recording_exe.strip().lower():
                         problem_msg = (
                             f"OBS cambió a capturar '{win_title}' durante la grabación.\n\n"
                             "La sesión fue cancelada automáticamente."
