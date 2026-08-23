@@ -2504,6 +2504,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Chop Chop Inc.",
+  "perspective": "First Person",
+  "genre": "Simulator, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "398967",
+  "default_key_mapping": null
+ },
+ {
   "game": "Chorus",
   "perspective": "Third Person",
   "genre": "Action, Shooter, Arcade",
@@ -6790,6 +6804,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Iron Nest: Heavy Turret Simulator",
+  "perspective": "First Person",
+  "genre": "Puzzle, Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "377917",
+  "default_key_mapping": null
+ },
+ {
   "game": "Island Notes",
   "perspective": "First Person",
   "genre": "Shooter, Role-playing (RPG)",
@@ -9446,6 +9474,20 @@
   ],
   "developer": "Cybernetic Walrus",
   "igdb_id": "329109",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Ore Factory Squad",
+  "perspective": "First Person",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "395307",
   "default_key_mapping": null
  },
  {

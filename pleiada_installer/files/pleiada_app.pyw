@@ -14,7 +14,7 @@ import pleiada_api
 import pleiada_sync_limits as sync_limits
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.8"
+VERSION = "v0.9.9"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -868,6 +868,23 @@ def _exe_corriendo(exe):
 
     /FO CSV y no el formato TABLE: TABLE corta el nombre a 25 caracteres y parte
     los exes largos de Unreal ("{Proyecto}-Win64-Shipping.exe").
+
+    NO se decodifica la salida, y no comparamos el nombre contra ella. Ese era el
+    bug del 23-08: `tasklist` escribe en la codepage de CONSOLA (437 acá) y
+    Python la decodificaba con la ANSI (1252), así que `Malón.exe` volvía como
+    `Mal¢n.exe` y la comparación fallaba. Efecto: cualquier título cuyo
+    ejecutable tenga un acento —comunes en juegos en castellano, portugués o
+    francés— quedaba bloqueado con un cartel diciendo que no estaba corriendo,
+    con el juego abierto adelante. El propio mensaje de "no hay tareas" de
+    Windows sale mal codificado, lo que muestra que decodificar era el camino
+    equivocado.
+
+    El filtro `IMAGENAME eq` ya lo hace todo: el argumento viaja a Windows como
+    UTF-16 y llega bien. Lo único que hay que saber es si tasklist devolvió
+    filas, y una fila CSV SIEMPRE empieza con comilla doble mientras que el
+    mensaje de "no hay tareas" nunca la tiene. La comilla es el mismo byte en
+    todas las codepages, así que el chequeo deja de depender del idioma y de la
+    configuración regional de la máquina.
     """
     exe = (exe or "").strip()
     if not exe:
@@ -875,12 +892,12 @@ def _exe_corriendo(exe):
     try:
         tl = subprocess.run(
             ["tasklist", "/FI", f"IMAGENAME eq {exe}", "/FO", "CSV", "/NH"],
-            capture_output=True, text=True,
+            capture_output=True,
             creationflags=subprocess.CREATE_NO_WINDOW, timeout=8)
     except Exception as e:
         _obs_dbg(f"_exe_corriendo({exe}): {e}")
         return None
-    return exe.lower() in (tl.stdout or "").lower()
+    return any(l.startswith(b'"') for l in (tl.stdout or b"").splitlines())
 
 
 def obs_capture_target():
@@ -4112,20 +4129,20 @@ class PleiadaApp:
             except OBSAuthError as e:
                 _obs_dbg(f"deteccion: OBS pide password: {e}")
                 _ui(self._render_det_bloqueado,
-                    "OBS pide contrasena en el WebSocket", str(e))
+                    "OBS pide contraseña en el WebSocket", str(e))
                 return
             except Exception as e:
                 _obs_dbg(f"deteccion: OBS no responde: {e}")
                 _ui(self._render_det_esperando,
-                    "OBS no esta corriendo o no responde. Abrilo y volve a esta pantalla.")
+                    "OBS no está corriendo o no responde. Abrilo y volvé a esta pantalla.")
                 return
             if is_rec:
-                _ui(self._render_det_bloqueado, "OBS ya esta grabando",
-                    "Detene la grabacion desde OBS antes de empezar una sesion.")
+                _ui(self._render_det_bloqueado, "OBS ya está grabando",
+                    "Detené la grabación desde OBS antes de empezar una sesión.")
                 return
             if wrong:
                 _ui(self._render_det_bloqueado, "Modo de captura incorrecto: " + wrong,
-                    "Cambia la fuente a Captura de Videojuego (Game Capture) y "
+                    "Cambiá la fuente a Captura de Videojuego (Game Capture) y "
                     "apuntala a la ventana del título.")
                 return
             if not title and not exe:
@@ -4229,7 +4246,7 @@ class PleiadaApp:
         tk.Label(self._det_calls_box, text=msg, fg=DIM, bg=BG, font=("Segoe UI", 10),
                  justify="left", anchor="w", wraplength=WIN_W - 60).pack(fill="x")
         tk.Label(self._det_calls_box,
-                 text="La fuente tiene que estar en modo ventana especifica.",
+                 text="La fuente tiene que estar en modo ventana específica.",
                  fg=DIMMER, bg=BG, font=("Segoe UI", 9), justify="left", anchor="w",
                  wraplength=WIN_W - 60).pack(fill="x", pady=(6, 0))
         self._update_record_btn()
@@ -4247,7 +4264,7 @@ class PleiadaApp:
         # Nombrar IGDB: la espera se entiende, y despues se entiende de donde
         # salio la clasificacion cuando se le dice que no encaja en ninguna orden.
         tk.Label(self._det_calls_box,
-                 text="Identificando el titulo. Si no lo conocemos, buscamos su ficha en IGDB...",
+                 text="Identificando el título. Si no lo conocemos, buscamos su ficha en IGDB…",
                  fg=DIM, bg=BG, font=("Segoe UI", 10), justify="left", anchor="w",
                  wraplength=WIN_W - 60).pack(fill="x")
         self._update_record_btn()
@@ -4347,10 +4364,10 @@ class PleiadaApp:
         self._det_clear()
         row = tk.Frame(self._det_box, bg=CARD)
         row.pack(fill="x", padx=14, pady=12)
-        tk.Label(row, text="Cual estas jugando?", fg=TEXT, bg=CARD,
+        tk.Label(row, text="¿Cuál estás jugando?", fg=TEXT, bg=CARD,
                  font=("Segoe UI", 11, "bold")).pack(side="left")
         tk.Label(self._det_calls_box,
-                 text="No pudimos identificarlo solos. Estos son los que mas se parecen.",
+                 text="No pudimos identificarlo solos. Estos son los que más se parecen.",
                  fg=DIM, bg=BG, font=("Segoe UI", 10), justify="left", anchor="w",
                  wraplength=WIN_W - 60).pack(fill="x", pady=(0, 8))
         for cand in res.get("candidatos") or []:
@@ -4424,13 +4441,13 @@ class PleiadaApp:
             # Modo libre. El copy no promete que la orden vaya a llegar.
             self.selected_call = None
             tk.Label(self._det_calls_box,
-                     text="Ninguna orden abierta esta buscando este tipo de titulo.",
+                     text="Ninguna orden abierta está buscando este tipo de título.",
                      fg=YELLOW, bg=BG, font=("Segoe UI", 10), anchor="w",
                      justify="left", wraplength=WIN_W - 60).pack(fill="x")
             tk.Label(self._det_calls_box,
-                     text="Podes grabarlo y guardarlo igual. Puede aparecer una orden que "
-                          "lo acepte, o puede no aparecer nunca. Chequea el dashboard y "
-                          "nuestras redes por nuevas ordenes.",
+                     text="Podés grabarlo y guardarlo igual. Puede aparecer una orden que "
+                          "lo acepte, o puede no aparecer nunca. Chequeá el dashboard y "
+                          "nuestras redes por nuevas órdenes.",
                      fg=DIM, bg=BG, font=("Segoe UI", 9), anchor="w", justify="left",
                      wraplength=WIN_W - 60).pack(fill="x", pady=(4, 0))
         self._update_record_btn()
