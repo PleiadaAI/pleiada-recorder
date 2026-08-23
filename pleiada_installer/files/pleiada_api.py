@@ -93,6 +93,48 @@ def calls_for_game(token, game_name):
     return r.get("calls") or []
 
 
+def search_game_by_name(token, nombre, timeout=30):
+    """
+    Paso ③ del flujo de identificación: el usuario escribió el nombre del
+    título y se lo busca en IGDB para ofrecerle los resultados.
+
+    No da de alta nada ni resuelve la sesión: devuelve la lista de fichas de
+    IGDB (name, year, slug, url) para que el usuario elija o verifique.
+    """
+    r = _call("search_game_by_name", {"token": token, "nombre": nombre},
+              timeout=timeout)
+    return r.get("candidatos") or []
+
+
+def resolve_game_manual(token, exe, window_title, slug="", igdb_id="", url="",
+                        timeout=30):
+    """
+    Pasos ④/⑥: el usuario eligió una de las fichas de IGDB o pegó su dirección.
+
+    La identificación es por clave exacta (slug o id), así que no hay parecidos
+    de por medio. Devuelve exactamente la misma forma que `resolve_game`.
+    """
+    return _call("resolve_game_manual", {
+        "token": token, "exe": exe or "", "window_title": window_title or "",
+        "slug": slug or "", "igdb_id": igdb_id or "", "url": url or "",
+    }, timeout=timeout)
+
+
+def resolve_game_steam(token, exe, window_title, url, perspectiva="", timeout=30):
+    """
+    Paso ⑦: última instancia antes del bloqueo — la dirección en Steam.
+
+    Existe porque IGDB es colaborativa y moderada: un juego recién publicado
+    puede no estar todavía. La perspectiva la declara el usuario porque Steam
+    no la trae; viaja en la misma llamada que la URL. Devuelve la misma forma
+    que `resolve_game`.
+    """
+    return _call("resolve_game_steam", {
+        "token": token, "exe": exe or "", "window_title": window_title or "",
+        "url": url or "", "perspectiva": perspectiva or "",
+    }, timeout=timeout)
+
+
 def my_calls(token):
     """Inscripciones del usuario (calls, horas usadas/restantes, subidas)."""
     r = _call("my_calls", {"token": token})

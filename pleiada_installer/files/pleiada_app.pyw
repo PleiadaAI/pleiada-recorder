@@ -14,7 +14,7 @@ import pleiada_api
 import pleiada_sync_limits as sync_limits
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.6"
+VERSION = "v0.9.7"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -2852,6 +2852,11 @@ class PleiadaApp:
         self._det_state    = ""
         self._det_msg      = ""
         self._det_last     = None
+        # v0.9.7: clave del ultimo exe que ya pasamos por el flujo de
+        # identificacion asistida sin poder resolverlo. Evita que volver al
+        # inicio reabra el cuestionario en loop. Se limpia sola al cambiar de
+        # ventana, porque la clave del exe nuevo es otra.
+        self._ident_intentado = None
         self._rec_started  = False  # PLE-157: True recien cuando OBS acepto StartRecord.
                                     # Entre Iniciar y el 0 del countdown la sesion
                                     # existe (carpeta creada) pero no hay nada grabado.
@@ -3668,7 +3673,13 @@ class PleiadaApp:
                  fg=DIMMER, bg=BG, font=("Segoe UI", 8), justify="left",
                  anchor="w", wraplength=WIN_W - 60).pack(fill="x", pady=(3, 0))
 
-    def _show_idle(self):
+    def _show_idle(self, resuelto=None):
+        """Pantalla principal.
+
+        `resuelto` es la vuelta del flujo de identificación asistida: la tupla
+        (respuesta del backend, exe, título de ventana) del título que el
+        usuario acaba de declarar. Se dibuja tal cual, sin volver a preguntar.
+        """
         self._clear_content()
         self.selected_game = None
         self._obs_status   = "idle"
@@ -3694,7 +3705,19 @@ class PleiadaApp:
         self._det_msg   = ""
         self._det_last  = None      # (exe, título) ya resuelto: no repreguntar
         self.selected_call = None   # None = grabación libre
-        self._render_det_esperando("Buscando la ventana del título en OBS…")
+        if resuelto:
+            # El título ya está identificado y NO hay que volver a consultarlo.
+            # La clave se deja marcada como resuelta —armada igual que en
+            # `_detect_poll`— para que el primer tick la reconozca y no vuelva a
+            # preguntar por lo mismo, que devolvería "no identificado" de nuevo
+            # y metería al usuario otra vez en el cuestionario que acaba de
+            # completar. Si apunta OBS a otra ventana, la clave cambia sola.
+            res, exe, bruto = resuelto
+            self._det_exe  = exe
+            self._det_last = exe.lower() if exe else ("t:" + (bruto or "").lower())
+            self._apply_resolve(res)
+        else:
+            self._render_det_esperando("Buscando la ventana del título en OBS…")
         self._detect_start()
 
         # — Separador ————————————————————————————————
@@ -4209,11 +4232,26 @@ class PleiadaApp:
         if estado == "candidatos":
             self._render_det_candidatos(res)
             return
-        if estado in ("no_identificado", "no_disponible"):
-            self._render_det_bloqueado(
-                "No pudimos identificar el titulo" if estado == "no_identificado"
-                else "Titulo no disponible",
-                res.get("message") or "")
+        if estado == "no_identificado":
+            # v0.9.7: dejó de ser el final del camino. Antes acá se bloqueaba y
+            # listo; ahora se le pregunta al usuario, que es el único que sabe
+            # con certeza qué está jugando.
+            exe   = res.get("exe") or getattr(self, "_det_exe", "")
+            bruto = res.get("titulo_detectado") or ""
+            # Si a este mismo exe ya lo pasamos por el flujo y volvió sin
+            # identificar, no se lo volvemos a tirar encima: se queda el cartel
+            # en el panel, con el enlace para reintentar a mano. Sin esto,
+            # "Volver a la pantalla de inicio" reabre el cuestionario y no hay
+            # forma de salir.
+            if self._det_last and self._det_last == getattr(self, "_ident_intentado", None):
+                self._render_det_no_identificado(exe, bruto, res.get("message") or "")
+                return
+            self._ident_intentado = self._det_last
+            self._ident_nombre_view(exe, bruto)
+            return
+        if estado == "no_disponible":
+            self._render_det_bloqueado("Título no disponible",
+                                       res.get("message") or "")
             return
         self._render_det_resuelto(res.get("juego") or {}, res.get("calls") or [],
                                   admitido=(estado == "admitido"))
@@ -4311,6 +4349,482 @@ class PleiadaApp:
                      fg=DIM, bg=BG, font=("Segoe UI", 9), anchor="w", justify="left",
                      wraplength=WIN_W - 60).pack(fill="x", pady=(4, 0))
         self._update_record_btn()
+
+    def _render_det_no_identificado(self, exe, titulo, msg=""):
+        """Quedó sin identificar después de preguntarle al usuario: no se graba.
+
+        A diferencia de `_render_det_bloqueado`, este NO llama a `_det_olvidar()`.
+        La clave de "esto ya lo pregunté" se conserva a propósito: si se limpia,
+        el poll vuelve a consultar lo mismo cada 2,5 s contra un backend que ya
+        contestó, que es exactamente el bug de parpadeo del 19/08. Si el jugador
+        apunta OBS a otra ventana la clave cambia sola y la detección arranca de
+        nuevo, sin necesidad de reintentos automáticos.
+        """
+        self._det_state = "no_identificado"
+        self.selected_game = None
+        self.selected_call = None
+        self._det_clear()
+        row = tk.Frame(self._det_box, bg=CARD)
+        row.pack(fill="x", padx=14, pady=12)
+        tk.Label(row, text="✕", fg=RED, bg=CARD, font=("Segoe UI", 10)).pack(side="left")
+        tk.Label(row, text="No pudimos identificar el título", fg=TEXT, bg=CARD,
+                 font=("Segoe UI", 11, "bold"), anchor="w",
+                 wraplength=WIN_W - 90).pack(side="left", padx=(8, 0))
+        tk.Label(self._det_calls_box,
+                 text=msg or "Sin saber qué título es, la grabación no se puede "
+                             "habilitar.",
+                 fg=DIM, bg=BG, font=("Segoe UI", 10), justify="left", anchor="w",
+                 wraplength=WIN_W - 60).pack(fill="x")
+        b = tk.Label(self._det_calls_box, text="Identificar el título", fg=ACCENT,
+                     bg=BG, font=("Segoe UI", 10), cursor="hand2", anchor="w")
+        b.pack(fill="x", pady=(10, 0))
+        b.bind("<Button-1>", lambda e: self._ident_nombre_view(exe, titulo))
+        self._update_record_btn()
+
+    # ── Identificación asistida (plan v2, v0.9.7) ─────────────────────────────
+    #
+    # Se entra acá SOLO cuando el backend no pudo identificar lo que OBS está
+    # capturando. Antes eso era un cartel de bloqueo y se terminaba ahí: el
+    # jugador con un título recién salido, o con un exe que no se parece al
+    # nombre, no podía grabar. Tres rondas de parches sobre el mismo hueco
+    # (PLE-163, PLE-166, PLE-169) mostraron que no hay heurística que cubra
+    # todos los casos, porque el dato que falta lo tiene el usuario y nadie más.
+    #
+    # La regla que no se negocia: se identifica ANTES de grabar, siempre. Si al
+    # final de todos los pasos seguimos sin saber qué es, se bloquea. No existe
+    # "grabá igual y después vemos": un dataset sin título no se puede catalogar
+    # ni entregar, así que dejarlo grabar sería hacerle perder el tiempo.
+    #
+    # Lo que el usuario declara resuelve SU sesión y queda registrado, pero no
+    # entra solo al catálogo: para eso hacen falta dos usuarios distintos
+    # declarando lo mismo para el mismo exe (misma regla que los aportes de key
+    # mapping de la comunidad).
+    #
+    # Acá NO hay ninguna lista de títulos nuestros: lo único que se muestra es
+    # lo que IGDB o Steam contestan a lo que el propio usuario escribió.
+
+    # Solo las perspectivas que tienen sentido en una captura de OBS. "Text" y
+    # "Auditory" existen en IGDB pero no describen nada grabable en video.
+    # Isométrica y lateral están aunque hoy ninguna orden las pida: forzar a
+    # elegir entre primera y tercera ensuciaría el catálogo, y un título bien
+    # clasificado que no entra en ninguna orden es un resultado correcto.
+    _PERSPECTIVAS = (
+        ("First Person", "Primera persona"),
+        ("Third Person", "Tercera persona"),
+        ("Isometric",    "Isométrica / cenital"),
+        ("Side View",    "Vista lateral (2D)"),
+        ("VR",           "Realidad virtual"),
+        ("",             "No sé"),
+    )
+
+    def _abrir_url(self, url):
+        if not url:
+            return
+        try:
+            import webbrowser
+            webbrowser.open(url)
+        except Exception:
+            pass
+
+    def _ident_frame(self, titulo, subtitulo="", volver_a=None):
+        """Cabecera común de las pantallas del flujo. Devuelve el frame."""
+        self._clear_content()
+        self._set_back(volver_a or self._show_idle)
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        tk.Label(frame, text=titulo, fg=TEXT, bg=BG, font=("Segoe UI", 14, "bold"),
+                 anchor="w", justify="left", wraplength=WIN_W - 60).pack(fill="x")
+        if subtitulo:
+            tk.Label(frame, text=subtitulo, fg=DIM, bg=BG, font=("Segoe UI", 10),
+                     anchor="w", justify="left", wraplength=WIN_W - 60).pack(
+                fill="x", pady=(6, 0))
+        return frame
+
+    def _ident_detectado(self, parent, exe, titulo):
+        """Qué está viendo OBS ahora mismo.
+
+        Sirve para dos cosas distintas: que el usuario confirme que apuntó la
+        fuente a la ventana correcta —si acá dice Discord, el problema es OBS y
+        no el título— y que entienda por qué le estamos preguntando.
+        """
+        visto = titulo or exe
+        if not visto:
+            return
+        tk.Label(parent, text="OBS ESTÁ CAPTURANDO", fg=DIM, bg=BG,
+                 font=("Segoe UI", 8, "bold"), anchor="w").pack(fill="x", pady=(14, 4))
+        box = tk.Frame(parent, bg=CARD, highlightthickness=1,
+                       highlightbackground=BORDER)
+        box.pack(fill="x")
+        tk.Label(box, text=visto, fg=TEXT, bg=CARD, font=("Segoe UI", 10),
+                 anchor="w", justify="left", wraplength=WIN_W - 90).pack(
+            fill="x", padx=12, pady=8)
+
+    def _ident_campo(self, parent, etiqueta, ayuda=""):
+        """Etiqueta + Entry + línea + ayuda. Devuelve (var, entry)."""
+        tk.Label(parent, text=etiqueta, fg=DIM, bg=BG,
+                 font=("Segoe UI", 9, "bold"), anchor="w").pack(fill="x", pady=(16, 5))
+        var = tk.StringVar(value="")
+        ent = tk.Entry(parent, textvariable=var, bg=CARD, fg=TEXT,
+                       insertbackground=ACCENT, relief="flat",
+                       font=("Segoe UI", 11), bd=0)
+        ent.pack(fill="x", ipady=9)
+        _mk_separator(parent, color=BORDER, height=1)
+        if ayuda:
+            tk.Label(parent, text=ayuda, fg=DIMMER, bg=BG, font=("Segoe UI", 9),
+                     anchor="w", justify="left", wraplength=WIN_W - 60).pack(
+                fill="x", pady=(6, 0))
+        return var, ent
+
+    def _ident_pie(self, parent, texto_btn):
+        """Error + botón principal pegados al pie. Devuelve (err_lbl, btn)."""
+        tk.Frame(parent, bg=BG).pack(fill="both", expand=True)
+        err = tk.Label(parent, text="", fg=RED, bg=BG, font=("Segoe UI", 10),
+                       anchor="w", justify="left", wraplength=WIN_W - 60)
+        err.pack(fill="x", pady=(0, 6))
+        btn = tk.Button(parent, text=texto_btn, fg="#fff", bg=ACCENT, relief="flat",
+                        bd=0, cursor="hand2", font=("Segoe UI", 12, "bold"),
+                        activebackground="#9080e0", activeforeground="#fff")
+        btn.pack(fill="x", ipady=11)
+        return err, btn
+
+    def _ident_link(self, parent, texto, cmd, pady=(10, 0)):
+        lbl = tk.Label(parent, text=texto, fg=ACCENT, bg=BG, font=("Segoe UI", 10),
+                       cursor="hand2", anchor="w", justify="left",
+                       wraplength=WIN_W - 60)
+        lbl.pack(fill="x", pady=pady)
+        lbl.bind("<Button-1>", lambda e: cmd())
+        return lbl
+
+    def _ident_resolver(self, llamada, exe, titulo, err, btn, texto_btn, al_fallar):
+        """Corre una resolución declarada y aplica el cierre común.
+
+        Todo lo que no sea `no_identificado` vuelve al inicio con el resultado
+        ya puesto, y lo dibuja `_apply_resolve` — el mismo render que usa la
+        detección automática. Que el resultado se vea igual haya llegado por
+        donde haya llegado es parte del punto: el jugador no tiene por qué saber
+        que hubo un camino alternativo.
+        """
+        err.config(text="")
+        btn.config(text="Verificando…", state="disabled")
+
+        def _worker():
+            try:
+                res = llamada()
+            except pleiada_api.ApiError as e:
+                if _es_error_de_sesion(e):
+                    self.root.after(0, lambda: self._on_auth_expired(
+                        "Volvé a iniciar sesión para poder grabar."))
+                    return
+                msg = str(e)
+                self.root.after(0, lambda: (
+                    btn.config(text=texto_btn, state="normal"),
+                    err.config(text=msg)))
+                return
+
+            def _aplicar():
+                if (res or {}).get("estado") == "no_identificado":
+                    try:
+                        btn.config(text=texto_btn, state="normal")
+                    except tk.TclError:
+                        pass
+                    al_fallar(res)
+                    return
+                self._show_idle(resuelto=(res, exe, titulo))
+            self.root.after(0, _aplicar)
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    # — Paso ③: contanos cuál es ————————————————————————
+
+    def _ident_nombre_view(self, exe, titulo):
+        frame = self._ident_frame(
+            "No pudimos identificar el título",
+            "Necesitamos saber qué estás jugando para habilitar la grabación. "
+            "Escribí el nombre y lo buscamos.")
+        self._ident_detectado(frame, exe, titulo)
+        var, ent = self._ident_campo(
+            frame, "NOMBRE DEL TÍTULO",
+            "Escribilo como figura en la tienda donde lo conseguiste.")
+        err, btn = self._ident_pie(frame, "Buscar")
+
+        def _buscar():
+            nombre = var.get().strip()
+            if len(nombre) < 2:
+                err.config(text="Escribí al menos dos letras.")
+                return
+            err.config(text="")
+            btn.config(text="Buscando…", state="disabled")
+
+            def _worker():
+                try:
+                    cands = pleiada_api.search_game_by_name(self.auth_token, nombre)
+                except pleiada_api.ApiError as e:
+                    if _es_error_de_sesion(e):
+                        self.root.after(0, lambda: self._on_auth_expired(
+                            "Volvé a iniciar sesión para poder grabar."))
+                        return
+                    msg = str(e)
+                    self.root.after(0, lambda: (
+                        btn.config(text="Buscar", state="normal"),
+                        err.config(text=msg)))
+                    return
+                self.root.after(0, lambda: self._ident_chips_view(
+                    exe, titulo, nombre, cands))
+            threading.Thread(target=_worker, daemon=True).start()
+
+        btn.config(command=_buscar)
+        ent.bind("<Return>", lambda e: _buscar())
+        ent.focus()
+
+    # — Paso ④: elegir entre lo que contestó IGDB ————————————
+
+    def _ident_chips_view(self, exe, titulo, nombre, candidatos):
+        volver = lambda: self._ident_nombre_view(exe, titulo)
+        if not candidatos:
+            frame = self._ident_frame(
+                "No encontramos ese título",
+                "Buscamos “%s” en IGDB y no apareció nada. Puede estar escrito "
+                "distinto, o ser tan nuevo que todavía no lo cargaron."
+                % nombre, volver_a=volver)
+            self._ident_detectado(frame, exe, titulo)
+            self._ident_link(frame, "Probar con otro nombre", volver, pady=(20, 0))
+            tk.Label(frame, text="Probemos de otra manera:", fg=DIM, bg=BG,
+                     font=("Segoe UI", 10), anchor="w").pack(fill="x", pady=(18, 4))
+            self._ident_link(frame, "Tengo el enlace de IGDB",
+                             lambda: self._ident_url_view(exe, titulo, nombre),
+                             pady=(0, 0))
+            self._ident_link(frame, "Buscarlo por su página de Steam",
+                             lambda: self._ident_steam_view(exe, titulo),
+                             pady=(8, 0))
+            tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+            tk.Button(frame, text="Volver a la pantalla de inicio", fg=DIM, bg=CARD,
+                      relief="flat", bd=0, cursor="hand2", font=("Segoe UI", 11),
+                      activebackground=CARD2, activeforeground=TEXT,
+                      highlightthickness=1, highlightbackground=BORDER,
+                      command=self._show_idle).pack(fill="x", ipady=10)
+            return
+
+        frame = self._ident_frame(
+            "¿Es alguno de estos?",
+            "Es lo que encontramos en IGDB, la base con la que catalogamos. "
+            "Tocá el nombre para abrir su ficha y confirmá el que estás jugando.",
+            volver_a=volver)
+        tk.Frame(frame, bg=BG, height=12).pack()
+        for c in candidatos:
+            card = tk.Frame(frame, bg=CARD, highlightthickness=1,
+                            highlightbackground=BORDER)
+            card.pack(fill="x", pady=(0, 6))
+            fila = tk.Frame(card, bg=CARD)
+            fila.pack(fill="x", padx=12, pady=8)
+            # El botón se packea PRIMERO para que, con un nombre largo, el texto
+            # se recorte antes que el control que hay que poder apretar.
+            tk.Button(fila, text="Es este", fg="#fff", bg=ACCENT, relief="flat",
+                      bd=0, cursor="hand2", font=("Segoe UI", 9, "bold"),
+                      activebackground="#9080e0", activeforeground="#fff",
+                      command=lambda cc=c: self._ident_confirmar(exe, titulo, cc)
+                      ).pack(side="right", padx=(10, 0), ipadx=6, ipady=3)
+            col = tk.Frame(fila, bg=CARD)
+            col.pack(side="left", fill="x", expand=True)
+            anio = c.get("year")
+            nom = tk.Label(col, text=c.get("name", "") + (" (%s)" % anio if anio else ""),
+                           fg=TEXT, bg=CARD, font=("Segoe UI", 10, "bold"),
+                           anchor="w", justify="left", cursor="hand2",
+                           wraplength=WIN_W - 175)
+            nom.pack(fill="x")
+            ver = tk.Label(col, text="ver ficha en IGDB ↗", fg=DIM, bg=CARD,
+                           font=("Segoe UI", 8), anchor="w", cursor="hand2")
+            ver.pack(fill="x")
+            for w in (nom, ver):
+                w.bind("<Button-1>",
+                       lambda e, u=c.get("url") or "": self._abrir_url(u))
+
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        tk.Button(frame, text="Ninguno es el mío", fg=DIM, bg=CARD, relief="flat",
+                  bd=0, cursor="hand2", font=("Segoe UI", 11),
+                  activebackground=CARD2, activeforeground=TEXT,
+                  highlightthickness=1, highlightbackground=BORDER,
+                  command=lambda: self._ident_url_view(exe, titulo, nombre)).pack(
+            fill="x", ipady=10)
+
+    def _ident_confirmar(self, exe, titulo, cand):
+        """Confirmación del chip elegido. La ficha se pide por clave exacta."""
+        frame = self._ident_frame(
+            "¿Confirmás que es este?",
+            "Con esto queda catalogada tu grabación, así que conviene mirar la "
+            "ficha antes de confirmar.",
+            volver_a=lambda: self._ident_nombre_view(exe, titulo))
+        card = tk.Frame(frame, bg=CARD, highlightthickness=1,
+                        highlightbackground=BORDER)
+        card.pack(fill="x", pady=(16, 0))
+        anio = cand.get("year")
+        tk.Label(card, text=cand.get("name", "") + (" (%s)" % anio if anio else ""),
+                 fg=TEXT, bg=CARD, font=("Segoe UI", 12, "bold"), anchor="w",
+                 justify="left", wraplength=WIN_W - 90).pack(
+            fill="x", padx=14, pady=(12, 2))
+        ver = tk.Label(card, text="ver ficha en IGDB ↗", fg=ACCENT, bg=CARD,
+                       font=("Segoe UI", 9), anchor="w", cursor="hand2")
+        ver.pack(fill="x", padx=14, pady=(0, 12))
+        ver.bind("<Button-1>",
+                 lambda e, u=cand.get("url") or "": self._abrir_url(u))
+        self._ident_detectado(frame, exe, titulo)
+        err, btn = self._ident_pie(frame, "Sí, es este")
+
+        def _fallo(res):
+            err.config(text=(res or {}).get("message")
+                       or "No pudimos verificar ese título.")
+
+        btn.config(command=lambda: self._ident_resolver(
+            lambda: pleiada_api.resolve_game_manual(
+                self.auth_token, exe, titulo,
+                slug=cand.get("slug", ""), igdb_id=str(cand.get("igdb_id", "") or "")),
+            exe, titulo, err, btn, "Sí, es este", _fallo))
+
+    # — Pasos ⑤ y ⑥: la dirección de la ficha de IGDB ————————
+
+    def _ident_url_view(self, exe, titulo, nombre=""):
+        frame = self._ident_frame(
+            "Pegá el enlace de IGDB",
+            "Buscá el título en IGDB y pegá acá la dirección de su ficha. Con "
+            "eso lo identificamos sin lugar a dudas.",
+            volver_a=lambda: self._ident_nombre_view(exe, titulo))
+        var, ent = self._ident_campo(
+            frame, "ENLACE DE LA FICHA",
+            "Tiene que ser del tipo igdb.com/games/…")
+        # El enlace va acá y apunta al sitio, no a una búsqueda: para pegar la
+        # dirección de una ficha el usuario ya tiene que haberla abierto, así
+        # que ofrecerle abrirla de nuevo no sirve de nada. Lo que sí falta es
+        # para quien nunca escuchó hablar de IGDB y no sabe dónde buscar.
+        self._ident_link(frame, "Abrir IGDB",
+                         lambda: self._abrir_url("https://www.igdb.com/"),
+                         pady=(10, 0))
+        err, btn = self._ident_pie(frame, "Confirmar")
+
+        def _fallo(res):
+            err.config(text=(res or {}).get("message")
+                       or "No encontramos ese título en IGDB. Revisá el enlace.")
+
+        def _confirmar():
+            url = var.get().strip()
+            if not url:
+                err.config(text="Pegá el enlace de la ficha.")
+                return
+            self._ident_resolver(
+                lambda: pleiada_api.resolve_game_manual(
+                    self.auth_token, exe, titulo, url=url),
+                exe, titulo, err, btn, "Confirmar", _fallo)
+
+        btn.config(command=_confirmar)
+        ent.bind("<Return>", lambda e: _confirmar())
+        ent.focus()
+
+        tk.Label(frame, text="Probemos de otra manera:", fg=DIM, bg=BG,
+                 font=("Segoe UI", 10), anchor="w").pack(fill="x", pady=(14, 4))
+        self._ident_link(frame, "No lo encuentro en IGDB",
+                         lambda: self._ident_steam_view(exe, titulo), pady=(0, 0))
+
+    # — Paso ⑦: la página de Steam, última instancia antes del bloqueo ————
+
+    def _ident_steam_view(self, exe, titulo):
+        frame = self._ident_frame(
+            "Probemos de otra manera:",
+            "IGDB la cargan sus usuarios y se modera, así que un título recién "
+            "salido puede no estar todavía. En Steam, en cambio, está desde el "
+            "día uno. Pegá la dirección de su página en la tienda.",
+            volver_a=lambda: self._ident_url_view(exe, titulo))
+        var, ent = self._ident_campo(
+            frame, "ENLACE EN STEAM",
+            "Tiene que ser del tipo store.steampowered.com/app/…")
+
+        # La perspectiva viaja en la misma llamada que el enlace porque el
+        # backend resuelve y registra en un solo paso; partirlo en dos pantallas
+        # duplicaría la declaración en el registro de Detecciones.
+        tk.Label(frame, text="¿DESDE QUÉ PERSPECTIVA SE JUEGA?", fg=DIM, bg=BG,
+                 font=("Segoe UI", 9, "bold"), anchor="w").pack(fill="x", pady=(18, 5))
+        etiquetas = [e for _, e in self._PERSPECTIVAS]
+        valores = {e: v for v, e in self._PERSPECTIVAS}
+        pers_var = tk.StringVar(value=etiquetas[-1])          # arranca en "No sé"
+        # tk.OptionMenu y no ttk.Combobox: el combobox de ttk solo toma colores
+        # si se cambia el tema, y el tema es global — se llevaría puesta la barra
+        # de progreso de la pantalla de subida.
+        caja = tk.Frame(frame, bg=CARD, highlightthickness=1,
+                        highlightbackground=BORDER)
+        caja.pack(fill="x")
+        om = tk.OptionMenu(caja, pers_var, *etiquetas)
+        # indicatoron=0: el indicador nativo se dibuja como una barrita blanca
+        # que sobre el fondo oscuro parece un widget roto. Se apaga y se pone el
+        # mismo chevron que usa el resto de la app.
+        om.config(bg=CARD, fg=TEXT, activebackground=CARD2, activeforeground=TEXT,
+                  relief="flat", bd=0, highlightthickness=0, cursor="hand2",
+                  font=("Segoe UI", 11), anchor="w", padx=12, indicatoron=0)
+        om["menu"].config(bg=CARD, fg=TEXT, activebackground=ACCENT,
+                          activeforeground="#ffffff", font=("Segoe UI", 11), bd=0)
+        om.pack(fill="x", ipady=6)
+        tk.Label(caja, text="⌄", fg=DIM, bg=CARD,
+                 font=("Segoe UI", 12)).place(relx=1.0, x=-14, rely=0.5, anchor="e")
+        tk.Label(frame, text="Steam no publica este dato, por eso te lo "
+                             "preguntamos. Si no estás seguro, dejá «No sé».",
+                 fg=DIMMER, bg=BG, font=("Segoe UI", 9), anchor="w",
+                 justify="left", wraplength=WIN_W - 60).pack(fill="x", pady=(6, 0))
+
+        err, btn = self._ident_pie(frame, "Confirmar")
+
+        # Un enlace mal pegado es recuperable, así que el fallo se muestra en la
+        # misma pantalla y la salida al bloqueo la elige el usuario. Llevarlo
+        # derecho al cartel de bloqueo le sacaría la chance de corregir un typo.
+        salida = {"lbl": None}
+
+        def _fallo(res):
+            err.config(text=(res or {}).get("message")
+                       or "No pudimos verificar ese título.")
+            if salida["lbl"] is None:
+                lbl = tk.Label(frame, text="No lo puedo identificar", fg=ACCENT,
+                               bg=BG, font=("Segoe UI", 10), cursor="hand2",
+                               anchor="w")
+                lbl.pack(fill="x", pady=(0, 8), before=err)
+                lbl.bind("<Button-1>",
+                         lambda e: self._ident_bloqueado_view(exe, titulo))
+                salida["lbl"] = lbl
+
+        def _confirmar():
+            url = var.get().strip()
+            if not url:
+                err.config(text="Pegá el enlace de la página en Steam.")
+                return
+            self._ident_resolver(
+                lambda: pleiada_api.resolve_game_steam(
+                    self.auth_token, exe, titulo, url,
+                    perspectiva=valores.get(pers_var.get(), "")),
+                exe, titulo, err, btn, "Confirmar", _fallo)
+
+        btn.config(command=_confirmar)
+        ent.bind("<Return>", lambda e: _confirmar())
+        ent.focus()
+
+    # — Paso ⑧: no se pudo identificar, no se graba ————————————
+
+    def _ident_bloqueado_view(self, exe, titulo, msg=""):
+        """Fin del camino. Bloquea, y dice por qué sin adornarlo."""
+        frame = self._ident_frame("No podemos habilitar la grabación")
+        card = tk.Frame(frame, bg=CARD, highlightthickness=1,
+                        highlightbackground=BORDER)
+        card.pack(fill="x", pady=(16, 0))
+        tk.Label(card, text=msg or "Probamos por todos lados y no logramos "
+                                   "identificar qué es lo que estás grabando.",
+                 fg=TEXT, bg=CARD, font=("Segoe UI", 10), anchor="w",
+                 justify="left", wraplength=WIN_W - 90).pack(
+            fill="x", padx=14, pady=(12, 8))
+        tk.Label(card, text="Sin saber qué título es no podemos catalogar la "
+                            "sesión ni asignarla a una orden, así que grabarla "
+                            "sería tiempo perdido.",
+                 fg=DIM, bg=CARD, font=("Segoe UI", 9), anchor="w",
+                 justify="left", wraplength=WIN_W - 90).pack(
+            fill="x", padx=14, pady=(0, 12))
+        self._ident_detectado(frame, exe, titulo)
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        tk.Button(frame, text="Volver a la pantalla de inicio", fg="#fff", bg=ACCENT,
+                  relief="flat", bd=0, cursor="hand2", font=("Segoe UI", 12, "bold"),
+                  activebackground="#9080e0", activeforeground="#fff",
+                  command=self._show_idle).pack(fill="x", ipady=11)
 
     def _check_obs_game(self):
         """Verifica en OBS qué juego está capturado (en thread)."""
