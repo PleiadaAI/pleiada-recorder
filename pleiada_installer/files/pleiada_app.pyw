@@ -14,7 +14,7 @@ import pleiada_api
 import pleiada_sync_limits as sync_limits
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.7"
+VERSION = "v0.9.8"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -27,6 +27,13 @@ GAMES_FILE = APP_DIR / "games_list.json"
 # "active" a "Publicado" y un caché previo con la misma list_version nunca se
 # re-descargaría (sync_games_list compara versiones, no contenido).
 GAMES_CACHE = APPDATA / "Pleiada" / "games_list_cache_v2.json"   # v0.4: caché de Airtable
+# v0.9.7: lo que el usuario declaró cuando no pudimos identificar el título, por
+# ejecutable. Se guarda la CLAVE de la declaración (el slug de IGDB, o la URL de
+# Steam con su perspectiva), NO la respuesta: al volver a ver ese exe se
+# re-resuelve contra el backend, así el género, la perspectiva y sobre todo las
+# órdenes que aplican salen siempre frescos. Guardar la respuesta dejaría al
+# jugador pegado a un catálogo viejo y sin ver una orden que apareció después.
+DECLARADOS_FILE = APPDATA / "Pleiada" / "titulos_declarados.json"
 TEMP_DIR   = Path(os.environ.get("TEMP", "C:\\Temp"))
 ANCHOR_FILE = TEMP_DIR / "pleiada_anchor_ts.txt"
 GAME_FILE   = TEMP_DIR / "pleiada_game_name.txt"
@@ -127,6 +134,47 @@ def save_auth(email, token):
             json.dump({"email": email, "token": token}, f)
     else:
         AUTH_FILE.unlink(missing_ok=True)
+
+
+def load_declarados():
+    """Declaraciones del usuario por ejecutable. Devuelve {} si no hay o si el
+    archivo quedó ilegible — que no se pueda leer no puede frenar la app."""
+    try:
+        with open(DECLARADOS_FILE, encoding="utf-8") as f:
+            d = json.load(f)
+            return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+
+def save_declarado(clave, datos):
+    """Recuerda con qué identificó el usuario este ejecutable.
+
+    Best-effort: si falla la escritura, lo único que pasa es que la próxima vez
+    se le vuelve a preguntar. No vale romper nada por esto.
+    """
+    if not clave:
+        return
+    try:
+        d = load_declarados()
+        d[clave] = datos
+        DECLARADOS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(DECLARADOS_FILE, "w", encoding="utf-8") as f:
+            json.dump(d, f, ensure_ascii=False, indent=1)
+    except Exception as e:
+        _obs_dbg(f"declarados: no se pudo guardar {clave!r}: {e}")
+
+
+def olvidar_declarado(clave):
+    """Descarta una declaración que dejó de resolver (la ficha se borró de IGDB,
+    el juego cambió de exe). Sin esto quedaría reintentándola para siempre."""
+    try:
+        d = load_declarados()
+        if d.pop(clave, None) is not None:
+            with open(DECLARADOS_FILE, "w", encoding="utf-8") as f:
+                json.dump(d, f, ensure_ascii=False, indent=1)
+    except Exception:
+        pass
 
 
 def _es_error_de_sesion(err):
@@ -2967,11 +3015,30 @@ class PleiadaApp:
         self._settings_btn.bind("<Enter>", lambda e: self._settings_btn.config(fg=TEXT))
         self._settings_btn.bind("<Leave>", lambda e: self._settings_btn.config(fg=DIM))
 
-        # Dragging
+        # Dragging.
+        #
+        # v0.9.7: antes esto era `for w in (tb,)`, o sea SOLO el frame. En Tk el
+        # click lo recibe el widget de más arriba, no su contenedor, así que
+        # cada Label de la barra —el ✦, "Gameplay Recorder", la versión, el
+        # usuario— se comía el evento. Lo único arrastrable eran los pocos
+        # píxeles de frame que ninguna etiqueta tapaba: la franja de arriba y el
+        # borde izquierdo. Reportado como "solo se puede arrastrar del extremo
+        # superior izquierdo", y así era literalmente.
+        #
+        # Se bindea la barra y todos sus hijos, salteando los que ya tienen su
+        # propio <Button-1> (Atrás, ⚙, ×): bindear encima los reemplazaría y
+        # dejaría esos tres botones muertos. Consultar el binding en vez de
+        # listar los botones a mano es lo que evita que esto se rompa solo
+        # cuando alguien agregue un control nuevo a la barra.
         self._drag_x = self._drag_y = 0
-        for w in (tb,):
-            w.bind("<ButtonPress-1>",   self._drag_start)
-            w.bind("<B1-Motion>",        self._drag_move)
+        for w in [tb] + list(tb.winfo_children()):
+            try:
+                if w is not tb and w.bind("<Button-1>"):
+                    continue                    # es un botón, no zona de arrastre
+            except tk.TclError:
+                continue
+            w.bind("<ButtonPress-1>", self._drag_start)
+            w.bind("<B1-Motion>",     self._drag_move)
 
     def _drag_start(self, e):
         self._drag_x = e.x_root - self.root.winfo_x()
@@ -4238,6 +4305,15 @@ class PleiadaApp:
             # con certeza qué está jugando.
             exe   = res.get("exe") or getattr(self, "_det_exe", "")
             bruto = res.get("titulo_detectado") or ""
+            # Si el usuario YA nos dijo qué es este ejecutable, no se le vuelve a
+            # preguntar: se reaplica su declaración sola. El backend no se acuerda
+            # —una declaración resuelve la sesión pero no entra al catálogo hasta
+            # que dos usuarios distintos coincidan—, así que el que tiene que
+            # acordarse es el Recorder.
+            decl = load_declarados().get(self._clave_declaracion(exe, bruto))
+            if decl:
+                self._reaplicar_declaracion(exe, bruto, decl)
+                return
             # Si a este mismo exe ya lo pasamos por el flujo y volvió sin
             # identificar, no se lo volvemos a tirar encima: se queda el cartel
             # en el panel, con el enlace para reintentar a mano. Sin esto,
@@ -4381,6 +4457,60 @@ class PleiadaApp:
         b.bind("<Button-1>", lambda e: self._ident_nombre_view(exe, titulo))
         self._update_record_btn()
 
+    def _reaplicar_declaracion(self, exe, bruto, decl):
+        """Resuelve con lo que el usuario ya había declarado, sin molestarlo.
+
+        Se vuelve a consultar en vez de guardar la respuesta A PROPÓSITO: el
+        género, la perspectiva y sobre todo LAS ÓRDENES que aceptan el título
+        cambian con el tiempo. Un título que hoy se graba libre puede entrar
+        mañana en una orden nueva, y con la respuesta cacheada el jugador no se
+        enteraría nunca.
+        """
+        clave = self._clave_declaracion(exe, bruto)
+        self._render_det_resolviendo(bruto or exe)
+
+        def _vivo():
+            """La pantalla que pidió esto, ¿sigue existiendo? (PLE-162)"""
+            box = getattr(self, "_det_box", None)
+            try:
+                return box is not None and box.winfo_exists()
+            except tk.TclError:
+                return False
+
+        def _worker():
+            try:
+                if decl.get("tipo") == "steam":
+                    res = pleiada_api.resolve_game_steam(
+                        self.auth_token, exe, bruto, decl.get("url", ""),
+                        perspectiva=decl.get("perspectiva", ""))
+                else:
+                    res = pleiada_api.resolve_game_manual(
+                        self.auth_token, exe, bruto,
+                        slug=decl.get("slug", ""), igdb_id=decl.get("igdb_id", ""),
+                        url=decl.get("url", ""))
+            except pleiada_api.ApiError as e:
+                if _es_error_de_sesion(e):
+                    self.root.after(0, lambda: self._on_auth_expired(
+                        "Volvé a iniciar sesión para poder grabar."))
+                    return
+                msg, code = str(e), (e.code or "")
+                self.root.after(0, lambda: _vivo() and self._render_det_error(msg, code))
+                return
+
+            def _aplicar():
+                if not _vivo():
+                    return
+                if (res or {}).get("estado") == "no_identificado":
+                    # La declaración dejó de resolver: le borraron la ficha de
+                    # IGDB, o el juego salió de Steam. Se descarta para no
+                    # reintentarla en cada detección, y se vuelve a preguntar.
+                    olvidar_declarado(clave)
+                    self._ident_intentado = None
+                self._apply_resolve(res)
+            self.root.after(0, _aplicar)
+
+        threading.Thread(target=_worker, daemon=True).start()
+
     # ── Identificación asistida (plan v2, v0.9.7) ─────────────────────────────
     #
     # Se entra acá SOLO cuando el backend no pudo identificar lo que OBS está
@@ -4495,7 +4625,16 @@ class PleiadaApp:
         lbl.bind("<Button-1>", lambda e: cmd())
         return lbl
 
-    def _ident_resolver(self, llamada, exe, titulo, err, btn, texto_btn, al_fallar):
+    def _clave_declaracion(self, exe, titulo):
+        """La misma clave con la que `_detect_poll` decide si algo ya se resolvió.
+
+        Tiene que ser IDÉNTICA a la de allá o la declaración se guarda bajo un
+        nombre que después nadie busca.
+        """
+        return exe.lower() if exe else ("t:" + (titulo or "").lower())
+
+    def _ident_resolver(self, llamada, exe, titulo, err, btn, texto_btn, al_fallar,
+                        declaracion=None):
         """Corre una resolución declarada y aplica el cierre común.
 
         Todo lo que no sea `no_identificado` vuelve al inicio con el resultado
@@ -4503,6 +4642,9 @@ class PleiadaApp:
         detección automática. Que el resultado se vea igual haya llegado por
         donde haya llegado es parte del punto: el jugador no tiene por qué saber
         que hubo un camino alternativo.
+
+        `declaracion` es con qué lo identificó: se guarda en disco para no
+        volver a preguntárselo por el mismo ejecutable nunca más.
         """
         err.config(text="")
         btn.config(text="Verificando…", state="disabled")
@@ -4529,6 +4671,8 @@ class PleiadaApp:
                         pass
                     al_fallar(res)
                     return
+                if declaracion:
+                    save_declarado(self._clave_declaracion(exe, titulo), declaracion)
                 self._show_idle(resuelto=(res, exe, titulo))
             self.root.after(0, _aplicar)
 
@@ -4673,11 +4817,14 @@ class PleiadaApp:
             err.config(text=(res or {}).get("message")
                        or "No pudimos verificar ese título.")
 
+        decl = {"tipo": "igdb", "slug": cand.get("slug", ""),
+                "igdb_id": str(cand.get("igdb_id", "") or ""),
+                "nombre": cand.get("name", "")}
         btn.config(command=lambda: self._ident_resolver(
             lambda: pleiada_api.resolve_game_manual(
                 self.auth_token, exe, titulo,
-                slug=cand.get("slug", ""), igdb_id=str(cand.get("igdb_id", "") or "")),
-            exe, titulo, err, btn, "Sí, es este", _fallo))
+                slug=decl["slug"], igdb_id=decl["igdb_id"]),
+            exe, titulo, err, btn, "Sí, es este", _fallo, declaracion=decl))
 
     # — Pasos ⑤ y ⑥: la dirección de la ficha de IGDB ————————
 
@@ -4711,7 +4858,8 @@ class PleiadaApp:
             self._ident_resolver(
                 lambda: pleiada_api.resolve_game_manual(
                     self.auth_token, exe, titulo, url=url),
-                exe, titulo, err, btn, "Confirmar", _fallo)
+                exe, titulo, err, btn, "Confirmar", _fallo,
+                declaracion={"tipo": "igdb", "url": url})
 
         btn.config(command=_confirmar)
         ent.bind("<Return>", lambda e: _confirmar())
@@ -4790,11 +4938,12 @@ class PleiadaApp:
             if not url:
                 err.config(text="Pegá el enlace de la página en Steam.")
                 return
+            persp = valores.get(pers_var.get(), "")
             self._ident_resolver(
                 lambda: pleiada_api.resolve_game_steam(
-                    self.auth_token, exe, titulo, url,
-                    perspectiva=valores.get(pers_var.get(), "")),
-                exe, titulo, err, btn, "Confirmar", _fallo)
+                    self.auth_token, exe, titulo, url, perspectiva=persp),
+                exe, titulo, err, btn, "Confirmar", _fallo,
+                declaracion={"tipo": "steam", "url": url, "perspectiva": persp})
 
         btn.config(command=_confirmar)
         ent.bind("<Return>", lambda e: _confirmar())
@@ -4947,13 +5096,20 @@ class PleiadaApp:
             not self._update_required      # v0.8: bloqueado si VERSION < min_version
         )
         if can_record:
+            # v0.9.7: el botón dice a qué va a ir la grabación. Sin orden de
+            # destino el archivo se guarda igual pero no se puede subir hasta que
+            # aparezca una orden que lo acepte, y eso tiene que verse ANTES de
+            # apretar, no después de grabar una hora.
+            libre = not self.selected_call
             self._rec_btn_idle.config(
+                text="  Iniciar grabación libre" if libre else "  Iniciar grabación",
                 state="normal", cursor="hand2",
                 bg=ACCENT, fg="#ffffff",
                 activebackground="#9080e0", activeforeground="#fff"
             )
         else:
             self._rec_btn_idle.config(
+                text="  Iniciar grabación",
                 state="disabled", cursor="arrow",
                 bg=CARD, fg=DIMMER,
                 activebackground=CARD, activeforeground=DIMMER
@@ -6852,7 +7008,11 @@ class PleiadaApp:
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    _install_crash_logging()   # v0.7.1: captura crashes/ANR a %APPDATA%\Pleiada\logs
+    # v0.7.1: captura crashes/ANR. Van a LOG_DIR = Documents\Pleiada Logs, NO a
+    # %APPDATA%: este comentario decia %APPDATA%\Pleiada\logs y de ahi se copio a
+    # cuatro guias de QA seguidas. Cada vez que QA contesto "ese archivo no
+    # existe" era porque estaba mirando una carpeta que nunca existio.
+    _install_crash_logging()
 
     # PLE-18: DPI awareness — evita que Windows clipee contenido en pantallas escaladas.
     # Debe llamarse ANTES de crear cualquier ventana Tk.

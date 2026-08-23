@@ -256,8 +256,18 @@ quedarse colgado en "Buscando…" ni mostrar un error de título.
 
 Por cada falla: el número del paso o el caso de la Parte A, qué título o programa tenían
 apuntado en OBS, la escala de pantalla, y el video o la captura. Si la app se queda pegada o
-deja de responder, antes de cerrarla copien `%APPDATA%\Pleiada\logs\crash.log` y adjúntenlo — si
-no existe, díganlo igual, que también es un dato.
+deja de responder, antes de cerrarla copien el log de errores y adjúntenlo.
+
+> ⚠️ **La ruta del log que les dimos en las guías anteriores estaba mal.** No es `%APPDATA%`.
+> Está en:
+>
+> ```
+> C:\Users\<usuario>\Documents\Pleiada Logs\
+> ```
+>
+> Ahí adentro: `crash.log` y `faulthandler.log`. Si en rondas anteriores nos dijeron que el
+> archivo no existía, era por esto — estaban mirando una carpeta que nunca existió. Si tienen
+> logs viejos de esa carpeta de rondas anteriores, mándenlos también.
 
 Para los casos del cuestionario, sumen **qué escribieron o pegaron exactamente**: el nombre
 buscado o el enlace completo. Sin eso no podemos reproducirlo.
