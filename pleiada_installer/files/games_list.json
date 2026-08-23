@@ -10579,6 +10579,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "ReStory: Chill Electronics Repairs",
+  "perspective": "First Person",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "380960",
+  "default_key_mapping": null
+ },
+ {
   "game": "Returnal",
   "perspective": "Third Person",
   "genre": "Roguelike Shooter, Shooter",
