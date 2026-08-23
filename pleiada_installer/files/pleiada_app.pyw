@@ -27,12 +27,21 @@ GAMES_FILE = APP_DIR / "games_list.json"
 # "active" a "Publicado" y un caché previo con la misma list_version nunca se
 # re-descargaría (sync_games_list compara versiones, no contenido).
 GAMES_CACHE = APPDATA / "Pleiada" / "games_list_cache_v2.json"   # v0.4: caché de Airtable
-# v0.9.7: lo que el usuario declaró cuando no pudimos identificar el título, por
-# ejecutable. Se guarda la CLAVE de la declaración (el slug de IGDB, o la URL de
-# Steam con su perspectiva), NO la respuesta: al volver a ver ese exe se
-# re-resuelve contra el backend, así el género, la perspectiva y sobre todo las
-# órdenes que aplican salen siempre frescos. Guardar la respuesta dejaría al
-# jugador pegado a un catálogo viejo y sin ver una orden que apareció después.
+# Con qué identificó el usuario cada ejecutable cuando no pudimos hacerlo solos.
+#
+# RED DE SEGURIDAD, no el mecanismo principal: desde la Lambda 2026-08-23.1, un
+# título que IGDB o Steam identifican entra al catálogo aunque ninguna orden lo
+# pida, así que la próxima detección lo resuelve por el exe y esto no se usa.
+# Queda para los dos casos en que el alta igual no ocurre —Airtable caído, o un
+# publisher excluido— que si no reproducen exactamente el bug del 23-08: el
+# jugador identifica su juego, vuelve al inicio y el Recorder se lo pregunta de
+# nuevo.
+#
+# Se guarda la CLAVE de la declaración (el slug de IGDB, o la URL de Steam con
+# su perspectiva), NO la respuesta: al volver a ver ese exe se re-resuelve
+# contra el backend, así el género y sobre todo las órdenes que aplican salen
+# frescos. Con la respuesta cacheada, el jugador no vería nunca una orden que
+# apareció después.
 DECLARADOS_FILE = APPDATA / "Pleiada" / "titulos_declarados.json"
 TEMP_DIR   = Path(os.environ.get("TEMP", "C:\\Temp"))
 ANCHOR_FILE = TEMP_DIR / "pleiada_anchor_ts.txt"
