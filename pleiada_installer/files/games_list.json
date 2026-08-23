@@ -2,7 +2,7 @@
  {
   "game": "007 First Light",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Shooter",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -33,7 +33,7 @@
  {
   "game": "7 Days to Die",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Shooter, Role-playing (RPG), Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -101,7 +101,7 @@
  {
   "game": "A Hat in Time",
   "perspective": "Third Person",
-  "genre": "Platformer",
+  "genre": "Platformer, Platform",
   "mode": "Co-op",
   "process_name": "HatinTimeGame.exe",
   "process_source": "exact(A Hat in Time)",
@@ -166,7 +166,7 @@
  {
   "game": "A Plague Tale: Requiem",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -257,7 +257,7 @@
  {
   "game": "Abiotic Factor",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Shooter, Role-playing (RPG), Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -310,7 +310,7 @@
  {
   "game": "ABZU",
   "perspective": "Third Person",
-  "genre": "Exploration",
+  "genre": "Exploration, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -339,7 +339,7 @@
  {
   "game": "Alan Wake 2",
   "perspective": "Third Person",
-  "genre": "Survival Horror",
+  "genre": "Survival Horror, Shooter",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -374,7 +374,7 @@
  {
   "game": "Alan Wake Remastered",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Shooter",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -409,7 +409,7 @@
  {
   "game": "Alaska Gold Fever",
   "perspective": "",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -493,7 +493,7 @@
  {
   "game": "Aloft",
   "perspective": "Third Person",
-  "genre": "Survival",
+  "genre": "Survival, Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -558,7 +558,7 @@
  {
   "game": "Amerzone: The Explorer's Legacy",
   "perspective": "First Person",
-  "genre": "Point-and-click",
+  "genre": "Point-and-click, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -582,7 +582,7 @@
  {
   "game": "Amnesia: Rebirth",
   "perspective": "First Person",
-  "genre": "Survival Horror",
+  "genre": "Survival Horror, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -623,7 +623,7 @@
  {
   "game": "Amnesia: The Bunker",
   "perspective": "First Person",
-  "genre": "Survival Horror",
+  "genre": "Survival Horror, Shooter, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -652,7 +652,7 @@
  {
   "game": "Angel Engine",
   "perspective": "First Person",
-  "genre": "Puzzle",
+  "genre": "Puzzle, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -723,7 +723,7 @@
  {
   "game": "Arcade Paradise",
   "perspective": "First Person",
-  "genre": "Puzzle",
+  "genre": "Puzzle, Simulator, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -756,7 +756,7 @@
  {
   "game": "Arena Breakout: Infinite",
   "perspective": "First Person",
-  "genre": "Extraction Shooter",
+  "genre": "Extraction Shooter, Shooter, Tactical",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -784,7 +784,7 @@
  {
   "game": "ARK: Survival Ascended",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Shooter, Role-playing (RPG), Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -820,7 +820,7 @@
  {
   "game": "ARK: Survival Evolved",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Shooter, Role-playing (RPG), Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -888,7 +888,7 @@
  {
   "game": "Arma 3",
   "perspective": "First Person",
-  "genre": "Tactical Shooter",
+  "genre": "Tactical Shooter, Shooter, Simulator, Tactical",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -924,7 +924,7 @@
  {
   "game": "Arma: Reforger",
   "perspective": "First Person",
-  "genre": "Tactical Shooter",
+  "genre": "Tactical Shooter, Shooter, Simulator, Tactical",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "",
@@ -957,7 +957,7 @@
  {
   "game": "Armored Core VI: Fires of Rubicon",
   "perspective": "Third Person",
-  "genre": "Action",
+  "genre": "Action, Shooter",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -989,7 +989,7 @@
  {
   "game": "Arsonate",
   "perspective": "First Person",
-  "genre": "Point-and-click",
+  "genre": "Point-and-click, Card & Board Game",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -1017,7 +1017,7 @@
  {
   "game": "Arx Fatalis",
   "perspective": "First Person",
-  "genre": "Puzzle",
+  "genre": "Puzzle, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -1044,7 +1044,7 @@
  {
   "game": "Asphalt 9: Legends",
   "perspective": "Third Person",
-  "genre": "Racing",
+  "genre": "Racing, Arcade",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -1058,7 +1058,7 @@
  {
   "game": "Assetto Corsa Competizione (AC2)",
   "perspective": "First Person",
-  "genre": "Racing",
+  "genre": "Racing, Simulator, Sport",
   "mode": "Singleplayer",
   "process_name": "AC2-Win64-Shipping.exe",
   "process_source": "manual_qa",
@@ -1086,7 +1086,7 @@
  {
   "game": "Atomfall",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -1118,7 +1118,7 @@
  {
   "game": "Atomic Heart",
   "perspective": "First Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -1246,7 +1246,7 @@
  {
   "game": "Banishers: Ghosts of New Eden",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -1275,7 +1275,7 @@
  {
   "game": "Batman: Arkham Asylum",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": "ShippingPC-BmGame.exe",
   "process_source": "exact(Batman: Arkham Asylum)",
@@ -1297,7 +1297,7 @@
  {
   "game": "Batman: Arkham City",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -1325,7 +1325,7 @@
  {
   "game": "Batman: Arkham Knight",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -1344,7 +1344,7 @@
  {
   "game": "Battlefield 4",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Shooter, Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -1375,7 +1375,7 @@
  {
   "game": "Battlefield 6",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Shooter",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -1434,7 +1434,7 @@
  {
   "game": "Bellwright",
   "perspective": "Third Person",
-  "genre": "Survival",
+  "genre": "Survival, Role-playing (RPG), Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "",
@@ -1487,7 +1487,7 @@
  {
   "game": "Black Desert Online",
   "perspective": "Third Person",
-  "genre": "MMORPG",
+  "genre": "MMORPG, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -1519,7 +1519,7 @@
  {
   "game": "Black Mesa",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Platform",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -1588,7 +1588,7 @@
  {
   "game": "Black Myth: Wukong (b1)",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -1645,7 +1645,7 @@
  {
   "game": "Black Ops III",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Shooter",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -1683,7 +1683,7 @@
  {
   "game": "Blood Reaver",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -1727,7 +1727,7 @@
  {
   "game": "Blood West",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -1783,7 +1783,7 @@
  {
   "game": "Bodycam",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -1826,7 +1826,7 @@
  {
   "game": "Borderlands 2",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "igdb",
@@ -1855,7 +1855,7 @@
  {
   "game": "Borderlands 3",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "igdb",
@@ -1886,7 +1886,7 @@
  {
   "game": "Borderlands 4",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "igdb",
@@ -1946,7 +1946,7 @@
  {
   "game": "Brothers: A Tale of Two Sons Remake",
   "perspective": "Third Person",
-  "genre": "Adventure",
+  "genre": "Adventure, Puzzle",
   "mode": "Singleplayer",
   "process_name": "Brothers-Win64-Shipping.exe",
   "process_source": "exact(Brothers: A Tale of Two Sons Remake)",
@@ -2011,7 +2011,7 @@
  {
   "game": "Bult: Hunting Simulator",
   "perspective": "First Person",
-  "genre": "Simulator",
+  "genre": "Simulator, Sport",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -2037,7 +2037,7 @@
  {
   "game": "Bum Simulator",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -2150,7 +2150,7 @@
  {
   "game": "Call of Duty: Black Ops 7",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Shooter",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -2182,7 +2182,7 @@
  {
   "game": "Call of Duty: Modern Warfare",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Shooter",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -2279,7 +2279,7 @@
  {
   "game": "Call of Juarez: Gunslinger",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -2329,7 +2329,7 @@
  {
   "game": "Captain Wayne: Vacation Desperation",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -2422,7 +2422,7 @@
  {
   "game": "Card Shop Simulator Multiplayer",
   "perspective": "First Person",
-  "genre": "Simulator",
+  "genre": "Simulator, Card & Board Game",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -2475,7 +2475,7 @@
  {
   "game": "Chivalry 2",
   "perspective": "First Person",
-  "genre": "Action",
+  "genre": "Action, Fighting, Tactical, Hack and slash/Beat 'em up",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -2506,7 +2506,7 @@
  {
   "game": "Chorus",
   "perspective": "Third Person",
-  "genre": "Action",
+  "genre": "Action, Shooter, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -2537,7 +2537,7 @@
  {
   "game": "Clair Obscur: Expedition 33",
   "perspective": "Third Person",
-  "genre": "JRPG",
+  "genre": "JRPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -2572,7 +2572,7 @@
  {
   "game": "Climb The Backrooms",
   "perspective": "First Person",
-  "genre": "Platform",
+  "genre": "Platform, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -2611,7 +2611,7 @@
  {
   "game": "Conan Exiles",
   "perspective": "Third Person",
-  "genre": "Survival",
+  "genre": "Survival, Fighting, Role-playing (RPG), Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -2644,7 +2644,7 @@
  {
   "game": "Control",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Shooter",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "cleared: build DX12 usa Control_DX12.exe",
@@ -2677,7 +2677,7 @@
  {
   "game": "Cooking Simulator",
   "perspective": "First Person",
-  "genre": "Simulator",
+  "genre": "Simulator, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -2770,7 +2770,7 @@
  {
   "game": "Counter-Strike 2",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Tactical",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -2904,7 +2904,7 @@
  {
   "game": "Cronos: The New Dawn",
   "perspective": "Third Person",
-  "genre": "Survival Horror",
+  "genre": "Survival Horror, Shooter, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -2938,7 +2938,7 @@
  {
   "game": "Crow Country",
   "perspective": "Third Person",
-  "genre": "Survival Horror",
+  "genre": "Survival Horror, Shooter, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -2968,7 +2968,7 @@
  {
   "game": "Cruelty Squad",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Simulator, Tactical",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -3068,7 +3068,7 @@
  {
   "game": "Cyberpunk 2077",
   "perspective": "First Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": "Cyberpunk2077.exe",
   "process_source": "exact(Cyberpunk 2077)",
@@ -3187,7 +3187,7 @@
  {
   "game": "Dark Souls II: Scholar of the First Sin",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": "DarkSoulsII.exe",
   "process_source": "exact(Dark Souls II: Scholar of the First Sin)",
@@ -3215,7 +3215,7 @@
  {
   "game": "Dark Souls III",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": "DS3T.exe",
   "process_source": "exact(Dark Souls III)",
@@ -3257,7 +3257,7 @@
  {
   "game": "Dark Souls: Remastered",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": "DarkSoulsRemastered.exe",
   "process_source": "manual_qa",
@@ -3288,7 +3288,7 @@
  {
   "game": "Dauntless",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -3306,7 +3306,7 @@
  {
   "game": "Days Gone",
   "perspective": "Third Person",
-  "genre": "Survival Action",
+  "genre": "Survival Action, Shooter",
   "mode": "Singleplayer",
   "process_name": "DaysGone.exe",
   "process_source": "exact(Days Gone)",
@@ -3349,7 +3349,7 @@
  {
   "game": "DayZ",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Shooter, Role-playing (RPG), Simulator, Tactical",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -3508,7 +3508,7 @@
  {
   "game": "Death Stranding",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -3548,7 +3548,7 @@
  {
   "game": "Death Stranding 2: On the Beach",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Shooter",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -3639,7 +3639,7 @@
  {
   "game": "Delta Force",
   "perspective": "First Person",
-  "genre": "Tactical Shooter",
+  "genre": "Tactical Shooter, Shooter, Tactical",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -3670,7 +3670,7 @@
  {
   "game": "Denizen",
   "perspective": "",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -3775,7 +3775,7 @@
  {
   "game": "Don't Fool Me, Beauties!",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -3799,7 +3799,7 @@
  {
   "game": "Don't Scream",
   "perspective": "First Person",
-  "genre": "Horror",
+  "genre": "Horror, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -3830,7 +3830,7 @@
  {
   "game": "DOOM (2016)",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Shooter",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -3873,7 +3873,7 @@
  {
   "game": "DOOM Eternal",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Shooter",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -3976,7 +3976,7 @@
  {
   "game": "Dota 2",
   "perspective": "Third Person",
-  "genre": "Strategy",
+  "genre": "Strategy, MOBA",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -4065,7 +4065,7 @@
  {
   "game": "Dragon Ball: Xenoverse 2",
   "perspective": "Third Person",
-  "genre": "Fighting",
+  "genre": "Fighting, Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -4148,7 +4148,7 @@
  {
   "game": "Dread Flats",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -4176,7 +4176,7 @@
  {
   "game": "Dreadzone",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Tactical",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -4202,7 +4202,7 @@
  {
   "game": "Drive Beyond Horizons",
   "perspective": "First Person",
-  "genre": "Racing",
+  "genre": "Racing, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -4337,7 +4337,7 @@
  {
   "game": "Dying Light",
   "perspective": "First Person",
-  "genre": "Survival Horror",
+  "genre": "Survival Horror, Shooter, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": "DyingLightGame.exe",
   "process_source": "exact(Dying Light)",
@@ -4375,7 +4375,7 @@
  {
   "game": "Dying Light 2: Stay Human",
   "perspective": "First Person",
-  "genre": "Survival Horror",
+  "genre": "Survival Horror, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -4459,7 +4459,7 @@
  {
   "game": "Eiyuden Chronicle: Hundred Heroes",
   "perspective": "Third Person",
-  "genre": "JRPG",
+  "genre": "JRPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -4488,7 +4488,7 @@
  {
   "game": "Elden Ring",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": "eldenring.exe",
   "process_source": "exact(Elden Ring)",
@@ -4530,7 +4530,7 @@
  {
   "game": "Elden Ring Nightreign",
   "perspective": "Third Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -4565,7 +4565,7 @@
  {
   "game": "Elden Ring: Shadow of the Erdtree",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -4597,7 +4597,7 @@
  {
   "game": "ELEX II",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -4626,7 +4626,7 @@
  {
   "game": "Elite Dangerous",
   "perspective": "First Person",
-  "genre": "Simulation",
+  "genre": "Simulation, Shooter, Role-playing (RPG), Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "cleared: launcher/variantes, exe no confiable",
@@ -4652,7 +4652,7 @@
  {
   "game": "Emergency Call 112: The Fire Fighting Simulation 2",
   "perspective": "First Person",
-  "genre": "Simulator",
+  "genre": "Simulator, Tactical",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -4707,7 +4707,7 @@
  {
   "game": "Empyrion: Galactic Survival",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Shooter, Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "",
@@ -4736,7 +4736,7 @@
  {
   "game": "Enshrouded",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "",
@@ -4763,7 +4763,7 @@
  {
   "game": "Escape from Tarkov",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG), Simulator, Tactical",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -4799,7 +4799,7 @@
  {
   "game": "Euro Truck Simulator 2",
   "perspective": "First Person",
-  "genre": "Driving Sim",
+  "genre": "Driving Sim, Racing, Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -4840,7 +4840,7 @@
  {
   "game": "EVE Online",
   "perspective": "Third Person",
-  "genre": "MMORPG",
+  "genre": "MMORPG, Role-playing (RPG), Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -4869,7 +4869,7 @@
  {
   "game": "Everspace 2",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Shooter, Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -4935,7 +4935,7 @@
  {
   "game": "Expeditions: A MudRunner Game",
   "perspective": "Third Person",
-  "genre": "Driving Sim",
+  "genre": "Driving Sim, Racing, Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -4966,7 +4966,7 @@
  {
   "game": "Fallout 4",
   "perspective": "First Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": "Fallout4.exe",
   "process_source": "exact(Fallout 4)",
@@ -4999,7 +4999,7 @@
  {
   "game": "Fallout 76",
   "perspective": "First Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Shooter, Role-playing (RPG)",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -5032,7 +5032,7 @@
  {
   "game": "Fallout: New Vegas",
   "perspective": "First Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -5062,7 +5062,7 @@
  {
   "game": "Farming Simulator 25",
   "perspective": "First Person",
-  "genre": "Simulation",
+  "genre": "Simulation, Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -5168,7 +5168,7 @@
  {
   "game": "Finding Frankie",
   "perspective": "First Person",
-  "genre": "Platform",
+  "genre": "Platform, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -5283,7 +5283,7 @@
  {
   "game": "Five Hearts Under One Roof",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator, Visual Novel",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -5343,7 +5343,7 @@
  {
   "game": "Flower",
   "perspective": "Third Person",
-  "genre": "Exploration",
+  "genre": "Exploration, Visual Novel",
   "mode": "Singleplayer",
   "process_name": "Flower.exe",
   "process_source": "exact(Flower)",
@@ -5414,7 +5414,7 @@
  {
   "game": "Garten of Banban 7",
   "perspective": "First Person",
-  "genre": "Puzzle",
+  "genre": "Puzzle, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -5455,7 +5455,7 @@
  {
   "game": "Garten of Banban 8: Anti Devil",
   "perspective": "First Person",
-  "genre": "Puzzle",
+  "genre": "Puzzle, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -5495,7 +5495,7 @@
  {
   "game": "Ghost of Tsushima",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -5585,7 +5585,7 @@
  {
   "game": "Gone Home",
   "perspective": "First Person",
-  "genre": "Narrative Adventure",
+  "genre": "Narrative Adventure, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -5614,7 +5614,7 @@
  {
   "game": "Goofy Gorillas",
   "perspective": "First Person",
-  "genre": "Indie",
+  "genre": "Indie, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -5634,7 +5634,7 @@
  {
   "game": "GoreBox",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -5659,7 +5659,7 @@
  {
   "game": "Gotham Knights",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -5691,7 +5691,7 @@
  {
   "game": "Gothic 1 Remake",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -5720,7 +5720,7 @@
  {
   "game": "Granblue Fantasy: Relink",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -5768,7 +5768,7 @@
  {
   "game": "GreedFall",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -5800,7 +5800,7 @@
  {
   "game": "GreedFall II: The Dying World",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -5832,7 +5832,7 @@
  {
   "game": "Green Hell",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -5870,7 +5870,7 @@
  {
   "game": "Guild Wars 2",
   "perspective": "Third Person",
-  "genre": "MMORPG",
+  "genre": "MMORPG, Role-playing (RPG)",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -5891,7 +5891,7 @@
  {
   "game": "Gunfire Reborn",
   "perspective": "First Person",
-  "genre": "Roguelike Shooter",
+  "genre": "Roguelike Shooter, Shooter, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -5924,7 +5924,7 @@
  {
   "game": "Gunsmith Simulator",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Simulator, Tactical",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -5961,7 +5961,7 @@
  {
   "game": "Half-Life",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -6111,7 +6111,7 @@
  {
   "game": "Hell Let Loose",
   "perspective": "First Person",
-  "genre": "Tactical Shooter",
+  "genre": "Tactical Shooter, Shooter, Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -6140,7 +6140,7 @@
  {
   "game": "Hellblade: Senua's Sacrifice",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Simulator, Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -6212,7 +6212,7 @@
  {
   "game": "Helldivers II",
   "perspective": "Third Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Tactical",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -6243,7 +6243,7 @@
  {
   "game": "Hello Neighbor",
   "perspective": "First Person",
-  "genre": "Puzzle",
+  "genre": "Puzzle, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -6324,7 +6324,7 @@
  {
   "game": "Hitman 3",
   "perspective": "Third Person",
-  "genre": "Stealth",
+  "genre": "Stealth, Shooter, Tactical",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -6353,7 +6353,7 @@
  {
   "game": "Hobo: Tough Life",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -6379,7 +6379,7 @@
  {
   "game": "Hogwarts Legacy",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -6458,7 +6458,7 @@
  {
   "game": "Horizon Forbidden West",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -6501,7 +6501,7 @@
  {
   "game": "Horizon Zero Dawn",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": "HorizonZeroDawn.exe",
   "process_source": "exact(Horizon Zero Dawn)",
@@ -6542,7 +6542,7 @@
  {
   "game": "House Flipper 2",
   "perspective": "First Person",
-  "genre": "Simulation",
+  "genre": "Simulation, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -6580,7 +6580,7 @@
  {
   "game": "Hunt: Showdown",
   "perspective": "First Person",
-  "genre": "Extraction Shooter",
+  "genre": "Extraction Shooter, Shooter, Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -6612,7 +6612,7 @@
  {
   "game": "Hytale",
   "perspective": "Third Person",
-  "genre": "Sandbox",
+  "genre": "Sandbox, Role-playing (RPG), Simulator, Arcade",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -6650,7 +6650,7 @@
  {
   "game": "ICARUS",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "",
@@ -6748,7 +6748,7 @@
  {
   "game": "Infinity Nikki",
   "perspective": "Third Person",
-  "genre": "Adventure",
+  "genre": "Adventure, Platform, Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -6792,7 +6792,7 @@
  {
   "game": "Island Notes",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -6826,7 +6826,7 @@
  {
   "game": "Island of Hearts",
   "perspective": "",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator, Visual Novel",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -6906,7 +6906,7 @@
  {
   "game": "Journey",
   "perspective": "Third Person",
-  "genre": "Exploration",
+  "genre": "Exploration, Platform",
   "mode": "Singleplayer",
   "process_name": "Journey.exe",
   "process_source": "exact(Journey)",
@@ -6970,7 +6970,7 @@
  {
   "game": "Just Cause 2",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Shooter, Racing",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -7033,7 +7033,7 @@
  {
   "game": "Kena: Bridge of Spirits",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": "Kena-Win64-Shipping.exe",
   "process_source": "exact(Kena: Bridge of Spirits)",
@@ -7065,7 +7065,7 @@
  {
   "game": "Killer Frequency",
   "perspective": "First Person",
-  "genre": "Puzzle",
+  "genre": "Puzzle, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -7097,7 +7097,7 @@
  {
   "game": "Kingdom Come: Deliverance",
   "perspective": "First Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -7132,7 +7132,7 @@
  {
   "game": "Kingdom Come: Deliverance II",
   "perspective": "First Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -7256,7 +7256,7 @@
  {
   "game": "Knowledge, or Know Lady",
   "perspective": "",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -7304,7 +7304,7 @@
  {
   "game": "Lake",
   "perspective": "First Person",
-  "genre": "Narrative Adventure",
+  "genre": "Narrative Adventure, Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -7336,7 +7336,7 @@
  {
   "game": "Landlord's Super",
   "perspective": "",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -7357,7 +7357,7 @@
  {
   "game": "Lanesplit",
   "perspective": "First Person",
-  "genre": "Racing",
+  "genre": "Racing, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -7416,7 +7416,7 @@
  {
   "game": "Layers of Fear",
   "perspective": "First Person",
-  "genre": "Horror",
+  "genre": "Horror, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -7523,7 +7523,7 @@
  {
   "game": "Lies of P",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -7561,7 +7561,7 @@
  {
   "game": "Light No Fire",
   "perspective": "Third Person",
-  "genre": "Survival",
+  "genre": "Survival, Role-playing (RPG)",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "",
@@ -7587,7 +7587,7 @@
  {
   "game": "Lightyear Frontier",
   "perspective": "First Person",
-  "genre": "Farming Sim",
+  "genre": "Farming Sim, Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -7640,7 +7640,7 @@
  {
   "game": "Little Nightmares",
   "perspective": "Third Person",
-  "genre": "Horror",
+  "genre": "Horror, Platform, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -7677,7 +7677,7 @@
  {
   "game": "Little Nightmares II",
   "perspective": "Third Person",
-  "genre": "Horror",
+  "genre": "Horror, Platform, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -7713,7 +7713,7 @@
  {
   "game": "Little Nightmares III",
   "perspective": "Third Person",
-  "genre": "Horror",
+  "genre": "Horror, Platform, Puzzle",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -7789,7 +7789,7 @@
  {
   "game": "Lords of the Fallen",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Fighting, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -7806,7 +7806,7 @@
  {
   "game": "Love Is All Around",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator, Visual Novel",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -7828,7 +7828,7 @@
  {
   "game": "Lucid Blocks",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -7908,7 +7908,7 @@
  {
   "game": "Mad Max",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Racing, Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -8023,7 +8023,7 @@
  {
   "game": "Martha is Dead",
   "perspective": "First Person",
-  "genre": "Horror",
+  "genre": "Horror, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -8057,7 +8057,7 @@
  {
   "game": "Marvel's Avengers",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Puzzle, Hack and slash/Beat 'em up",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "",
@@ -8089,7 +8089,7 @@
  {
   "game": "Marvel's Spider-Man",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -8129,7 +8129,7 @@
  {
   "game": "Marvel's Spider-Man 2",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -8174,7 +8174,7 @@
  {
   "game": "MechWarrior 5: Clans",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -8197,7 +8197,7 @@
  {
   "game": "MechWarrior 5: Mercenaries",
   "perspective": "First Person",
-  "genre": "Fighting",
+  "genre": "Fighting, Shooter, Simulator, Tactical",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -8220,7 +8220,7 @@
  {
   "game": "Medieval Blacksmith",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -8250,7 +8250,7 @@
  {
   "game": "Medieval Dynasty",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -8287,7 +8287,7 @@
  {
   "game": "Metal Eden",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -8317,7 +8317,7 @@
  {
   "game": "Metal Gear Solid Delta: Snake Eater",
   "perspective": "Third Person",
-  "genre": "Stealth",
+  "genre": "Stealth, Shooter, Tactical",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -8346,7 +8346,7 @@
  {
   "game": "Metal: Hellsinger",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Music",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -8377,7 +8377,7 @@
  {
   "game": "Metro 2033",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "cleared: convive con Redux, exe ambiguo",
@@ -8426,7 +8426,7 @@
  {
   "game": "Metro 2033 Redux",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "cleared: convive con el original, exe ambiguo",
@@ -8480,7 +8480,7 @@
  {
   "game": "Metro Exodus",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Shooter",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -8568,7 +8568,7 @@
  {
   "game": "Metro: Last Light Redux",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -8687,7 +8687,7 @@
  {
   "game": "Mon Bazou",
   "perspective": "First Person",
-  "genre": "Racing",
+  "genre": "Racing, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -8747,7 +8747,7 @@
  {
   "game": "Mortal Shell",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -8798,7 +8798,7 @@
  {
   "game": "Mount & Blade II",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG), Simulator, Tactical",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "",
@@ -8878,7 +8878,7 @@
  {
   "game": "Mudrunner",
   "perspective": "Third Person",
-  "genre": "Driving Sim",
+  "genre": "Driving Sim, Racing, Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "",
@@ -8909,7 +8909,7 @@
  {
   "game": "Mundaun",
   "perspective": "First Person",
-  "genre": "Horror",
+  "genre": "Horror, Puzzle, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -9008,7 +9008,7 @@
  {
   "game": "My Garage",
   "perspective": "First Person",
-  "genre": "Racing",
+  "genre": "Racing, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -9037,7 +9037,7 @@
  {
   "game": "Mythwrecked: Ambrosia Island",
   "perspective": "Third Person",
-  "genre": "Narrative Adventure",
+  "genre": "Narrative Adventure, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -9096,7 +9096,7 @@
  {
   "game": "New World: Aeternum",
   "perspective": "Third Person",
-  "genre": "MMORPG",
+  "genre": "MMORPG, Role-playing (RPG)",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "",
@@ -9122,7 +9122,7 @@
  {
   "game": "Ni no Kuni II: Revenant Kingdom",
   "perspective": "Third Person",
-  "genre": "JRPG",
+  "genre": "JRPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -9147,7 +9147,7 @@
  {
   "game": "Ni no Kuni: Wrath of the White Witch Remastered",
   "perspective": "Third Person",
-  "genre": "JRPG",
+  "genre": "JRPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -9175,7 +9175,7 @@
  {
   "game": "Nightingale",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -9205,7 +9205,7 @@
  {
   "game": "Nioh",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -9237,7 +9237,7 @@
  {
   "game": "Nioh 2",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -9261,7 +9261,7 @@
  {
   "game": "No Man's Sky",
   "perspective": "First Person",
-  "genre": "Exploration",
+  "genre": "Exploration, Shooter, Simulator, Arcade",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -9333,7 +9333,7 @@
  {
   "game": "Nuclear Option",
   "perspective": "First Person",
-  "genre": "Simulator",
+  "genre": "Simulator, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -9381,7 +9381,7 @@
  {
   "game": "One Piece Odyssey",
   "perspective": "Third Person",
-  "genre": "JRPG",
+  "genre": "JRPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -9529,7 +9529,7 @@
  {
   "game": "Outer Wilds",
   "perspective": "First Person",
-  "genre": "Exploration",
+  "genre": "Exploration, Puzzle, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -9641,7 +9641,7 @@
  {
   "game": "Pacific Drive",
   "perspective": "First Person",
-  "genre": "Driving Survival",
+  "genre": "Driving Survival, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -9675,7 +9675,7 @@
  {
   "game": "Pacify",
   "perspective": "First Person",
-  "genre": "Horror",
+  "genre": "Horror, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -9717,7 +9717,7 @@
  {
   "game": "Painkiller",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -9734,7 +9734,7 @@
  {
   "game": "Palworld",
   "perspective": "Third Person",
-  "genre": "Survival",
+  "genre": "Survival, Shooter, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Co-op",
   "process_name": "Palworld-Win64-Shipping.exe",
   "process_source": "exact(Palworld)",
@@ -9900,7 +9900,7 @@
  {
   "game": "Pathologic 2",
   "perspective": "First Person",
-  "genre": "Survival Horror",
+  "genre": "Survival Horror, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -9925,7 +9925,7 @@
  {
   "game": "Pathologic 3",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -9985,7 +9985,7 @@
  {
   "game": "Phantom Blade Zero",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -10017,7 +10017,7 @@
  {
   "game": "Phasmophobia",
   "perspective": "First Person",
-  "genre": "Puzzle",
+  "genre": "Puzzle, Tactical",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -10058,7 +10058,7 @@
  {
   "game": "Platform 8",
   "perspective": "First Person",
-  "genre": "Platform",
+  "genre": "Platform, Puzzle, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -10088,7 +10088,7 @@
  {
   "game": "Portal 2",
   "perspective": "First Person",
-  "genre": "Platform",
+  "genre": "Platform, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -10144,7 +10144,7 @@
  {
   "game": "Prison Simulator",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -10348,7 +10348,7 @@
  {
   "game": "Ratchet & Clank: Rift Apart",
   "perspective": "Third Person",
-  "genre": "Platformer",
+  "genre": "Platformer, Shooter, Platform",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -10389,7 +10389,7 @@
  {
   "game": "Ready or Not",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Simulator, Tactical",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -10427,7 +10427,7 @@
  {
   "game": "Rec Room",
   "perspective": "First Person",
-  "genre": "Fighting",
+  "genre": "Fighting, Shooter, Music, Platform, Role-playing (RPG), Simulator, Sport, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -10508,7 +10508,7 @@
  {
   "game": "Remnant 2",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Shooter, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -10534,9 +10534,23 @@
   "default_key_mapping": null
  },
  {
+  "game": "Resident Evil 3",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "115115",
+  "default_key_mapping": null
+ },
+ {
   "game": "Responding",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -10567,7 +10581,7 @@
  {
   "game": "Returnal",
   "perspective": "Third Person",
-  "genre": "Roguelike Shooter",
+  "genre": "Roguelike Shooter, Shooter",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -10606,7 +10620,7 @@
  {
   "game": "Ride 5",
   "perspective": "Third Person",
-  "genre": "Racing Sim",
+  "genre": "Racing Sim, Racing, Simulator, Sport",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -10631,7 +10645,7 @@
  {
   "game": "RiME",
   "perspective": "Third Person",
-  "genre": "Adventure",
+  "genre": "Adventure, Platform, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -10659,7 +10673,7 @@
  {
   "game": "Rise of the Ronin",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -10698,7 +10712,7 @@
  {
   "game": "Risk of Rain 2",
   "perspective": "Third Person",
-  "genre": "Roguelike Shooter",
+  "genre": "Roguelike Shooter, Shooter",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -10791,7 +10805,7 @@
  {
   "game": "Roblox",
   "perspective": "Third Person",
-  "genre": "Sandbox",
+  "genre": "Sandbox, Platform, Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -10855,7 +10869,7 @@
  {
   "game": "Roboquest",
   "perspective": "First Person",
-  "genre": "Roguelike Shooter",
+  "genre": "Roguelike Shooter, Shooter",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -10928,7 +10942,7 @@
  {
   "game": "Roommates, Romance, and Ringing Hearts",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator, Visual Novel",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -10983,7 +10997,7 @@
  {
   "game": "Russian Fishing 4",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator, Sport",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -11014,7 +11028,7 @@
  {
   "game": "Rust",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Shooter, Role-playing (RPG)",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -11067,7 +11081,7 @@
  {
   "game": "S.T.A.L.K.E.R. 2: Heart of Chornobyl",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -11104,7 +11118,7 @@
  {
   "game": "S.T.A.L.K.E.R.: Call of Prypiat - Enhanced Edition",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -11135,7 +11149,7 @@
  {
   "game": "S.T.A.L.K.E.R.: Clear Sky - Enhanced Edition",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -11167,7 +11181,7 @@
  {
   "game": "S.T.A.L.K.E.R.: Shadow of Chernobyl",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -11203,7 +11217,7 @@
  {
   "game": "S.T.A.L.K.E.R.: Shadow of Chornobyl - Enhanced Edition",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -11234,7 +11248,7 @@
  {
   "game": "Sable",
   "perspective": "Third Person",
-  "genre": "Exploration",
+  "genre": "Exploration, Platform, Puzzle, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": "Sable.exe",
   "process_source": "exact(Sable)",
@@ -11259,7 +11273,7 @@
  {
   "game": "Sackboy: A Big Adventure",
   "perspective": "Third Person",
-  "genre": "Platformer",
+  "genre": "Platformer, Platform",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -11299,7 +11313,7 @@
  {
   "game": "Saiko no Sutoka",
   "perspective": "First Person",
-  "genre": "Puzzle",
+  "genre": "Puzzle, Simulator, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -11330,7 +11344,7 @@
  {
   "game": "Saints Row IV",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Shooter",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -11361,7 +11375,7 @@
  {
   "game": "Saints Row: The Third Remastered",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Shooter, Racing",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -11416,7 +11430,7 @@
  {
   "game": "Satisfactory",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -11476,7 +11490,7 @@
  {
   "game": "Sayonara Wild Hearts",
   "perspective": "Third Person",
-  "genre": "Action",
+  "genre": "Action, Music, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -11573,7 +11587,7 @@
  {
   "game": "Season: A Letter to the Future",
   "perspective": "Third Person",
-  "genre": "Narrative Adventure",
+  "genre": "Narrative Adventure, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -11694,7 +11708,7 @@
  {
   "game": "Sifu",
   "perspective": "Third Person",
-  "genre": "Action",
+  "genre": "Action, Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": "Sifu.exe",
   "process_source": "exact(Sifu)",
@@ -11741,7 +11755,7 @@
  {
   "game": "Silent Hill 2 (Remake)",
   "perspective": "Third Person",
-  "genre": "Survival Horror",
+  "genre": "Survival Horror, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -11777,7 +11791,7 @@
  {
   "game": "Sky: Children of the Light",
   "perspective": "Third Person",
-  "genre": "Exploration",
+  "genre": "Exploration, Puzzle, Role-playing (RPG)",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -11807,7 +11821,7 @@
  {
   "game": "Slime Rancher 2",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -11835,7 +11849,7 @@
  {
   "game": "Smalland: Survive the Wilds",
   "perspective": "Third Person",
-  "genre": "Survival",
+  "genre": "Survival, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "",
@@ -11863,7 +11877,7 @@
  {
   "game": "Sniper Elite 5",
   "perspective": "Third Person",
-  "genre": "Tactical Shooter",
+  "genre": "Tactical Shooter, Shooter, Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "",
@@ -11897,7 +11911,7 @@
  {
   "game": "Snowbreak: Containment Zone",
   "perspective": "Third Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "",
@@ -11921,7 +11935,7 @@
  {
   "game": "Snowrunner",
   "perspective": "Third Person",
-  "genre": "Driving Sim",
+  "genre": "Driving Sim, Racing, Simulator, Arcade",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "",
@@ -11954,7 +11968,7 @@
  {
   "game": "Solar Ash",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Platform",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -11985,7 +11999,7 @@
  {
   "game": "SOMA",
   "perspective": "First Person",
-  "genre": "Survival Horror",
+  "genre": "Survival Horror, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -12016,7 +12030,7 @@
  {
   "game": "Sons of the Forest",
   "perspective": "First Person",
-  "genre": "Survival Horror",
+  "genre": "Survival Horror, Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "",
@@ -12051,7 +12065,7 @@
  {
   "game": "Soulmask",
   "perspective": "Third Person",
-  "genre": "Survival",
+  "genre": "Survival, Role-playing (RPG), Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -12078,7 +12092,7 @@
  {
   "game": "SpaceBourne 2",
   "perspective": "Third Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -12135,7 +12149,7 @@
  {
   "game": "Squad",
   "perspective": "First Person",
-  "genre": "Tactical Shooter",
+  "genre": "Tactical Shooter, Shooter, Simulator, Tactical",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -12175,7 +12189,7 @@
  {
   "game": "Star Citizen",
   "perspective": "First Person",
-  "genre": "Exploration",
+  "genre": "Exploration, Shooter, Role-playing (RPG), Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -12198,7 +12212,7 @@
  {
   "game": "Starship Troopers: Ultimate Bug War!",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -12227,7 +12241,7 @@
  {
   "game": "Stellar Blade",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -12319,7 +12333,7 @@
  {
   "game": "Stray Gods: The Roleplaying Musical",
   "perspective": "Third Person",
-  "genre": "Narrative Adventure",
+  "genre": "Narrative Adventure, Music, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": "StrayGods-Win64-Shipping.exe",
   "process_source": "exact(Stray Gods: The Roleplaying Musical)",
@@ -12343,7 +12357,7 @@
  {
   "game": "Strinova",
   "perspective": "Third Person",
-  "genre": "Hero Shooter",
+  "genre": "Hero Shooter, Shooter, Role-playing (RPG), Tactical",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "",
@@ -12371,7 +12385,7 @@
  {
   "game": "Subliminal",
   "perspective": "First Person",
-  "genre": "Puzzle",
+  "genre": "Puzzle, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -12547,7 +12561,7 @@
  {
   "game": "SuperHot: Mind Control Delete",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -12615,7 +12629,7 @@
  {
   "game": "Supraland",
   "perspective": "First Person",
-  "genre": "Platform",
+  "genre": "Platform, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -12651,7 +12665,7 @@
  {
   "game": "Supraland: Six Inches Under",
   "perspective": "First Person",
-  "genre": "Platform",
+  "genre": "Platform, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -12684,7 +12698,7 @@
  {
   "game": "Supraworld",
   "perspective": "First Person",
-  "genre": "Platform",
+  "genre": "Platform, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -12755,9 +12769,23 @@
   "default_key_mapping": null
  },
  {
+  "game": "Sylvio",
+  "perspective": "First Person",
+  "genre": "Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "26779",
+  "default_key_mapping": null
+ },
+ {
   "game": "System Shock",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -12774,7 +12802,7 @@
  {
   "game": "System Shock (Remake)",
   "perspective": "First Person",
-  "genre": "Immersive Sim",
+  "genre": "Immersive Sim, Shooter, Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "",
@@ -12896,7 +12924,7 @@
  {
   "game": "Tales of Arise",
   "perspective": "Third Person",
-  "genre": "JRPG",
+  "genre": "JRPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -12926,7 +12954,7 @@
  {
   "game": "Tales of Berseria",
   "perspective": "Third Person",
-  "genre": "JRPG",
+  "genre": "JRPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -12954,7 +12982,7 @@
  {
   "game": "Tales of Zestiria",
   "perspective": "Third Person",
-  "genre": "JRPG",
+  "genre": "JRPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -12982,7 +13010,7 @@
  {
   "game": "Tamashika",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -13077,7 +13105,7 @@
  {
   "game": "Teardown",
   "perspective": "First Person",
-  "genre": "Sandbox",
+  "genre": "Sandbox, Puzzle, Simulator",
   "mode": "Singleplayer",
   "process_name": "teardown.exe",
   "process_source": "exact(Teardown)",
@@ -13136,7 +13164,7 @@
  {
   "game": "Test Drive Unlimited Solar Crown",
   "perspective": "Third Person",
-  "genre": "Racing",
+  "genre": "Racing, Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -13460,7 +13488,7 @@
  {
   "game": "The Exit 8",
   "perspective": "First Person",
-  "genre": "Puzzle",
+  "genre": "Puzzle, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -13490,7 +13518,7 @@
  {
   "game": "The Finals",
   "perspective": "First Person",
-  "genre": "FPS",
+  "genre": "FPS, Shooter",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -13520,7 +13548,7 @@
  {
   "game": "The Forest",
   "perspective": "First Person",
-  "genre": "Survival Horror",
+  "genre": "Survival Horror, Puzzle, Simulator",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "",
@@ -13568,7 +13596,7 @@
  {
   "game": "The House of the Dead 2: Remake",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Arcade",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -13597,7 +13625,7 @@
  {
   "game": "The Hunter: Call of the Wild",
   "perspective": "First Person",
-  "genre": "Hunting Sim",
+  "genre": "Hunting Sim, Shooter, Simulator, Sport",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -13626,7 +13654,7 @@
  {
   "game": "The Isle",
   "perspective": "Third Person",
-  "genre": "Survival",
+  "genre": "Survival, Fighting, Role-playing (RPG), Simulator",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "",
@@ -13676,7 +13704,7 @@
  {
   "game": "The Last of Us Part I",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Shooter",
   "mode": "Singleplayer",
   "process_name": "tlou-i.exe",
   "process_source": "exact(The Last of Us Part I)",
@@ -13735,7 +13763,7 @@
  {
   "game": "The Last of Us Part II",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Shooter",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -13759,7 +13787,7 @@
  {
   "game": "The Legend of Heroes: Trails through Daybreak",
   "perspective": "Third Person",
-  "genre": "JRPG",
+  "genre": "JRPG, Role-playing (RPG), Turn-based strategy (TBS)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -13781,7 +13809,7 @@
  {
   "game": "The Long Dark",
   "perspective": "First Person",
-  "genre": "Survival",
+  "genre": "Survival, Shooter, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -13848,7 +13876,7 @@
  {
   "game": "The Lord of the Rings: Return to Moria",
   "perspective": "Third Person",
-  "genre": "Survival",
+  "genre": "Survival, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -13921,7 +13949,7 @@
  {
   "game": "The Pathless",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -13959,7 +13987,7 @@
  {
   "game": "The Plucky Squire",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Platform, Puzzle",
   "mode": "Singleplayer",
   "process_name": "Storybook.exe",
   "process_source": "exact(The Plucky Squire)",
@@ -13989,7 +14017,7 @@
  {
   "game": "The Stanley Parable: Ultra Deluxe",
   "perspective": "First Person",
-  "genre": "Narrative Adventure",
+  "genre": "Narrative Adventure, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -14021,7 +14049,7 @@
  {
   "game": "The Surge 2",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -14150,7 +14178,7 @@
  {
   "game": "The Three Kingdoms: Rebirth",
   "perspective": "First Person",
-  "genre": "Role-playing (RPG)",
+  "genre": "Role-playing (RPG), Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -14190,7 +14218,7 @@
  {
   "game": "The Vanishing of Ethan Carter",
   "perspective": "First Person",
-  "genre": "Narrative Adventure",
+  "genre": "Narrative Adventure, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -14228,7 +14256,7 @@
  {
   "game": "The Witcher 3: Wild Hunt",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": "witcher3.exe",
   "process_source": "exact(The Witcher 3: Wild Hunt)",
@@ -14300,7 +14328,7 @@
  {
   "game": "TheHunter Classic",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Simulator, Sport",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -14334,7 +14362,7 @@
  {
   "game": "Thick as Thieves",
   "perspective": "First Person",
-  "genre": "Stealth",
+  "genre": "Stealth, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -14361,7 +14389,7 @@
  {
   "game": "Throne and Liberty",
   "perspective": "Third Person",
-  "genre": "MMORPG",
+  "genre": "MMORPG, Role-playing (RPG)",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "",
@@ -14389,7 +14417,7 @@
  {
   "game": "Thymesia",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -14418,7 +14446,7 @@
  {
   "game": "TimeShift",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -14475,7 +14503,7 @@
  {
   "game": "Tormented Souls",
   "perspective": "Third Person",
-  "genre": "Survival Horror",
+  "genre": "Survival Horror, Shooter, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -14542,7 +14570,7 @@
  {
   "game": "Train Sim World 5",
   "perspective": "First Person",
-  "genre": "Simulation",
+  "genre": "Simulation, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -14592,6 +14620,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Travellers Rest",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "121967",
+  "default_key_mapping": null
+ },
+ {
   "game": "Ultimate Theater Simulator",
   "perspective": "First Person",
   "genre": "Simulator",
@@ -14638,7 +14680,7 @@
  {
   "game": "Uncharted 4: A Thief's End",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Shooter",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -14662,7 +14704,7 @@
  {
   "game": "Uncharted: The Lost Legacy",
   "perspective": "Third Person",
-  "genre": "Action Adventure",
+  "genre": "Action Adventure, Shooter",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -14719,7 +14761,7 @@
  {
   "game": "Valheim",
   "perspective": "Third Person",
-  "genre": "Survival",
+  "genre": "Survival, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -14769,7 +14811,7 @@
  {
   "game": "Verdun",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -14860,7 +14902,7 @@
  {
   "game": "Viewfinder",
   "perspective": "First Person",
-  "genre": "Platform",
+  "genre": "Platform, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -14891,7 +14933,7 @@
  {
   "game": "Visage",
   "perspective": "First Person",
-  "genre": "Horror",
+  "genre": "Horror, Puzzle, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -14956,7 +14998,7 @@
  {
   "game": "War Thunder",
   "perspective": "Third Person",
-  "genre": "Vehicle Combat",
+  "genre": "Vehicle Combat, Shooter, Simulator, Tactical",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -14992,7 +15034,7 @@
  {
   "game": "Warframe",
   "perspective": "Third Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -15064,7 +15106,7 @@
  {
   "game": "Wasteland Bites",
   "perspective": "First Person",
-  "genre": "Point-and-click",
+  "genre": "Point-and-click, Simulator",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -15089,7 +15131,7 @@
  {
   "game": "Way of the Hunter",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Simulator, Sport",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -15121,7 +15163,7 @@
  {
   "game": "Wayfinder",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -15167,7 +15209,7 @@
  {
   "game": "What Remains of Edith Finch",
   "perspective": "First Person",
-  "genre": "Narrative Adventure",
+  "genre": "Narrative Adventure, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -15199,7 +15241,7 @@
  {
   "game": "Where Winds Meet",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "",
@@ -15248,7 +15290,7 @@
  {
   "game": "Witchaven",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -15269,7 +15311,7 @@
  {
   "game": "Witchaven II: Blood Vengeance",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -15308,7 +15350,7 @@
  {
   "game": "Wizordum",
   "perspective": "First Person",
-  "genre": "Shooter",
+  "genre": "Shooter, Puzzle",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "igdb",
@@ -15327,7 +15369,7 @@
  {
   "game": "Wo Long: Fallen Dynasty",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Role-playing (RPG)",
   "mode": "Co-op",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -15378,7 +15420,7 @@
  {
   "game": "World of Tanks",
   "perspective": "Third Person",
-  "genre": "Vehicle Combat",
+  "genre": "Vehicle Combat, Shooter, Simulator, Arcade",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -15461,7 +15503,7 @@
  {
   "game": "Wreckfest",
   "perspective": "Third Person",
-  "genre": "Racing",
+  "genre": "Racing, Sport",
   "mode": "Multiplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
@@ -15492,7 +15534,7 @@
  {
   "game": "Wuchang: Fallen Feathers",
   "perspective": "Third Person",
-  "genre": "Souls-like",
+  "genre": "Souls-like, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": "Project_Plague.exe",
   "process_source": "manual_qa",
@@ -15560,7 +15602,7 @@
  {
   "game": "Ys X: Nordics",
   "perspective": "Third Person",
-  "genre": "Action RPG",
+  "genre": "Action RPG, Role-playing (RPG)",
   "mode": "Singleplayer",
   "process_name": null,
   "process_source": "exact_no_exe",
