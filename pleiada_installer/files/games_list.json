@@ -7472,6 +7472,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "League of Legends",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Strategy, MOBA",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "115",
+  "default_key_mapping": null
+ },
+ {
   "game": "Left 4 Dead 2",
   "perspective": "First Person",
   "genre": "Shooter",
@@ -7994,6 +8008,20 @@
   ],
   "developer": null,
   "igdb_id": "356787",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Malón",
+  "perspective": "Isometric",
+  "genre": "Action, Casual, Indie, Strategy",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": null,
   "default_key_mapping": null
  },
  {
@@ -10098,6 +10126,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Plague Inc: Evolved",
+  "perspective": "Isometric",
+  "genre": "Real Time Strategy (RTS), Simulator, Strategy, Tactical, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "7601",
+  "default_key_mapping": null
+ },
+ {
   "game": "Platform 8",
   "perspective": "First Person",
   "genre": "Platform, Puzzle, Simulator",
@@ -10339,6 +10381,20 @@
   ],
   "developer": "semiwork",
   "igdb_id": "332780",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Raft",
+  "perspective": "First Person",
+  "genre": "Simulator, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "27082",
   "default_key_mapping": null
  },
  {
@@ -10763,6 +10819,20 @@
   ],
   "developer": "Team NINJA",
   "igdb_id": "217594",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Rising Fox",
+  "perspective": "Side View",
+  "genre": "Action, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": null,
   "default_key_mapping": null
  },
  {
@@ -11842,6 +11912,20 @@
   ],
   "developer": "Bloober Team",
   "igdb_id": "222341",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Simple Solitaire",
+  "perspective": "",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "264616",
   "default_key_mapping": null
  },
  {
@@ -13729,6 +13813,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "The Land of Pain",
+  "perspective": "",
+  "genre": "Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "30038",
+  "default_key_mapping": null
+ },
+ {
   "game": "The Last Caretaker",
   "perspective": "First Person",
   "genre": "Simulator",
@@ -15344,6 +15442,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Who Are You!?",
+  "perspective": "First Person",
+  "genre": "Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": null,
+  "default_key_mapping": null
+ },
+ {
   "game": "Witchaven",
   "perspective": "First Person",
   "genre": "Shooter, Role-playing (RPG)",
@@ -15554,6 +15666,20 @@
   ],
   "developer": "Saber Interactive",
   "igdb_id": "20910",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Worm.is: The Game",
+  "perspective": "",
+  "genre": "Casual, Free To Play",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": null,
   "default_key_mapping": null
  },
  {

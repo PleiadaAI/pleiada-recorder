@@ -47,7 +47,14 @@ ENCODER_FLUSH_MAX_MS = 10_000   # hasta aca el excedente es flush del encoder;
 # ── Gates de sesion ──────────────────────────────────────────────────────────
 MIN_SESSION_MS   =  30_000   # PLE-41: sesiones muy cortas dan diff ~0 y pasan
                              # el check sin que haya juego grabado
-MAX_CONT_IDLE_MS = 600_000   # 10 min continuos sin input → sesion AFK
+MAX_CONT_IDLE_MS = 300_000   # 5 min continuos sin input → sesion AFK.
+                             # Bajado de 10 a 5 el 24-08-2026 para alinearlo con
+                             # el servidor, que ya estaba en 5. Mientras estuvieron
+                             # desalineados, una sesion con un hueco de entre 5 y 10
+                             # min subia sin aviso y se rechazaba despues.
+                             # OJO: sync_verify.py (Pleiada Tools/qa_muestreo) es una
+                             # copia deliberada de estos umbrales. Si se toca uno, va
+                             # el otro. Ya quedo en 300_000 el 24-08-2026.
 IDLE_GAP_MS      =  10_000   # hueco sin mouse ni teclado que cuenta como idle
 
 # Brazo RELATIVO del gate AFK. El umbral absoluto solo no alcanza: una sesion de
