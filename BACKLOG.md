@@ -5,6 +5,92 @@ curso. Lo más urgente arriba. Cuando algo se implementa, se borra de acá.
 
 ---
 
+## 0. Alinear el gate AFK con el servidor: 10 min → 5 min
+
+**Estado: decidido por Martín el 24/08/2026. El servidor YA está en 5 min; el cliente
+sigue en 10.** Va en el próximo build, junto con el gate de input recalibrado
+(20 ev/min) — ver el punto 0b, que **no** está en la misma situación: ahí el código del
+cliente ya se cambió y lo único que falta es compilar, mientras que acá todavía hay que
+editar `pleiada_sync_limits.py`.
+
+En `pleiada_sync_limits.py`:
+
+```
+MAX_CONT_IDLE_MS = 300_000   # hoy 600_000
+```
+
+`sync_verify.py` (Pleiada Tools/qa_muestreo) ya quedó en 300_000 el 24/08/2026. Los dos
+archivos son copias deliberadas, sin import entre repos: **si uno se toca, el otro
+también**, y el encabezado de los dos lo dice.
+
+**Por qué se pudo bajar solo de un lado sin romper nada:** el umbral exacto nunca se le
+comunicó al uploader. El copy al usuario es genérico por regla —sin números ni
+umbrales—, así que no hay promesa que romper. Lo que sí pasa mientras dure la
+divergencia: una sesión con un hueco de entre 5 y 10 minutos **sube sin aviso y se
+rechaza después**, en vez de avisarle al uploader en el momento, que es peor experiencia
+y gasta ancho de banda de los dos lados. Es el precio de no esperar un release.
+
+**Ojo con el Synch Checker.** `pleiada_check.pyw` comparte estos umbrales: si se cambia
+`MAX_CONT_IDLE_MS` y no se rebuildea también el checker, vuelve exactamente el problema
+que se arregló en v0.8.8 — el verificador diciendo "SESIÓN LISTA PARA ENVIAR" sobre algo
+que el uploader rechaza.
+
+**No hay que tocar `MAX_IDLE_FRACCION` (0,50)**: el brazo relativo no se discutió y
+bajarlo es una decisión aparte, con su propia medición.
+
+---
+
+## 0b. El gate de input recalibrado ya está en el código y necesita un build
+
+**Estado: decidido y aplicado por Martín el 24/08/2026. Las dos copias del código YA
+están en 20 ev/min; lo que falta es el build.** No confundir con el punto 0: ahí falta
+cambiar el cliente, acá el cliente ya está cambiado y falta compilarlo.
+
+El gate viejo (piso 2 eventos + 1 evento/min) fallaba **abierto en sesiones cortas**:
+`Hollow_Knight_30_07_26__20_17_15` (65,4 s, 2 eventos accionables) daba `sin_input=False`
+y salía `aprobado`. Con n=2 el piso no dispara (`2 < 2` es False) y el brazo relativo
+pedía 1,09 eventos. Criterio nuevo, un solo brazo:
+
+```
+umbral = MIN_EVENTOS_POR_MIN * max(dur_min, MIN_MINUTOS_GATE)    # 20 ev/min, mínimo 2 min
+```
+
+`MIN_EVENTOS_INPUT` pasó a ser **derivado** (`int(20 * 2) = 40`). No volver a ponerlo como
+constante suelta: que los dos brazos pudieran descalibrarse entre sí es exactamente lo que
+causó el bug.
+
+**Qué falta, concretamente:**
+
+1. **Bump de versión: v0.9.9 → v0.9.10** (`VERSION` + `/DAppVersion`). La copia instalada
+   en `C:\Program Files\Pleiada Recorder` se dejó a propósito con el código viejo —
+   parchearla a mano dejaría el build corriendo con un comportamiento distinto del que
+   declara su propio `VERSION`, que es justo lo que la regla de versionado evita.
+2. **Rebuildear también el Synch Checker.** `pleiada_check.pyw` importa
+   `pleiada_sync_limits`, así que hereda el gate nuevo solo; pero si sale un installer con
+   el uploader nuevo y el checker viejo, vuelve el problema de v0.8.8 — el verificador
+   diciendo "SESIÓN LISTA PARA ENVIAR" sobre algo que el uploader rechaza. Mismo aviso que
+   el punto 0.
+3. **Guía de QA de la versión**, con el caso de la sesión corta: grabar <2 min haciendo
+   casi nada tiene que dar rechazo *antes* de subir.
+
+**El precio de que el build no salga**, igual que en el punto 0: el servidor ya rechaza a
+20 ev/min y el cliente instalado sigue dejando subir a 1 ev/min, así que una sesión con
+goteo de input **sube sin aviso y se rechaza después**, en vez de avisarle al uploader en
+el momento. Gasta ancho de banda de los dos lados y es peor experiencia.
+
+**No volver a intentar el arreglo intuitivo.** Evaluar el brazo relativo con
+`max(dur_min, 2)` **manteniendo la tasa en 1,0** no arregla nada: da umbral = 2 eventos y
+la sesión de 65 s sigue pasando. Medido sobre las 264 sesiones que pasaban el gate, esa
+variante hace caer cero. Lo que estaba mal era la escala de la tasa, no el brazo de
+duración: la mediana del gameplay real es 2.979 ev/min y el percentil 2 es 84,9, o sea que
+el corte de 1/min estaba 85x por debajo de lo sano. Con 20 queda 4x de margen contra la
+sesión sana más quieta de producción y 8x contra el corpus local.
+
+Tests: `tests/test_input_vacio.py`, 21 casos (eran 15). El de margen bajó de exigir 10x a
+4x, que es el margen real medido.
+
+---
+
 ## 1. Remuxear a progressive + faststart al cerrar la sesión
 
 **Estado: comprometido por escrito a Troveo (17/08/2026), NO implementado.**

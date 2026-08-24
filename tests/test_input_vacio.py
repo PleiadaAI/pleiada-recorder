@@ -131,6 +131,77 @@ class TestGate(unittest.TestCase):
             self.assertFalse(sl.is_sin_input(c, 3_600_000))
 
 
+class TestSesionCorta(unittest.TestCase):
+    """Regresion del 24-08-2026: el gate fallaba ABIERTO en sesiones cortas.
+
+    Con los dos brazos sueltos (piso 2 + 1 evento/min) el brazo relativo pedia
+    menos que el piso para toda sesion de menos de 2 min, asi que dos eventos
+    alcanzaban para pasar. El peor caso posible era el que pasaba mas limpio,
+    igual que en el bug original.
+    """
+
+    def test_la_sesion_de_65s_con_2_eventos_se_rechaza(self):
+        """Caso real: Hollow_Knight_30_07_26__20_17_15 (GA-2026-008), orden
+        GA-2026-008, 65,4 s. Medida contra produccion: teclado=0, mouse_crudo=1,
+        botones=1, mouse_posicion=24. Daba sin_input=False y qa_status la
+        clasificaba como `aprobado`."""
+        with tempfile.TemporaryDirectory() as d:
+            _sesion(d, deltas=1, botones=1, posiciones=24, dur_ms=65_400)
+            c = sl.contar_eventos_input(d)
+            self.assertEqual(sl.eventos_accionables(c), 2)
+            self.assertTrue(sl.is_sin_input(c, 65_400),
+                            "la sesion de 65 s con 2 eventos tiene que caer")
+
+    def test_el_umbral_no_baja_por_debajo_del_piso(self):
+        """Una sesion mas corta no puede comprar un umbral mas barato: abajo de
+        MIN_MINUTOS_GATE el corte se queda clavado en MIN_EVENTOS_INPUT."""
+        piso = sl.MIN_EVENTOS_INPUT
+        for dur_ms in (30_000, 45_000, 65_400, 90_000, 119_000):
+            with tempfile.TemporaryDirectory() as d:
+                _sesion(d, teclas=piso - 1, dur_ms=dur_ms)
+                c = sl.contar_eventos_input(d)
+                self.assertTrue(sl.is_sin_input(c, dur_ms),
+                                f"{piso - 1} eventos en {dur_ms} ms deberian caer")
+            with tempfile.TemporaryDirectory() as d:
+                _sesion(d, teclas=piso, dur_ms=dur_ms)
+                c = sl.contar_eventos_input(d)
+                self.assertFalse(sl.is_sin_input(c, dur_ms),
+                                 f"{piso} eventos en {dur_ms} ms deberian pasar")
+
+    def test_el_piso_es_derivado_de_la_tasa(self):
+        """Si alguien toca una constante y no la otra, los dos brazos vuelven a
+        quedar descalibrados. El piso tiene que salir de la tasa."""
+        self.assertEqual(sl.MIN_EVENTOS_INPUT,
+                         int(sl.MIN_EVENTOS_POR_MIN * sl.MIN_MINUTOS_GATE))
+
+    def test_sin_duracion_se_aplica_el_piso(self):
+        """run_sync_check puede no tener csv_dur si los anchors estan rotos."""
+        with tempfile.TemporaryDirectory() as d:
+            _sesion(d, teclas=sl.MIN_EVENTOS_INPUT - 1)
+            c = sl.contar_eventos_input(d)
+            self.assertTrue(sl.is_sin_input(c, None))
+
+    def test_el_goteo_de_input_tambien_cae(self):
+        """Caso real: Crimson_Desert_15_08_26__04_59_11, 70 eventos en 6,9 min
+        (10,1/min, active_input_ratio 0,016). El gate viejo la dejaba pasar
+        —tiene input— y troveo/armar_lote.py tuvo que rechazarla con una regla
+        aparte de ratio < 0,30. El gate AFK no la agarra: los huecos son cortos.
+        """
+        with tempfile.TemporaryDirectory() as d:
+            _sesion(d, teclas=70, posiciones=400, dur_ms=414_000)
+            c = sl.contar_eventos_input(d)
+            self.assertTrue(sl.is_sin_input(c, 414_000))
+
+    def test_una_sesion_corta_pero_jugada_pasa(self):
+        """El otro lado: 31 s de gameplay real (MIN_SESSION_MS es 30 s) trae
+        cientos de eventos y no la puede barrer el piso."""
+        with tempfile.TemporaryDirectory() as d:
+            _sesion(d, teclas=40, deltas=900, botones=15, posiciones=500,
+                    dur_ms=31_000)
+            c = sl.contar_eventos_input(d)
+            self.assertFalse(sl.is_sin_input(c, 31_000))
+
+
 class TestDiagnostico(unittest.TestCase):
     def test_mouse_moviendose_es_captura_bloqueada(self):
         with tempfile.TemporaryDirectory() as d:
@@ -184,15 +255,34 @@ class TestCorpusLocal(unittest.TestCase):
             dur = (max(ts) - min(ts)) if len(ts) >= 2 else None
             cls.sesiones.append((d.name, sl.contar_eventos_input(d), dur))
 
-    def test_las_rechazadas_tienen_input_en_cero(self):
+    def test_las_rechazadas_no_son_gameplay(self):
+        """Antes del 24-08-2026 esto exigia que toda rechazada tuviera input en
+        CERO, porque el gate solo disparaba con `n < 2`. Con un gate de tasa esa
+        afirmacion es falsa por construccion: el punto es agarrar tambien el
+        goteo. La invariante que queda —y que sigue siendo real— es que ninguna
+        sesion de duracion valida con algo de input se cae.
+
+        Medido sobre el corpus local: la unica rechazada con input es un stub de
+        0,9 s (2026-05-16 17-15-03), que MIN_SESSION_MS ya descarta por su lado.
+        """
         for nombre, c, dur in self.sesiones:
-            if sl.is_sin_input(c, dur):
-                self.assertEqual(sl.eventos_accionables(c), 0,
-                                 f"{nombre} se rechaza pero tiene input")
+            if not sl.is_sin_input(c, dur):
+                continue
+            if sl.eventos_accionables(c) == 0:
+                continue
+            self.assertLess(dur or 0, sl.MIN_SESSION_MS,
+                            f"{nombre} tiene input, dura lo suficiente, "
+                            f"y aun asi la rechaza el gate")
 
     def test_las_sanas_quedan_lejos_del_corte(self):
-        """El corte es 1 evento/min. La sesion sana mas quieta del corpus tiene
-        que quedar con un orden de magnitud de margen, o el umbral esta cerca."""
+        """La sesion sana mas quieta del corpus tiene que quedar con margen sobre
+        el corte, o el umbral esta comiendo gameplay real.
+
+        El factor era 10 cuando el corte estaba en 1 ev/min. Con el corte en 20
+        (recalibrado 24-08-2026) el margen real medido es: 163 ev/min en el
+        corpus local = 8x, y 84,9 ev/min en la sesion sana mas quieta de
+        produccion = 4x. Se exige 4x, que es el peor de los dos.
+        """
         peor = None
         for nombre, c, dur in self.sesiones:
             if sl.is_sin_input(c, dur) or not dur:
@@ -201,7 +291,7 @@ class TestCorpusLocal(unittest.TestCase):
             if peor is None or por_min < peor[1]:
                 peor = (nombre, por_min)
         if peor:
-            self.assertGreater(peor[1], 10 * sl.MIN_EVENTOS_POR_MIN,
+            self.assertGreater(peor[1], 4 * sl.MIN_EVENTOS_POR_MIN,
                                f"margen flaco: {peor[0]} con {peor[1]:.1f} ev/min")
 
 

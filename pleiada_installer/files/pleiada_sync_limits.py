@@ -78,11 +78,48 @@ MAX_IDLE_FRACCION = 0.50
 # 925 sesiones / 645 h sin input utilizable, el 13% de las horas. De esas, 729
 # tienen el mouse_log lleno — el cursor se movio toda la sesion, o sea que hubo
 # mano en el teclado y en el mouse y no se registro ni un evento.
-MIN_EVENTOS_INPUT = 2          # piso absoluto: menos que esto no es gameplay
-MIN_EVENTOS_POR_MIN = 1.0      # brazo relativo, para la sesion casi vacia. El
-                               # gameplay real mas quieto del corpus da decenas
-                               # de eventos por minuto, asi que 1 deja margen de
-                               # sobra y no barre sesiones sanas.
+#
+# RECALIBRADO 24-08-2026 — el gate fallaba ABIERTO en sesiones cortas.
+# Caso: Hollow_Knight_30_07_26__20_17_15 (GA-2026-008), 65,4 s, 2 eventos
+# accionables en total. El piso viejo era `n < 2` (2 no es menor que 2) y el
+# brazo relativo pedia 1,09 eventos para 65 s: los dos brazos quedaban por
+# debajo de lo que la sesion tenia y pasaba como `aprobado`.
+#
+# Los umbrales viejos (piso 2, 1 evento/min) estaban dos ordenes de magnitud
+# por debajo del gameplay real. Medido sobre las 264 sesiones que pasaban el
+# gate en las corridas de sync_verify (qa_819_n1 + qa_reemplazo + qa_refuerzo +
+# qa_sinvideo, 1.098 sesiones unicas): mediana 2.979 eventos/min, p5 281, p2
+# 84,9. En el corpus local de 76 sesiones, la sana mas quieta da 163 ev/min.
+# O sea: el corte de 1/min estaba 85x por debajo del percentil 2 de lo sano.
+#
+# El brazo de duracion solo NO alcanza: con `max(dur_min, 2)` y una tasa de 1
+# el umbral para 65 s queda en 2 eventos y la sesion de Hollow Knight sigue
+# pasando. Lo que hay que subir es la TASA.
+#
+# Se unifican los dos brazos en una sola formula, `n < POR_MIN * max(dur_min,
+# MIN_MINUTOS_GATE)`: el piso absoluto deja de ser una constante suelta y pasa
+# a ser "lo que pide MIN_MINUTOS_GATE de sesion", de modo que no puedan volver
+# a quedar descalibrados uno respecto del otro.
+#
+# Margen: 4x contra la sesion sana mas quieta de produccion (84,9 ev/min) y 8x
+# contra el corpus local (163). Costo retroactivo medido sobre el backlog
+# entero (4.549 de 4.600 sesiones cruzadas con el censo, 3.587 h, acotando
+# eventos por bytes en las dos direcciones con anchos de fila de 23-43 B
+# medidos sobre 556.713 filas reales): 2 sesiones / 0,89 h, el 0,02% de las
+# horas, y ninguna sesion en zona gris. Las dos son Hollow_Knight_30_07_26 y
+# Batman_Arkham_Knight_05_07_26__12_17_55 (<=126 eventos en 52 min).
+#
+# Ademas del caso corto, la tasa de 20 agarra
+# Crimson_Desert_15_08_26__04_59_11 (70 eventos en 6,9 min = 10,1/min,
+# active_input_ratio 0,016), que el gate viejo dejaba pasar y que troveo/
+# armar_lote.py tuvo que rechazar con una regla aparte de ratio < 0,30.
+MIN_EVENTOS_POR_MIN = 20.0     # tasa minima de input accionable por minuto
+MIN_MINUTOS_GATE    = 2.0      # duracion minima con la que se evalua la tasa:
+                               # abajo de esto el umbral no baja mas, o una
+                               # sesion de 1 min pasaria con 20 eventos y una
+                               # de 10 s con 3.
+# Piso absoluto, derivado. No tocar a mano: es lo que pide MIN_MINUTOS_GATE.
+MIN_EVENTOS_INPUT = int(MIN_EVENTOS_POR_MIN * MIN_MINUTOS_GATE)   # 40
 
 # Cuantas filas de posicion de mouse por minuto alcanzan para afirmar que la mano
 # estuvo en el mouse. mouse_log se llena por polling a ~16 Hz y —a diferencia de
@@ -228,20 +265,22 @@ def eventos_accionables(conteo):
 
 def is_sin_input(conteo, session_dur_ms=None):
     """
-    True si la sesion no trae input utilizable, por cualquiera de los dos brazos:
-      · absoluto : menos de MIN_EVENTOS_INPUT eventos accionables en toda la
-                   sesion (el caso de los CSV vacios)
-      · relativo : menos de MIN_EVENTOS_POR_MIN por minuto de sesion
+    True si la sesion trae menos de MIN_EVENTOS_POR_MIN eventos accionables
+    por minuto, evaluado sobre un minimo de MIN_MINUTOS_GATE minutos:
+
+        umbral = MIN_EVENTOS_POR_MIN * max(dur_min, MIN_MINUTOS_GATE)
+
+    Un solo brazo, no dos. El piso absoluto (MIN_EVENTOS_INPUT) es el valor que
+    toma esa misma formula en la duracion minima, y aplica tambien cuando no se
+    conoce la duracion. Ver el bloque de constantes: tenerlos como dos brazos
+    sueltos fue lo que dejo pasar la sesion de 65 s con 2 eventos.
 
     El video puede estar perfecto: este gate mira solo si quedo registrado lo
     que el jugador hizo. Sin eso la sesion no es un dataset, es un video.
     """
     n = eventos_accionables(conteo)
-    if n < MIN_EVENTOS_INPUT:
-        return True
-    if session_dur_ms:
-        return n < MIN_EVENTOS_POR_MIN * session_dur_ms / 60_000
-    return False
+    dur_min = (session_dur_ms / 60_000) if session_dur_ms else 0
+    return n < MIN_EVENTOS_POR_MIN * max(dur_min, MIN_MINUTOS_GATE)
 
 
 def diagnostico_sin_input(conteo, session_dur_ms=None):
