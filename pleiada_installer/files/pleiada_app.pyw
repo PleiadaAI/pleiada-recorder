@@ -14,7 +14,7 @@ import pleiada_api
 import pleiada_sync_limits as sync_limits
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.9"
+VERSION = "v0.9.10"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -3807,6 +3807,7 @@ class PleiadaApp:
             # completar. Si apunta OBS a otra ventana, la clave cambia sola.
             res, exe, bruto = resuelto
             self._det_exe  = exe
+            self._det_titulo = bruto
             self._det_last = exe.lower() if exe else ("t:" + (bruto or "").lower())
             self._apply_resolve(res)
         else:
@@ -4190,6 +4191,7 @@ class PleiadaApp:
                 return
             self._det_last = clave
             self._det_exe  = exe   # PLE-154: lo revalida el boton Iniciar
+            self._det_titulo = title   # PLE-170: lo necesita "No es este título"
             _obs_dbg(f"deteccion: estado={res.get('estado')!r} juego={(res.get('juego') or {}).get('name')!r}")
             _ui(self._apply_resolve, res)
 
@@ -4450,7 +4452,37 @@ class PleiadaApp:
                           "nuestras redes por nuevas órdenes.",
                      fg=DIM, bg=BG, font=("Segoe UI", 9), anchor="w", justify="left",
                      wraplength=WIN_W - 60).pack(fill="x", pady=(4, 0))
+
+        # PLE-170: salida cuando el título que mostramos NO es el que está
+        # jugando. Antes no había ninguna: si el catálogo tenía mal atado el
+        # ejecutable —pasó de verdad, con SuperTux 2 resolviendo como otro
+        # título— el jugador no tenía forma de corregirlo desde el Recorder y
+        # había que tocar la base a mano. Es deliberadamente discreto: la
+        # inmensa mayoría de las veces el título está bien y esto no se toca.
+        no_es = tk.Label(self._det_calls_box, text="No es este título",
+                         fg=DIMMER, bg=BG, font=("Segoe UI", 9), cursor="hand2",
+                         anchor="w")
+        no_es.pack(fill="x", pady=(12, 0))
+        no_es.bind("<Enter>", lambda e: no_es.config(fg=ACCENT))
+        no_es.bind("<Leave>", lambda e: no_es.config(fg=DIMMER))
+        no_es.bind("<Button-1>", lambda e: self._corregir_titulo())
         self._update_record_btn()
+
+    def _corregir_titulo(self):
+        """El título detectado está mal: se vuelve a preguntar.
+
+        Descarta la declaración local de este ejecutable —si el jugador se
+        equivocó al declararlo, esa es justo la que hay que soltar— y abre el
+        cuestionario. Lo que el catálogo tenga mal atado no lo puede arreglar el
+        cliente, pero la declaración que salga de acá queda registrada y es lo
+        que después permite corregirlo.
+        """
+        exe = getattr(self, "_det_exe", "")
+        titulo = getattr(self, "_det_titulo", "")
+        olvidar_declarado(self._clave_declaracion(exe, titulo))
+        self._ident_intentado = None
+        self._det_last = None
+        self._ident_nombre_view(exe, titulo)
 
     def _render_det_no_identificado(self, exe, titulo, msg=""):
         """Quedó sin identificar después de preguntarle al usuario: no se graba.
