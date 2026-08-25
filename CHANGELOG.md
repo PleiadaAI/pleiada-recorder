@@ -1,5 +1,70 @@
 # Changelog — Pleiada Recorder
 
+## V9.10 — 24/08/2026 — actualización obligatoria
+
+Salto desde la v0.8.11. **Es una actualización obligatoria**: las versiones
+anteriores quedan bloqueadas para grabar hasta actualizarse, porque producían
+datasets que después había que rechazar.
+
+### Ya no elegís el título de una lista: lo detectamos
+
+El Recorder mira lo que estás capturando en OBS y averigua solo de qué título se
+trata. Desapareció el selector: no hay nada que declarar antes de grabar, y con
+eso desaparecieron también los bloqueos por "el juego declarado no coincide con
+el capturado".
+
+### Si no lo reconocemos, te preguntamos
+
+Cuando ni nuestro catálogo ni IGDB pueden identificar lo que estás jugando, el
+Recorder te lo pregunta y verifica tu respuesta contra fuentes públicas: los
+resultados de IGDB, el enlace de una ficha, o la página del juego en Steam. Recién
+si nada de eso alcanza, la grabación queda bloqueada.
+
+El título se identifica **siempre antes de grabar**. Un dataset sin título no se
+puede catalogar ni entregar, así que preferimos frenarte con el juego abierto —
+cuando podés hacer algo— y no después de una hora grabada.
+
+### Lo que declarás ya no se lleva puesto al resto
+
+Un título declarado por una sola persona resuelve su sesión, pero no queda
+enlazado al ejecutable para todos hasta que otra persona distinta declare lo
+mismo. Antes alcanzaba con una: llegó a haber ejecutables enlazados a títulos que
+no tenían nada que ver, y quien los capturaba veía el título equivocado sin
+enterarse.
+
+También podés corregirlo: el panel del título detectado ahora tiene **"No es este
+título"**, que reabre la identificación.
+
+### Arreglos
+
+- **Títulos cuyo ejecutable tiene acentos o eñes.** Decía "ese título no está
+  corriendo" con el juego abierto adelante, y no dejaba grabar. Afectaba a
+  cualquier ejecutable con caracteres fuera del inglés.
+- **El botón dice a qué va la grabación**: "Iniciar grabación libre" cuando el
+  título no entra en ninguna orden abierta, en vez de enterarte después de grabar.
+- **La barra de la ventana se arrastra entera.** Antes solo respondía en una franja
+  de la esquina superior izquierda.
+- **Sesión vencida con salida.** Si el token caducaba, quedabas con un cartel de
+  error del que no se salía sin desloguearse a mano; ahora te lleva al login.
+- **La pantalla de subida y la principal ya no se contradicen**: si una te dejó
+  grabar contra una orden, la otra te deja subir a esa misma orden.
+- Un puñado de textos de la pantalla principal estaban sin tildes.
+
+### Cambian dos umbrales de calidad
+
+Aplican a las sesiones nuevas, y pueden hacer que alguna que antes pasaba ahora
+quede observada:
+
+- **Tiempo continuo sin actividad**: baja de 10 a 5 minutos. Es el valor que el
+  servidor ya venía aplicando, así que hasta ahora una sesión con un hueco de entre
+  5 y 10 minutos se subía sin aviso y se rechazaba después.
+- **Actividad mínima de teclado y mouse**: 20 eventos por minuto. El criterio
+  anterior dejaba pasar sesiones prácticamente vacías.
+
+El Gameplay Synch Checker se actualiza junto con el Recorder y aplica los mismos
+umbrales, así que lo que te diga el verificador es lo que va a pasar al subir.
+
+
 ## v0.9.1 — 20/08/2026 — arreglos del primer día de QA
 
 Misma versión funcional que la 0.9.0; sale con número nuevo porque **todo build
