@@ -1,5 +1,79 @@
 # Changelog — Pleiada Recorder
 
+## V9.13 — 25/08/2026 — calidad de grabación · actualización obligatoria
+
+**Es una actualización obligatoria**: las versiones anteriores quedan bloqueadas para grabar
+hasta actualizarse. El motivo es el de abajo — venían grabando con una calidad que no sirve
+para el dataset, y cada sesión que salía así era una hora de alguien que después había que
+rechazar.
+
+### Las grabaciones ya no salen borrosas
+
+Varios de ustedes reportaron que el video se veía como si estuviera grabado en
+baja resolución. Tenían razón en el síntoma: no era la resolución —siempre fue
+1080p a 60 fps— sino que el Recorder le pedía a OBS mucho menos espacio del que
+hace falta para ese formato. En las escenas con movimiento o con mucho detalle
+—pasto, follaje, texturas— no quedaban datos suficientes y la imagen se
+empastaba.
+
+Gracias a los que lo reportaron. Lo encontraron ustedes antes que nosotros, y eso
+también lo estamos arreglando: a partir de esta versión el Recorder mide la
+calidad de cada grabación y nos avisa si algo sale por debajo de lo esperado.
+
+### Y la calidad es pareja durante toda la grabación
+
+No alcanzaba con reservar más espacio. El gameplay no es parejo: una escena
+quieta no necesita casi nada y una con la cámara girando entre vegetación
+necesita mucho. Repartir el espacio de forma igual segundo a segundo hacía que
+sobrara en los momentos tranquilos y faltara justo en los de acción — que son los
+que peor se veían.
+
+Ahora el Recorder le pide a OBS **una calidad fija**, y deja que use el espacio
+que haga falta en cada momento, con un tope para que los archivos no se vayan de
+escala. Las grabaciones nuevas pesan más que antes y el tamaño varía según el
+título, que es exactamente lo que se busca.
+
+No hay nada que configurar: se aplica solo.
+
+### Sin importar cómo tengas configurado OBS
+
+El Recorder deja la configuración de grabación como tiene que estar sin importar
+en qué modo tengas OBS. Si hace falta lo reinicia una vez antes de empezar a
+grabar para aplicarla; es una sola vez, después arranca normal.
+
+Esto además corrige algo que venía pasando sin que se viera: según cómo tuviera
+cada uno configurado OBS, las grabaciones salían en formatos distintos. Ahora
+todas salen igual.
+
+### El Recorder vuelve a detectar pantallas negras
+
+Si la captura se cae y OBS queda grabando una pantalla negra mientras vos seguís
+jugando, el Recorder lo detecta y no te deja subir esa sesión. Esa verificación
+existía pero había dejado de funcionar por cómo se estaba grabando. Ya funciona
+de nuevo.
+
+### Arreglos
+
+- **Si actualizabas con OBS abierto, la mejora de calidad no te llegaba.** OBS lee su
+  configuración al arrancar, así que si lo tenías abierto mientras actualizabas seguía
+  grabando como antes hasta que lo cerrabas y lo volvías a abrir por tu cuenta. Ahora el
+  Recorder lo detecta y lo reinicia una sola vez, antes de la primera grabación.
+- **OBS quedaba grabando y el Recorder no se enteraba.** Si apretabas "Iniciar grabación" dos
+  veces seguidas —fácil de hacer justo después de terminar una sesión, cuando la pantalla
+  recién se rearma— el Recorder arrancaba dos veces. La segunda fallaba, mostraba un error, y
+  OBS se quedaba grabando solo. Había que ir a pararlo a mano desde OBS para poder seguir.
+- **El acceso directo del escritorio podía quedar roto en una instalación limpia.** En una PC
+  sin Python, el instalador creaba el acceso directo antes de instalarlo, y al abrirlo salía
+  "Falta el acceso directo — Windows está buscando pythonw.exe". Reinstalar no lo arreglaba.
+
+---
+
+## V9.11 y V9.12 — no publicadas
+
+Salieron sólo a QA. Sus cambios están arriba, en la V9.13.
+
+---
+
 ## V9.10 — 24/08/2026 — actualización obligatoria
 
 Salto desde la v0.8.11. **Es una actualización obligatoria**: las versiones

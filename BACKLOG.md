@@ -5,6 +5,68 @@ curso. Lo más urgente arriba. Cuando algo se implementa, se borra de acá.
 
 ---
 
+## 0-. Calidad de grabación: lo que quedó pendiente de la v0.9.12
+
+**La v0.9.12 ya implementó el grueso** (calidad constante con techo, en modo Avanzado, con
+la config escrita en disco y OBS reiniciado cuando hace falta — todo en `obs_encoding.py`).
+Queda esto:
+
+### 0-.a · Calibrar AMD (AMF) e Intel (QSV) 🔴
+
+**Los valores que van hoy para esas dos familias son una EXTRAPOLACIÓN, no una medición.**
+No había hardware para probarlos. Las claves siguen la forma documentada por OBS y la misma
+estructura que las de NVENC, pero nadie verificó ni que OBS las acepte ni a qué peso y
+calidad aterrizan.
+
+Medido y verificado contra OBS real (VMAF medio / peor frame del clip):
+
+| encoder | config | GB/h | VMAF | peor |
+|---|---|---:|---:|---:|
+| NVENC | VBR 8000 / máx 12000, p5 | 3,45 | 83,4 | 56,5 |
+| x264 | CRF 23 + `vbv-maxrate=8000`, preset `fast` | 3,48 | 83,8 | 59,2 |
+| — | *(CBR 8000, lo que hacía la v0.9.12)* | 3,33 | 75,0 | 22,6 |
+
+La parte C de `GUIA_QA_v0.9.12.md` está escrita para traer justamente ese dato: tamaño real
+del MP4 y `bitrate_kbps` sobre un título con movimiento y otro quieto, por placa. **Con eso
+se ajustan los números de `record_encoder_settings()` para esas dos familias.**
+
+Ojo con dos cosas al calibrar:
+
+- **No existe un valor único parejo entre familias.** El mismo "CQP/CRF 23" da VMAF 86 a
+  5,2 GB/h en x264 y VMAF 98 a 9,9 GB/h en NVENC. Es la razón de que la config sea por
+  familia y no un número global.
+- **En NVENC, `cqlevel` se descarta en silencio.** OBS no sabe hacer calidad constante con
+  techo en NVENC (lo que en ffmpeg sería `-rc vbr -cq N -b:v 0 -maxrate X`); lo más cerca es
+  VBR con objetivo y techo, que es lo que quedó. Si OBS algún día lo soporta, vale revisarlo:
+  con capped-CQ real la misma calidad salía a 3,80 GB/h con el peor frame en 58,3.
+
+### 0-.b · `is_bitrate_bajo` va a empezar a dar falsos positivos
+
+`BITRATE_PISO_KBPS = 4_000` servía para partir aguas entre la config vieja (~2.670 kbps) y la
+nueva. Con calidad constante, **un título visualmente simple puede pesar 2.000 kbps y estar
+perfecto**. Hoy sigue siendo útil como señal de "en esta máquina el fix no aplicó" durante el
+rollout, pero cuando la flota esté toda en v0.9.12 el booleano sobra y conviene dejar solo el
+número. **Si aparecen falsos positivos, lo que sobra es el flag — no hay que subir la calidad
+para acallarlo.**
+
+### 0-.c · `_meta_hardware()` todavía detecta GPUs por `wmic`
+
+`pleiada_app.pyw` usa `wmic` para la telemetría de hardware, y `wmic` está deprecado y ya no
+viene en algunas builds de Win11 24H2+ (26100+), donde falla en silencio y `gpus` queda en
+`None`. `obs_encoding.familia_gpu()` ya usa CIM con `wmic` de fallback: conviene que
+`_meta_hardware` haga lo mismo. No es crítico —es telemetría, no gatea nada— pero explica
+huecos en el metadata de las máquinas nuevas.
+
+### 0-.d · Recalibrar `VIDEO_PISO_BYTES` cuando haya corpus nuevo
+
+El gate de imagen quieta volvió a funcionar (estuvo inerte entre la v0.8.12 y la v0.9.12
+porque el CBR rellenaba la pantalla negra hasta el bitrate objetivo). Los umbrales actuales
+separan con margen —~26 KB por ventana en negro contra ~5.000 KB de gameplay— así que **no
+hace falta tocarlos ahora**. Vale revisarlos cuando haya un corpus grabado con la config
+nueva, sobre todo el piso de 200 KB contra títulos visualmente simples.
+
+---
+
 ## 0. Alinear el gate AFK con el servidor: 10 min → 5 min
 
 **Estado: decidido por Martín el 24/08/2026. El servidor YA está en 5 min; el cliente
@@ -151,21 +213,25 @@ el resultado del test:
 Se hizo visible con la máquina cargada (builds corriendo en paralelo), que es
 exactamente cuándo aparecen las carreras. No apareció antes porque el test corría solo.
 
-## 3. El gate de pantalla muerta asume CRF, y la flota graba CBR
+## 3. Medir cuántas capturas en negro dejó pasar el gate mientras estuvo ciego
 
-**Estado: detectado el 18/08/2026, sin medir el impacto.**
+**Estado: la CAUSA quedó arreglada en la v0.9.12; falta medir el daño ya hecho.**
 
-`pleiada_sync_limits.py` documenta que el gate de imagen quieta depende de que OBS grabe
-por calidad (CRF/CQP): *"Si un usuario forzara CBR, el negro se rellenaría hasta el bitrate
-objetivo y este gate quedaría ciego para esa sesión"*.
+El gate de imagen quieta declaraba necesitar que OBS grabara por calidad (CRF/CQP), pero
+desde la v0.8.12 la app forzaba `RecQuality=Stream` + `VBitrate`, que es CBR. En CBR el
+encoder rellena la pantalla negra hasta el bitrate objetivo, así que **la precondición que
+el gate declaraba no se cumplía para NINGUNA sesión** — no para un usuario suelto. Mismo
+patrón que el gate de AFK que falló abierto: una precondición documentada que nadie volvió
+a chequear.
 
-Pero `pleiada_app.pyw` fuerza `RecQuality=Stream` + `VBitrate=2500` en todo el parque, que
-es CBR. O sea que la condición que el gate declara necesitar **no se cumple para ninguna
-sesión**, no para un usuario suelto. Es el mismo patrón del gate de AFK que falló abierto:
-una precondición documentada que nadie volvió a chequear.
+La v0.9.12 pasó a calidad constante y el gate volvió a discriminar (verificado: la pantalla
+sin nada que capturar grabó a 42 kbps en vez de rellenar hasta los 8.000 del objetivo).
 
-Hay que medir cuántas capturas en negro pasó el gate automático — las 22 de la entrega
-troveo-001 las encontró la revisión humana, no el gate.
+**Lo que falta es retroactivo:** medir cuántas capturas en negro pasó el gate automático
+entre la v0.8.12 y la v0.9.12. Las 22 de la entrega troveo-001 las encontró la revisión
+humana, no el gate. Se puede correr `video_stillness` server-side sobre el backlog, pero
+**ojo: sobre las sesiones grabadas en CBR va a devolver limpio siempre**, porque el gate era
+ciego justamente para ellas. Para ese material el único camino es muestreo humano.
 
 ## 4. Detectar y registrar joystick
 

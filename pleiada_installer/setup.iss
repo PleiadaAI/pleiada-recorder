@@ -72,6 +72,7 @@ Source: "files\pleiada_app.pyw";          DestDir: "{app}"; Flags: ignoreversion
 Source: "files\session_uploader.py";      DestDir: "{app}"; Flags: ignoreversion
 Source: "files\pleiada_api.py";           DestDir: "{app}"; Flags: ignoreversion
 Source: "files\pleiada_sync_limits.py";   DestDir: "{app}"; Flags: ignoreversion
+Source: "files\obs_encoding.py";          DestDir: "{app}"; Flags: ignoreversion
 Source: "files\input_logger.ahk";         DestDir: "{app}"; Flags: ignoreversion
 Source: "files\obs_control.py";           DestDir: "{app}"; Flags: ignoreversion
 Source: "files\pleiada_setup_wizard.pyw"; DestDir: "{app}"; Flags: ignoreversion
@@ -88,6 +89,10 @@ Source: "deps\OBS-Studio-32.1.2-Windows-x64-Installer.exe";   DestDir: "{tmp}"; 
 ; LITE. Dejandolo solo en el completo, la flota actual seguiria grabando 1080p60
 ; a 2,5 Mbps para siempre (medido: 135 de 166 sesiones del test de 100h).
 Source: "files\configure_obs.py"; DestDir: "{tmp}"; Flags: deleteafterinstall
+; configure_obs.py importa obs_encoding, y corre desde {tmp}: si el modulo no
+; viaja al lado, el import falla y el perfil queda sin la config de grabacion.
+; Va ademas a {app}, que es de donde lo levanta la app al grabar.
+Source: "files\obs_encoding.py";  DestDir: "{tmp}"; Flags: deleteafterinstall
 ; Iconos
 Source: "assets\gameplay_recorder.ico";        DestDir: "{app}"; Flags: ignoreversion
 Source: "assets\synch_checker.ico";  DestDir: "{app}"; Flags: ignoreversion
@@ -150,9 +155,13 @@ Filename: "{code:FindPythonExe}"; \
     Flags: runhidden waituntilterminated
 
 ; 6. Configurar OBS (WebSocket + perfil). Corre en AMBOS instaladores: en el
-;    LITE es lo que migra el perfil preexistente a RecQuality=HQ y al encoder
-;    por hardware. Es idempotente y respeta la config del usuario salvo las
+;    LITE es lo que migra el perfil preexistente a la config de grabacion nueva
+;    (calidad constante con techo, encoder por hardware) — y de hecho es la via
+;    principal, porque la app solo puede corregir la config con OBS cerrado o
+;    reiniciandolo. Es idempotente y respeta la config del usuario salvo las
 ;    claves no negociables, asi que correrlo en cada update es seguro.
+;    OJO: NO es RecQuality=HQ. En el .ini de OBS 'HQ' es la opcion MAS pesada
+;    (CQP 16, "archivo grande"); los valores reales viven en obs_encoding.py.
 Filename: "{code:FindPythonExe}"; \
     Parameters: """{tmp}\configure_obs.py"""; \
     StatusMsg: "{cm:ConfiguringOBS}"; \
@@ -198,9 +207,76 @@ Filename: "{sys}\taskkill.exe"; \
   rename, la app que esta corriendo todavia se titula "Pleiada Recorder"; si
   solo filtraramos por el titulo nuevo no la encontrariamos y los archivos
   quedarian bloqueados al copiar. }
+{ FindPythonExe / FindPythonW van ANTES de CurStepChanged a proposito: el
+  Pascal Script de Inno no admite referencias adelantadas, y CurStepChanged
+  llama a FindPythonW para reparar el acceso directo despues de [Run]. }
+{ Devuelve la ruta completa a python.exe para ejecutar pip y scripts }
+function FindPythonExe(Param: String): String;
+var
+  PythonDir: String;
+begin
+  Result := 'python.exe'; { fallback si no se encuentra por registro }
+
+  { Python instalado per-user (InstallAllUsers=0 — nuestro caso) }
+  if RegQueryStringValue(HKCU,
+      'Software\Python\PythonCore\3.12\InstallPath', '', PythonDir) then
+  begin
+    if (Length(PythonDir) > 0) and (PythonDir[Length(PythonDir)] <> '\') then
+      PythonDir := PythonDir + '\';
+    if FileExists(PythonDir + 'python.exe') then
+    begin
+      Result := PythonDir + 'python.exe';
+      Exit;
+    end;
+  end;
+
+  { Python instalado para todos los usuarios }
+  if RegQueryStringValue(HKLM,
+      'SOFTWARE\Python\PythonCore\3.12\InstallPath', '', PythonDir) then
+  begin
+    if (Length(PythonDir) > 0) and (PythonDir[Length(PythonDir)] <> '\') then
+      PythonDir := PythonDir + '\';
+    if FileExists(PythonDir + 'python.exe') then
+      Result := PythonDir + 'python.exe';
+  end;
+end;
+
+{ Devuelve la ruta completa a pythonw.exe para el shortcut del Synch Checker }
+function FindPythonW(Param: String): String;
+var
+  PythonDir: String;
+begin
+  Result := 'pythonw.exe'; { fallback si no se encuentra por registro }
+
+  { Python instalado per-user (InstallAllUsers=0 — nuestro caso) }
+  if RegQueryStringValue(HKCU,
+      'Software\Python\PythonCore\3.12\InstallPath', '', PythonDir) then
+  begin
+    if (Length(PythonDir) > 0) and (PythonDir[Length(PythonDir)] <> '\') then
+      PythonDir := PythonDir + '\';
+    if FileExists(PythonDir + 'pythonw.exe') then
+    begin
+      Result := PythonDir + 'pythonw.exe';
+      Exit;
+    end;
+  end;
+
+  { Python instalado para todos los usuarios }
+  if RegQueryStringValue(HKLM,
+      'SOFTWARE\Python\PythonCore\3.12\InstallPath', '', PythonDir) then
+  begin
+    if (Length(PythonDir) > 0) and (PythonDir[Length(PythonDir)] <> '\') then
+      PythonDir := PythonDir + '\';
+    if FileExists(PythonDir + 'pythonw.exe') then
+      Result := PythonDir + 'pythonw.exe';
+  end;
+end;
+
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   RC: Integer;
+  PyW: String;
 begin
   if CurStep = ssInstall then
   begin
@@ -210,6 +286,37 @@ begin
     Exec(ExpandConstant('{sys}\taskkill.exe'),
          '/F /FI "WINDOWTITLE eq Pleiada Recorder"', '',
          SW_HIDE, ewWaitUntilTerminated, RC);
+  end;
+
+  { ── Re-crear el acceso directo con la ruta real de pythonw.exe ──────────
+    Inno procesa [Icons] ANTES que [Run], y es [Run] el que instala Python.
+    En una maquina sin Python 3.12, FindPythonW no encuentra nada en el
+    registro y cae al literal 'pythonw.exe', sin ruta: el acceso directo
+    queda apuntando a un ejecutable que Windows no puede resolver y al
+    abrirlo sale "Falta el acceso directo — Windows esta buscando
+    pythonw.exe". Reinstalar no lo arregla si Python nunca llega a
+    registrarse, porque el orden es siempre el mismo.
+
+    Reportado el 25-08-2026 sobre la v0.9.10, tras desinstalar y reinstalar
+    todo. Acá, en ssPostInstall, Python YA esta instalado, asi que la ruta
+    resuelve y el acceso directo se reescribe correcto. }
+  if CurStep = ssPostInstall then
+  begin
+    PyW := FindPythonW('');
+    if (PyW <> '') and (Pos('\', PyW) > 0) and FileExists(PyW) then
+    begin
+      CreateShellLink(
+        ExpandConstant('{commondesktop}\{#AppName}.lnk'),
+        ExpandConstant('{#AppName} v{#AppVersion} — Gameplay Alliance'),
+        PyW,
+        ExpandConstant('"{app}\pleiada_app.pyw"'),
+        ExpandConstant('{app}'),
+        ExpandConstant('{app}\gameplay_recorder.ico'), 0, SW_SHOWNORMAL);
+    end
+    else
+      { Sin ruta valida no se toca el acceso directo: mejor dejar el que haya
+        que reemplazarlo por otro igual de roto. Queda el log del instalador. }
+      Log('FindPythonW no resolvio una ruta valida: ' + PyW);
   end;
 end;
 
@@ -313,68 +420,6 @@ begin
     Result := RegKeyExists(HKLM, 'Software\Python\PythonCore\3.12');
 end;
 #endif
-
-{ Devuelve la ruta completa a python.exe para ejecutar pip y scripts }
-function FindPythonExe(Param: String): String;
-var
-  PythonDir: String;
-begin
-  Result := 'python.exe'; { fallback si no se encuentra por registro }
-
-  { Python instalado per-user (InstallAllUsers=0 — nuestro caso) }
-  if RegQueryStringValue(HKCU,
-      'Software\Python\PythonCore\3.12\InstallPath', '', PythonDir) then
-  begin
-    if (Length(PythonDir) > 0) and (PythonDir[Length(PythonDir)] <> '\') then
-      PythonDir := PythonDir + '\';
-    if FileExists(PythonDir + 'python.exe') then
-    begin
-      Result := PythonDir + 'python.exe';
-      Exit;
-    end;
-  end;
-
-  { Python instalado para todos los usuarios }
-  if RegQueryStringValue(HKLM,
-      'SOFTWARE\Python\PythonCore\3.12\InstallPath', '', PythonDir) then
-  begin
-    if (Length(PythonDir) > 0) and (PythonDir[Length(PythonDir)] <> '\') then
-      PythonDir := PythonDir + '\';
-    if FileExists(PythonDir + 'python.exe') then
-      Result := PythonDir + 'python.exe';
-  end;
-end;
-
-{ Devuelve la ruta completa a pythonw.exe para el shortcut del Synch Checker }
-function FindPythonW(Param: String): String;
-var
-  PythonDir: String;
-begin
-  Result := 'pythonw.exe'; { fallback si no se encuentra por registro }
-
-  { Python instalado per-user (InstallAllUsers=0 — nuestro caso) }
-  if RegQueryStringValue(HKCU,
-      'Software\Python\PythonCore\3.12\InstallPath', '', PythonDir) then
-  begin
-    if (Length(PythonDir) > 0) and (PythonDir[Length(PythonDir)] <> '\') then
-      PythonDir := PythonDir + '\';
-    if FileExists(PythonDir + 'pythonw.exe') then
-    begin
-      Result := PythonDir + 'pythonw.exe';
-      Exit;
-    end;
-  end;
-
-  { Python instalado para todos los usuarios }
-  if RegQueryStringValue(HKLM,
-      'SOFTWARE\Python\PythonCore\3.12\InstallPath', '', PythonDir) then
-  begin
-    if (Length(PythonDir) > 0) and (PythonDir[Length(PythonDir)] <> '\') then
-      PythonDir := PythonDir + '\';
-    if FileExists(PythonDir + 'pythonw.exe') then
-      Result := PythonDir + 'pythonw.exe';
-  end;
-end;
 
 #ifndef LITE
 function OBSInstalled: Boolean;

@@ -12,9 +12,10 @@ from pathlib import Path
 import session_uploader
 import pleiada_api
 import pleiada_sync_limits as sync_limits
+import obs_encoding
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.10"
+VERSION = "v0.9.13"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -587,32 +588,32 @@ OBS_PASSWORD = ""
 # RecQuality=Stream es lo que hoy aplica de hecho en la flota (el instalador
 # NUNCA escribió la clave, así que quedaba el default de OBS). Se escribe
 # explícito para dejar de depender de qué versión de OBS tenga cada uno.
-# El fix que lo subía a HQ está en hold desde el 28/07 (_programa\
-# bitrate_fix_configure_obs.patch): mientras siga en hold, esto lo sostiene.
+#
+# ── v0.9.11 (25-08-2026): calidad constante con techo ────────────────────────
+# Subir el bitrate no alcanzaba: el problema de fondo era el RATE CONTROL, no el
+# número. Toda la justificación y la medición están en `obs_encoding.py`, que
+# ahora es la fuente de verdad única de la configuración de grabación.
+#
+# Lo que cambia acá: los valores ya no son una constante de este archivo, y
+# forzarlos por WebSocket ya no alcanza. Los parámetros del encoder de modo
+# Avanzado viven en `recordEncoder.json`, un archivo que `SetProfileParameter`
+# no puede tocar — así que la config se escribe EN DISCO y, si cambió algo con
+# OBS ya corriendo, hay que reiniciar OBS para que la lea (ver
+# `_asegurar_config_grabacion` y `_reiniciar_obs`).
+#
+# Esta lista se sigue mandando por WebSocket igual, como refuerzo: cubre el caso
+# de que la escritura en disco falle y mantiene coherente lo que OBS tenga en
+# memoria con lo que hay en el archivo.
 OBS_PROFILE_NAME = "Pleiada"
-OBS_TARGET_PROFILE = [
-    # (categoría, clave, valor)
-    ("Output",       "Mode",       "Simple"),           # primero: define qué sección lee OBS
-    ("SimpleOutput", "RecFormat2", "fragmented_mp4"),   # crash-safe (ver _obs_do_start)
-    # El basic.ini del perfil tiene un SEGUNDO RecFormat2 en [AdvOut], con valor
-    # hybrid_mp4. Forzar solo SimpleOutput dejaba grabando hybrid a todo el que
-    # tuviera OBS en modo de salida Avanzado — y el hybrid escribe el moov al
-    # final, que es lo que a Troveo le llegó como "dos sabores" de MP4 (17/08).
-    # Se escribe en las dos categorías: Mode=Simple debería alcanzar, pero si esa
-    # escritura falla o el usuario lo revierte, AdvOut tiene que estar bien igual.
-    ("AdvOut",       "RecFormat2", "fragmented_mp4"),
-    ("SimpleOutput", "RecQuality", "Stream"),           # graba al bitrate de abajo, no por CRF
-    ("SimpleOutput", "VBitrate",   "2500"),
-    ("SimpleOutput", "ABitrate",   "160"),
-]
-OBS_TARGET_VIDEO = {
-    "baseWidth":      1920,
-    "baseHeight":     1080,
-    "outputWidth":    1920,
-    "outputHeight":   1080,
-    "fpsNumerator":   60,
-    "fpsDenominator": 1,
-}
+OBS_TARGET_VIDEO = dict(obs_encoding.VIDEO_OBJETIVO)
+
+
+def obs_target_profile():
+    """Claves de grabación a forzar. Función y no constante a propósito: la
+    primera llamada detecta la GPU lanzando PowerShell (~1 s) y no tiene por qué
+    demorar el arranque de la app. `obs_encoding` la cachea, así que solo la
+    primera grabación de la sesión paga ese segundo."""
+    return obs_encoding.perfil_objetivo()
 
 class OBSAuthError(RuntimeError):
     """OBS WebSocket rechazó la autenticación (contraseña activada en OBS)."""
@@ -1096,14 +1097,15 @@ def _obs_do_start():
                         # del dataset gana; queda logueado.
                         _obs_dbg("No se pudo crear el perfil — se fuerza sobre el activo")
 
-            for _cat, _key, _val in OBS_TARGET_PROFILE:
+            _objetivo = obs_target_profile()
+            for _cat, _key, _val in _objetivo:
                 obs_send(ws, "SetProfileParameter", {
                     "parameterCategory": _cat,
                     "parameterName":     _key,
                     "parameterValue":    _val,
                 })
             _obs_dbg(f"Config de grabación forzada: "
-                     + ", ".join(f"{k}={v}" for _c, k, v in OBS_TARGET_PROFILE))
+                     + ", ".join(f"{k}={v}" for _c, k, v in _objetivo))
         except Exception as e:
             _obs_dbg(f"Forzado de perfil/config error (continuando): {e}")
 
@@ -1119,13 +1121,33 @@ def _obs_do_start():
         except Exception as e:
             _obs_dbg(f"SetVideoSettings error (continuando): {e}")
 
-        # StartRecord
+        # StartRecord.
+        #
+        # OJO CON REINTENTAR A CIEGAS, que es lo que hacía este loop: si el
+        # primer StartRecord ya arrancó la grabación pero la respuesta no vuelve
+        # como code 100, los 19 reintentos fallan con "output already active",
+        # la función devuelve False, la app muestra error — y OBS QUEDA GRABANDO
+        # sin que la app lo sepa. El usuario ve exactamente eso: OBS con el punto
+        # rojo y el Recorder diciendo "OBS ya está grabando" sin sesión activa.
+        #
+        # Se vuelve más fácil de disparar cuanto más tarda OBS en confirmar, y
+        # el encoder de grabación por calidad tarda más en inicializar que el
+        # CBR de antes. Por eso, antes de cada reintento se pregunta el estado
+        # REAL en vez de asumir que el código de respuesta lo dice todo.
         started = False
-        for _ in range(20):
+        for _intento in range(20):
             resp = obs_send(ws, "StartRecord")
             code = resp.get("d", {}).get("requestStatus", {}).get("code", 0)
             if code == 100:
                 started = True; break
+            try:
+                _st = obs_send(ws, "GetRecordStatus")
+                if _st.get("d", {}).get("responseData", {}).get("outputActive", False):
+                    _obs_dbg(f"StartRecord devolvió code={code} pero OBS ya está "
+                             f"grabando (intento {_intento + 1}) — se toma como iniciado")
+                    started = True; break
+            except Exception as e:
+                _obs_dbg(f"GetRecordStatus tras StartRecord fallido: {e}")
             time.sleep(0.5)
         if not started:
             ws.close(); return False
@@ -1154,16 +1176,160 @@ def _obs_do_start():
             except: pass
         return False
 
-def obs_start_recording():
-    """Lanza OBS si no está corriendo, luego inicia la grabación."""
+def _obs_profile_dir():
+    """Carpeta del perfil Pleiada de OBS."""
+    return os.path.join(os.environ.get("APPDATA", ""), "obs-studio",
+                        "basic", "profiles", OBS_PROFILE_NAME)
+
+
+def _obs_pid():
+    """PID de obs64.exe, o None."""
     try:
-        if not obs_is_running():
-            if not launch_obs():
-                return False
+        out = subprocess.check_output(
+            ["tasklist", "/FI", "IMAGENAME eq obs64.exe", "/NH", "/FO", "CSV"],
+            stderr=subprocess.DEVNULL,
+            creationflags=subprocess.CREATE_NO_WINDOW).decode(errors="ignore")
+        for linea in out.splitlines():
+            campos = [c.strip().strip('"') for c in linea.split('","')]
+            if len(campos) >= 2 and campos[0].strip('"').lower() == "obs64.exe":
+                return int(campos[1])
+    except Exception:
+        pass
+    return None
+
+
+def _obs_arranco_ts():
+    """Epoch (segundos) en que arrancó el proceso de OBS, o None.
+
+    Por ctypes y no por PowerShell: esto corre antes de cada grabación y no
+    justifica levantar un shell."""
+    pid = _obs_pid()
+    if not pid:
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+        k = ctypes.windll.kernel32
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        h = k.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if not h:
+            return None
+        try:
+            cre, ext, ker, usr = (wintypes.FILETIME() for _ in range(4))
+            if not k.GetProcessTimes(h, ctypes.byref(cre), ctypes.byref(ext),
+                                     ctypes.byref(ker), ctypes.byref(usr)):
+                return None
+            ft = (cre.dwHighDateTime << 32) | cre.dwLowDateTime
+            # FILETIME cuenta intervalos de 100 ns desde 1601-01-01
+            return ft / 10_000_000.0 - 11644473600.0
+        finally:
+            k.CloseHandle(h)
     except Exception as e:
-        _obs_dbg(f"obs_start_recording launch check: {e}")
+        _obs_dbg(f"_obs_arranco_ts: {e}")
+        return None
+
+
+# Última combinación (pid de OBS, firma de la config) que dimos por buena. Evita
+# reiniciar OBS más de una vez por el mismo motivo: después de un reinicio se
+# anota acá y deja de dispararse.
+_obs_config_verificada = (None, None)
+
+
+def _asegurar_config_grabacion():
+    """
+    Deja la config de grabación correcta EN DISCO y dice si hay que REINICIAR OBS.
+
+    Por qué en disco y no por WebSocket: desde la v0.9.11 grabamos en modo
+    Avanzado —es el único donde OBS sabe hacer calidad constante con techo, ver
+    `obs_encoding`— y ahí los parámetros del encoder viven en
+    `recordEncoder.json`, un archivo que `SetProfileParameter` no puede tocar.
+
+    Hay DOS motivos para reiniciar, y el segundo costó una ronda de QA:
+
+    1. La escribimos nosotros recién. OBS arma el objeto de salida al arrancar y
+       al aplicar Ajustes, NO en cada StartRecord.
+    2. **La escribió el INSTALADOR con OBS abierto.** Ese es el camino normal de
+       una actualización: el usuario tiene OBS abierto, instala, y graba. La
+       config en disco ya está bien, así que el punto 1 no dispara — pero OBS
+       sigue con la vieja en memoria y graba con ella. Se detecta comparando el
+       arranque del proceso contra el mtime de los archivos.
+    """
+    global _obs_config_verificada
+    prof = _obs_profile_dir()
+    try:
+        cambio = obs_encoding.escribir_config(prof)
+    except Exception as e:
+        _obs_dbg(f"_asegurar_config_grabacion: {e}")
         return False
-    return _obs_do_start()
+
+    if cambio:
+        return True
+
+    # Motivo 2. La memo evita un bucle de reinicios si OBS reescribe su ini.
+    try:
+        pid   = _obs_pid()
+        firma = obs_encoding.firma_config(prof)
+        if pid is None:
+            return False
+        if (pid, firma) == _obs_config_verificada:
+            return False
+        arranque = _obs_arranco_ts()
+        if obs_encoding.config_mas_nueva_que(prof, arranque):
+            _obs_dbg("OBS venía corriendo desde antes de que se escribiera la "
+                     "config (la actualizó el instalador) — hay que reiniciarlo")
+            return True
+        _obs_config_verificada = (pid, firma)
+    except Exception as e:
+        _obs_dbg(f"_asegurar_config_grabacion (chequeo de arranque): {e}")
+    return False
+
+
+def _reiniciar_obs():
+    """
+    Reinicia OBS para que lea la config nueva. True si volvió a estar disponible.
+
+    El cierre es a la FUERZA a propósito, no por comodidad: al cerrarse de forma
+    ordenada OBS reescribe `basic.ini` desde lo que tiene en memoria, o sea que
+    pisaría justo la config que acabamos de escribir. Matándolo, gana el disco.
+
+    El precio de matarlo es que OBS deja un centinela huérfano en
+    `%APPDATA%\\obs-studio\\.sentinel` y en el arranque siguiente se queda en un
+    modal bloqueante ("Se ha detectado un error en OBS Studio") con el WebSocket
+    nunca levantando. `--disable-shutdown-check` NO lo evita — comprobado. Por
+    eso se limpian los centinelas antes de relanzar.
+    """
+    try:
+        subprocess.run(["taskkill", "/F", "/IM", "obs64.exe"],
+                       capture_output=True, timeout=15,
+                       creationflags=subprocess.CREATE_NO_WINDOW)
+    except Exception as e:
+        _obs_dbg(f"_reiniciar_obs taskkill: {e}")
+    time.sleep(2)
+    n = obs_encoding.limpiar_centinelas()
+    _obs_dbg(f"OBS reiniciado para aplicar la config ({n} centinela/s limpiado/s)")
+    ok = launch_obs()
+    if ok:
+        # Anotar que ESTE proceso de OBS ya nació con la config actual, para no
+        # volver a reiniciarlo por el mismo motivo en la grabación siguiente.
+        global _obs_config_verificada
+        try:
+            _obs_config_verificada = (_obs_pid(),
+                                      obs_encoding.firma_config(_obs_profile_dir()))
+        except Exception:
+            pass
+    return ok
+
+
+# NO agregar aca un `obs_start_recording()` de conveniencia. Hubo uno y era
+# CODIGO MUERTO: nadie lo llamaba, porque la app separa a proposito "asegurar que
+# OBS este listo" (en _start_recording._worker, antes del countdown) de "arrancar
+# a grabar" (_launch_at_zero, cuando el countdown llega a cero). Esa separacion
+# es la que mantiene el anchor pegado al StartRecord.
+#
+# El costo de que existiera: el fix de configuracion de grabacion se escribio
+# ahi dentro y nunca corrio en la app real, y la prueba end-to-end lo llamo
+# directo, o sea que valido un camino que no existe. Si hace falta tocar el
+# arranque, los dos puntos reales son esos dos.
 
 
 # Misma regla que `_clean()` del backend (lambda_function.py): al pedir las presigned
@@ -1564,6 +1730,8 @@ def run_sync_check(session_dir, progress_cb=None):
         "sin_input":         False,  # True si no quedó registrado el input del jugador
         "sin_input_causa":   None,   # "captura_bloqueada" | "sin_teclado_ni_mouse"
         "eventos_input":     None,   # conteo crudo por CSV, para el registro interno
+        "bitrate_kbps":      None,   # bitrate medio real del MP4 (video + audio)
+        "bitrate_bajo":      False,  # ADVERTENCIA, no rechazo — ver is_bitrate_bajo
     }
 
     csv_names   = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv", "video_timeline.csv"]
@@ -1640,10 +1808,24 @@ def run_sync_check(session_dir, progress_cb=None):
         result["video_ok"] = True
         if progress_cb: progress_cb(4, "ok")
 
+    # — Advertencia de bitrate bajo (NO rechaza) —
+    # Hasta la v0.9.10 el perfil grababa a 2500 kbps: a 1080p60 eso destruye el
+    # detalle y la comunidad lo reportaba como "baja resolución". El valor ya se
+    # calculaba en el metadata pero nadie lo miraba, así que el problema lo
+    # encontró la comunidad y no nosotros. Ahora queda marcado en el registro
+    # interno para que el panel de QA pueda filtrarlo. No bloquea la subida: la
+    # causa es nuestra configuración de OBS, no algo que el usuario hizo mal.
+    result["bitrate_kbps"] = sync_limits.video_bitrate_kbps(str(video_path), video_dur)
+    result["bitrate_bajo"] = sync_limits.is_bitrate_bajo(result["bitrate_kbps"])
+
     # — Gate de video quieto: pantalla negra o imagen congelada —
     # Complementa el gate AFK, que solo mira inputs: si el juego queda minimizado
     # o el game capture se cae, OBS graba negro mientras el jugador sigue
     # tecleando y AFK no lo detecta.
+    # Estuvo INERTE desde la v0.8.12 —el CBR rellenaba la pantalla
+    # negra hasta el bitrate objetivo y ninguna ventana bajaba del umbral— y
+    # volvió a funcionar en la v0.9.11 al pasar a calidad constante. El detalle
+    # está en pleiada_sync_limits.py.
     _still = sync_limits.video_stillness(str(video_path))
     if _still:
         result["video_still_ms"]    = _still.get("longest_still_ms")
@@ -2796,6 +2978,13 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 "sin_input_rejected": sync_results.get("sin_input", False),
                 "sin_input_causa":    sync_results.get("sin_input_causa"),
                 "eventos_input":      sync_results.get("eventos_input"),
+                # Bitrate: ADVERTENCIA, no rechazo. Es lo que el panel de QA
+                # necesita para filtrar el material grabado con la config vieja
+                # de 2500 kbps. El que importa guardar es el número; el booleano
+                # deja de servir en cuanto la grabación pase a calidad constante
+                # (ver is_bitrate_bajo en pleiada_sync_limits.py).
+                "bitrate_kbps":       sync_results.get("bitrate_kbps"),
+                "bitrate_bajo":       sync_results.get("bitrate_bajo", False),
             },
 
             # Actividad de input: separa juego activo de cutscenes/menús/AFK.
@@ -5210,14 +5399,28 @@ class PleiadaApp:
             sdir.mkdir(parents=True, exist_ok=True)
             self.session_dir = sdir
 
-            # 2. Asegurarse de que OBS esté corriendo (lanzarlo si hace falta).
+            # 2. Asegurarse de que OBS esté corriendo Y con la config de grabación
+            #    correcta (lanzarlo, o reiniciarlo si la config cambió).
             #    Esto puede tardar hasta ~30 s si OBS no está abierto.
             #    NO iniciamos la grabación todavía — eso ocurre en countdown=0.
+            #
+            #    ACÁ y no en _launch_at_zero: un reinicio de OBS con el countdown
+            #    en cero metería varios segundos entre el StartRecord y el anchor,
+            #    y eso desfasa el video contra los CSV de input. Acá pasa antes de
+            #    que el countdown arranque, así que no le cuesta sincronía a nadie.
             try:
+                cambio = _asegurar_config_grabacion()
                 if not obs_is_running():
+                    obs_encoding.limpiar_centinelas()
                     if not launch_obs():
                         self.root.after(0, lambda: self._recording_start_error())
                         return
+                elif cambio:
+                    # OBS está corriendo con la config vieja en memoria: los
+                    # parámetros del encoder se leen al construir la salida, no
+                    # en cada StartRecord.
+                    if not _reiniciar_obs():
+                        _obs_dbg("No se pudo reiniciar OBS — se graba con la config vieja")
             except Exception as e:
                 _obs_dbg(f"_start_recording obs check: {e}")
                 self.root.after(0, lambda: self._recording_start_error())
@@ -5324,6 +5527,7 @@ class PleiadaApp:
             # 6. Mostrar countdown — OBS aún no está grabando
             self.recording = True
             self._rec_started = False   # PLE-157: recien pasa a True en _launch_at_zero
+            self._launch_lanzado = False   # ver el guard en _tick_countdown
             self.root.after(0, self._show_countdown)
             # (La grabación real arranca en _launch_at_zero, cuando el countdown llega a 0)
 
@@ -5677,6 +5881,16 @@ class PleiadaApp:
                    highlightthickness=1, highlightbackground=BORDER2).pack(
             fill="x", ipady=8)
 
+        # Segunda capa contra el doble arranque (la primera es el guard de
+        # _tick_countdown): si ya había una cadena de ticks agendada, matarla.
+        # Dos cadenas vivas comparten `_cd_remaining` y las dos llegan a cero.
+        if self._cd_timer_id:
+            try:
+                self.root.after_cancel(self._cd_timer_id)
+            except Exception:
+                pass
+            self._cd_timer_id = None
+
         self._cd_remaining = self._COUNTDOWN_SECS
         self._tick_countdown()
         self._pulse_cd_dot()
@@ -5686,6 +5900,22 @@ class PleiadaApp:
             return
         if self._cd_remaining <= 0:
             self._cd_timer_id = None
+            # GUARD contra doble arranque. Cada tick se re-agenda con after(),
+            # así que si por cualquier motivo quedan DOS cadenas encadenadas
+            # —dos clicks rápidos en "Iniciar grabación", el hotkey global
+            # pisándose con el botón— las dos llegan a cero y lanzan un thread
+            # cada una.
+            #
+            # Medido en producción el 25-08-2026: dos `_obs_do_start()` en el
+            # mismo segundo. El primero puso a OBS a grabar; el segundo mandó
+            # StartRecord de nuevo, OBS contestó "output already active", el
+            # loop reintentó 10 s, devolvió False y la app mostró error SIN
+            # detener OBS. Resultado: OBS grabando y el Recorder sin sesión,
+            # que es lo que el usuario ve como "OBS ya está grabando".
+            if getattr(self, "_launch_lanzado", False):
+                _obs_dbg("countdown: el arranque ya se había lanzado — tick ignorado")
+                return
+            self._launch_lanzado = True
             # Mostrar ▶ brevemente mientras el thread de OBS arranca
             try:
                 self._cd_num_lbl.config(text="▶", fg=GREEN)
@@ -5754,6 +5984,19 @@ class PleiadaApp:
             self.root.after(0, lambda m=msg: self._recording_start_error(m))
             return
         if not ok:
+            # Antes de rendirse: asegurarse de que OBS no haya quedado grabando.
+            # Si el arranque falló pero OBS igual arrancó, dejarlo así es el
+            # estado huérfano que el usuario ve como "OBS ya está grabando" sin
+            # sesión — y del que solo se sale parando a mano desde OBS.
+            try:
+                _ws = obs_connect()
+                _st = obs_send(_ws, "GetRecordStatus")
+                if _st.get("d", {}).get("responseData", {}).get("outputActive", False):
+                    _obs_dbg("launch: _obs_do_start falló pero OBS quedó grabando — deteniendo")
+                    obs_send(_ws, "StopRecord")
+                _ws.close()
+            except Exception as e:
+                _obs_dbg(f"launch: no se pudo verificar/detener OBS tras fallo: {e}")
             self.recording = False
             self.root.after(0, self._recording_start_error)
             return

@@ -14,6 +14,8 @@ import json
 import os
 import sys
 
+import obs_encoding
+
 
 # ── 1. WebSocket ─────────────────────────────────────────────────
 
@@ -49,104 +51,55 @@ def configure_websocket():
 # ── 2. Perfil de grabacion ────────────────────────────────────────
 
 def configure_profile():
+    """
+    Crea o corrige el perfil Pleiada de OBS.
+
+    Los VALORES de grabacion no viven aca: son de `obs_encoding`, que es la
+    fuente de verdad unica y esta compartida con `pleiada_app.pyw`. Aca solo se
+    arma el esqueleto del ini cuando no existe; el resto lo fuerza
+    `obs_encoding.escribir_config`, incluido `recordEncoder.json`.
+
+    Este archivo corre desde el instalador COMPLETO y desde el LITE, o sea que
+    es la unica via por la que la flota ya instalada recibe un cambio de
+    configuracion de OBS. Si el usuario tenia OBS abierto durante la
+    actualizacion, la app igual se encarga: detecta que el archivo cambio y
+    reinicia OBS antes de grabar.
+    """
     appdata     = os.environ.get("APPDATA", "")
     profile_dir = os.path.join(appdata, "obs-studio", "basic", "profiles", "Pleiada")
     os.makedirs(profile_dir, exist_ok=True)
 
-    basic_ini = (
-        "[General]\n"
-        "Name=Pleiada\n"
-        "\n"
-        "[Output]\n"
-        "Mode=Simple\n"
-        "\n"
-        "[SimpleOutput]\n"
-        "RecFormat2=fragmented_mp4\n"
-        "VBitrate=2500\n"
-        "ABitrate=160\n"
-        "RecRB=false\n"
-        "\n"
-        # OBS guarda el formato por separado en cada modo de salida. Si el
-        # usuario pasa a Avanzado lee de aca, y sin esta seccion grababa
-        # hybrid_mp4, que escribe el moov al final del archivo.
-        "[AdvOut]\n"
-        "RecFormat2=fragmented_mp4\n"
-        "\n"
-        "[Video]\n"
-        "BaseCX=1920\n"
-        "BaseCY=1080\n"
-        "OutputCX=1920\n"
-        "OutputCY=1080\n"
-        "FPSType=0\n"
-        "FPSCommon=60\n"
-        "\n"
-        "[Audio]\n"
-        "SampleRate=48000\n"
-        "ChannelSetup=Stereo\n"
-    )
     ini_path = os.path.join(profile_dir, "basic.ini")
-    # Solo crear si no existe (respeta configuracion previa del usuario)
+
+    # Esqueleto minimo, solo si no existe. Todo lo de [Output]/[AdvOut]/
+    # [SimpleOutput] lo escribe obs_encoding abajo: dejarlo tambien aca seria
+    # tener el mismo valor en dos lugares, que es exactamente como se llego al
+    # bug de los 2500 kbps.
     if not os.path.exists(ini_path):
         with open(ini_path, "w", encoding="utf-8") as f:
-            f.write(basic_ini)
-    else:
-        _migrate_rec_format(ini_path)
+            f.write(
+                "[General]\n"
+                "Name=Pleiada\n"
+                "\n"
+                "[SimpleOutput]\n"
+                "FilePath=%s\n"
+                "RecRB=false\n"
+                "\n"
+                "[Video]\n"
+                "BaseCX=1920\n"
+                "BaseCY=1080\n"
+                "OutputCX=1920\n"
+                "OutputCY=1080\n"
+                "FPSType=0\n"
+                "FPSCommon=60\n"
+                "\n"
+                "[Audio]\n"
+                "SampleRate=48000\n"
+                "ChannelSetup=Stereo\n"
+                % os.path.join(os.path.expanduser("~"), "Videos").replace("\\", "\\\\")
+            )
 
-
-def _migrate_rec_format(ini_path):
-    """
-    Fuerza RecFormat2=fragmented_mp4 en un perfil Pleiada preexistente,
-    preservando el resto de la configuracion del usuario.
-
-    Un MP4 clasico escribe su indice (moov) recien al finalizar la grabacion:
-    si OBS muere antes, el archivo entero queda ilegible. Con fragmented MP4
-    cada fragmento es autosuficiente y una grabacion interrumpida sigue siendo
-    reproducible hasta el ultimo GOP escrito.
-
-    Se escribe en [SimpleOutput] Y en [AdvOut]: OBS guarda el formato por
-    separado en cada modo de salida, y hasta el 17/08 solo se tocaba el primero.
-    Todo usuario con OBS en modo Avanzado grababa hybrid_mp4 —con el moov al
-    final del archivo— y esos son los que llegaron como un segundo "sabor" de
-    MP4 en la muestra que reviso Troveo.
-    """
-    SECCIONES = ("[SimpleOutput]", "[AdvOut]")
-    try:
-        with open(ini_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-
-        out     = []
-        seccion = ""
-        escrito = set()
-
-        def _cerrar(sec):
-            if sec in SECCIONES and sec not in escrito:
-                out.append("RecFormat2=fragmented_mp4\n")
-                escrito.add(sec)
-
-        for line in lines:
-            s = line.strip()
-            if s.startswith("[") and s.endswith("]"):
-                _cerrar(seccion)
-                seccion = s
-                out.append(line)
-                continue
-            if (seccion in SECCIONES
-                    and s.split("=")[0].strip() in ("RecFormat2", "RecFormat")):
-                if seccion not in escrito:
-                    out.append("RecFormat2=fragmented_mp4\n")
-                    escrito.add(seccion)
-                continue   # descartar el valor viejo (mp4 clasico o hybrid)
-            out.append(line)
-        _cerrar(seccion)
-
-        for sec in SECCIONES:
-            if sec not in escrito:
-                out.append("\n%s\nRecFormat2=fragmented_mp4\n" % sec)
-
-        with open(ini_path, "w", encoding="utf-8") as f:
-            f.writelines(out)
-    except Exception:
-        pass   # best-effort: el Recorder tambien fuerza el formato al grabar
+    obs_encoding.escribir_config(profile_dir)
 
 
 # ── 3. Coleccion de escenas ───────────────────────────────────────

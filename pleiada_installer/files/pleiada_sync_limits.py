@@ -152,11 +152,29 @@ MOUSE_POS_POR_MIN_TESTIGO = 60
 # —0,15 s sobre un archivo de 6 GB, contra ~2,5 min decodificando con OpenCV,
 # que ademas saltea mal en MP4 fragmentado.
 #
-# OJO: esto depende de que OBS grabe por CALIDAD (CRF/CQP), que es lo que hace
-# el perfil Pleiada (Mode=Simple sin RecQuality). Medido: la misma maquina grabo
-# una sesion negra a 379 kb/s y gameplay a 31.937 kb/s. Si un usuario forzara
-# CBR en su OBS, el negro se rellenaria hasta el bitrate objetivo y este gate
-# quedaria ciego para esa sesion.
+# ⚠ ESTE GATE ESTUVO INERTE Y VOLVIO A FUNCIONAR EN LA v0.9.11. Vale la pena
+# entender por que, porque el mismo error se puede repetir.
+#
+# Depende de que OBS grabe por CALIDAD: con calidad constante una pantalla negra
+# comprime a casi nada y salta a la vista. Con CBR no, porque el encoder RELLENA
+# hasta el bitrate objetivo aunque no haya nada que codificar, y entonces todas
+# las ventanas pesan practicamente lo mismo:
+#   · contra VIDEO_PISO_BYTES (200 KB/ventana): a 2500 kbps CBR una ventana de
+#     5 s pesa ~1.560 KB. Nunca bajaba del piso.
+#   · contra VIDEO_FRACCION_P90 (10% del p90): si todas pesan igual, ninguna
+#     queda por debajo del 10% de las demas.
+# O sea que entre la v0.8.12 —cuando se empezo a forzar CBR— y la v0.9.11,
+# `is_video_still` devolvia False siempre, mirara lo que mirara. El comentario
+# que habia aca afirmaba lo contrario.
+#
+# Desde la v0.9.11 se graba con calidad constante y techo (ver `obs_encoding`),
+# asi que vuelve a discriminar. Comprobado en una grabacion real: con la pantalla
+# sin nada que capturar, OBS escribio 42 kbps en vez de rellenar hasta los 8000
+# del objetivo — o sea ~26 KB por ventana de 5 s, muy por debajo del piso de 200.
+#
+# Los umbrales de abajo NO se tocaron y siguen sirviendo, con mas margen que
+# antes: gameplay real ronda los 5.000 KB por ventana contra los 26 KB del negro.
+# El brazo del p90 tambien separa bien (10% de 5.000 KB = 500 KB).
 VIDEO_VENTANA_MS   = 5_000        # se agrega por ventanas: un keyframe cada ~4 s
                                   # parte toda corrida quieta si se mira frame
                                   # por frame, y no se detecta nada nunca
@@ -176,6 +194,11 @@ VIDEO_QUIETO_RATIO_MAX = 0.95     # o casi toda la sesion quieta, para las
                                   # grabaciones que salieron negras de arranque
                                   # y duran menos que la corrida minima. Margen:
                                   # el gameplay real mas alto del corpus, 72%.
+
+# ── Advertencia de bitrate bajo (25-08-2026) ────────────────────────────────
+# No rechaza nada: marca. Ver `is_bitrate_bajo` para el porque y para la trampa
+# del falso positivo cuando se pase a calidad constante.
+BITRATE_PISO_KBPS = 4_000         # kbps totales (video + audio) del MP4
 
 
 # ── Predicados ───────────────────────────────────────────────────────────────
@@ -746,6 +769,58 @@ def is_video_still(stillness):
         return False
     return (stillness.get("longest_still_ms", 0) >= MAX_VIDEO_QUIETO_MS
             or stillness.get("still_ratio", 0) >= VIDEO_QUIETO_RATIO_MAX)
+
+
+def video_bitrate_kbps(path, dur_ms=None):
+    """
+    Bitrate medio real del archivo (video + audio), en kbps. None si no se puede.
+
+    Es tamano/duracion, no el valor declarado por el encoder: interesa lo que
+    efectivamente pesa el MP4. `dur_ms` se puede pasar ya calculado para no
+    releer el archivo dos veces.
+    """
+    try:
+        if dur_ms is None:
+            dur_ms = mp4_duration_ms(path)
+        if not dur_ms or dur_ms <= 0:
+            return None
+        return round(_os.path.getsize(path) * 8 / (dur_ms / 1000.0) / 1000)
+    except Exception:
+        return None
+
+
+def is_bitrate_bajo(kbps):
+    """
+    ADVERTENCIA, NO RECHAZO: True si el archivo pesa tan poco que a 1080p60 el
+    detalle no puede estar.
+
+    Por que no rechaza. La causa de un bitrate bajo es NUESTRA configuracion de
+    OBS, no algo que el usuario haya hecho mal: rechazarle la sesion seria
+    cobrarle a el un bug nuestro. El flag existe para que esto lo detecte la
+    maquina y no la comunidad — va a `session_metadata.json` y de ahi al panel
+    de QA, que puede filtrar por el. La decision sobre esas sesiones es humana.
+
+    Por que 4000. Medido sobre el mismo material, VMAF medio / peor frame del
+    clip: 2500 → 37,2/6,4 (inservible); 4000 → 52,9/8,3; 6000 → 66,8/11,8;
+    8000 → 75,0/22,6. El umbral parte aguas entre la configuracion vieja
+    (2500 + 160 de audio = ~2.670 kbps reales) y la de la v0.9.11, que apunta a
+    ~8.000 con techo de 12.000.
+
+    Desde la v0.9.11 lo que este flag detecta cambio de significado, y para
+    mejor: ya no hay ninguna maquina que DEBA grabar a 2.500, asi que una sesion
+    marcada quiere decir **que en esa maquina el fix no aplico**. Es la señal
+    que hay que mirar durante la ronda de QA y el rollout.
+
+    OJO CON EL FALSO POSITIVO, que ahora si es posible: con calidad constante un
+    titulo visualmente simple puede pesar 2.000 kbps y estar perfecto. Por eso
+    es advertencia y no gate, y por eso el numero que importa guardar es
+    `bitrate_kbps` y no el booleano. Si aparecen falsos positivos seguidos sobre
+    titulos que se ven bien, el que sobra es el booleano — no hay que subir la
+    calidad para acallarlo.
+    """
+    if not kbps:
+        return False
+    return kbps < BITRATE_PISO_KBPS
 
 
 def activity(session_dir, start_ms, end_ms):

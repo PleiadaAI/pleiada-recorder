@@ -1056,6 +1056,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Asphalt Legends",
+  "perspective": "First Person",
+  "genre": "Racing, Sport, Arcade",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "23314",
+  "default_key_mapping": null
+ },
+ {
   "game": "Assetto Corsa Competizione (AC2)",
   "perspective": "First Person",
   "genre": "Racing, Simulator, Sport",
@@ -1339,7 +1353,18 @@
   "languages": [],
   "developer": "Rocksteady Studios",
   "igdb_id": "26041",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "Space": "sprint",
+   "LControl": "crouch",
+   "CapsLock": "crouch",
+   "z": "aim",
+   "MouseRight": "aim",
+   "MouseLeft": "fire"
+  }
  },
  {
   "game": "Battlefield 4",
@@ -1568,7 +1593,8 @@
    "LShift": "sprint",
    "LControl": "crouch",
    "MouseLeft": "fire",
-   "MouseRight": "attack_secondary"
+   "MouseRight": "attack_secondary",
+   "Enter": "fire"
   }
  },
  {
@@ -1850,7 +1876,22 @@
   ],
   "developer": "Gearbox Software",
   "igdb_id": "1011",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "Space": "jump",
+   "LShift": "sprint",
+   "c": "crouch",
+   "z": "horn",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "r": "reload",
+   "v": "melee",
+   "g": "grenade",
+   "1": "slot_1"
+  }
  },
  {
   "game": "Borderlands 3",
@@ -1973,6 +2014,20 @@
   ],
   "developer": "AvantGarden Games",
   "igdb_id": "279612",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Buckshot Roulette",
+  "perspective": "First Person",
+  "genre": "Simulator, Strategy, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "281275",
   "default_key_mapping": null
  },
  {
@@ -2382,6 +2437,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Car Dealer Simulator",
+  "perspective": "First Person",
+  "genre": "Simulator, Strategy, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "248933",
+  "default_key_mapping": null
+ },
+ {
   "game": "Car For Sale Simulator 2023",
   "perspective": "First Person",
   "genre": "Simulator",
@@ -2546,7 +2615,26 @@
   ],
   "developer": "Fishlabs",
   "igdb_id": "133305",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "thrust",
+   "s": "brake",
+   "a": "dodge_left",
+   "d": "dodge_right",
+   "LShift": "boost",
+   "LControl": "sublight_engine",
+   "MouseLeft": "fire",
+   "1": "laser",
+   "2": "gatling",
+   "3": "missiles",
+   "c": "auxiliary",
+   "e": "interact",
+   "q": "rite_of_hunt",
+   "f": "rite_of_storm",
+   "Space": "rite_of_star",
+   "r": "rite_of_control",
+   "Tab": "player_menu",
+   "Escape": "options"
+  }
  },
  {
   "game": "Clair Obscur: Expedition 33",
@@ -2653,6 +2741,20 @@
   ],
   "developer": "Funcom",
   "igdb_id": "16999",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Contraband Police",
+  "perspective": "First Person",
+  "genre": "Shooter, Simulator, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "76263",
   "default_key_mapping": null
  },
  {
@@ -2851,6 +2953,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Crime Scene Cleaner",
+  "perspective": "First Person",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "115830",
+  "default_key_mapping": null
+ },
+ {
   "game": "Crimson Desert",
   "perspective": "Third Person",
   "genre": "Action RPG",
@@ -2947,6 +3063,20 @@
   ],
   "developer": "Bloober Team",
   "igdb_id": "320137",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Crossout",
+  "perspective": "Third Person",
+  "genre": "Shooter, Racing, Simulator",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "34894",
   "default_key_mapping": null
  },
  {
@@ -4664,6 +4794,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Emergency",
+  "perspective": "",
+  "genre": "",
+  "mode": "",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "346073",
+  "default_key_mapping": null
+ },
+ {
   "game": "Emergency Call 112: The Fire Fighting Simulation 2",
   "perspective": "First Person",
   "genre": "Simulator, Tactical",
@@ -5008,7 +5152,16 @@
   ],
   "developer": "Bethesda Game Studios",
   "igdb_id": "9630",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "LAlt": "melee",
+   "e": "interact"
+  }
  },
  {
   "game": "Fallout 76",
@@ -5241,6 +5394,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Firefighting Simulator: The Squad",
+  "perspective": "",
+  "genre": "Simulator, Strategy",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "228376",
+  "default_key_mapping": null
+ },
+ {
   "game": "Firewatch",
   "perspective": "First Person",
   "genre": "Narrative Adventure",
@@ -5426,6 +5593,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Forza Horizon 6",
+  "perspective": "First Person",
+  "genre": "Racing, Simulator, Sport, Arcade",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "348330",
+  "default_key_mapping": null
+ },
+ {
   "game": "Garten of Banban 7",
   "perspective": "First Person",
   "genre": "Puzzle, Arcade",
@@ -5597,6 +5778,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Goat Simulator 3",
+  "perspective": "Third Person",
+  "genre": "Simulator, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "204360",
+  "default_key_mapping": null
+ },
+ {
   "game": "Gone Home",
   "perspective": "First Person",
   "genre": "Narrative Adventure, Puzzle",
@@ -5623,6 +5818,20 @@
   ],
   "developer": "Fullbright",
   "igdb_id": "1906",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Good Pizza, Great Pizza",
+  "perspective": "First Person",
+  "genre": "Simulator, Indie, Arcade",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "87367",
   "default_key_mapping": null
  },
  {
@@ -5757,6 +5966,20 @@
   ],
   "developer": "Cygames Osaka",
   "igdb_id": "22788",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Grand Theft Auto V",
+  "perspective": "First Person",
+  "genre": "Shooter, Racing, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "1020",
   "default_key_mapping": null
  },
  {
@@ -6336,6 +6559,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Higher or Lower: Spotify Edition",
+  "perspective": "Text",
+  "genre": "Quiz/Trivia, Arcade",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "378504",
+  "default_key_mapping": null
+ },
+ {
   "game": "Hitman 3",
   "perspective": "Third Person",
   "genre": "Stealth, Shooter, Tactical",
@@ -6554,6 +6791,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "House Flipper",
+  "perspective": "First Person",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "27744",
+  "default_key_mapping": null
+ },
+ {
   "game": "House Flipper 2",
   "perspective": "First Person",
   "genre": "Simulation, Simulator",
@@ -6757,6 +7008,20 @@
   ],
   "developer": "SOFTSTAR Entertainment",
   "igdb_id": "278670",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Infinite Way",
+  "perspective": "",
+  "genre": "Strategy, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "161508",
   "default_key_mapping": null
  },
  {
@@ -7191,6 +7456,20 @@
   ],
   "developer": "Warhorse Studios",
   "igdb_id": "298526",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Kingdom Rush Origins",
+  "perspective": "",
+  "genre": "Real Time Strategy (RTS), Strategy, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "41496",
   "default_key_mapping": null
  },
  {
@@ -7868,6 +8147,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Low-Budget Repairs",
+  "perspective": "First Person",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "316836",
+  "default_key_mapping": null
+ },
+ {
   "game": "Lucid Blocks",
   "perspective": "First Person",
   "genre": "Role-playing (RPG), Simulator",
@@ -8228,6 +8521,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Meccha Chameleon",
+  "perspective": "First Person",
+  "genre": "Tactical, Indie",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "405028",
+  "default_key_mapping": null
+ },
+ {
   "game": "MechWarrior 5: Clans",
   "perspective": "First Person",
   "genre": "Shooter, Simulator",
@@ -8568,27 +8875,27 @@
   "developer": "4A Games",
   "igdb_id": "37016",
   "default_key_mapping": {
+   "Tab": "weapon_wheel",
+   "q": "heal",
    "w": "move_forward",
+   "e": "interact",
+   "r": "reload",
+   "t": "change_filter",
+   "LControl": "crouch",
    "a": "move_left",
    "s": "move_backward",
    "d": "move_right",
-   "LShift": "sprint",
-   "Space": "jump",
-   "LCtrl": "crouch",
-   "e": "interact",
-   "MouseLeft": "fire",
-   "MouseRight": "aim",
-   "r": "reload",
-   "v": "melee",
-   "x": "throw_secondary",
    "f": "flashlight",
-   "g": "gas_mask",
+   "LShift": "sprint",
+   "z": "crouch",
+   "x": "sprint",
+   "c": "throw_grenade",
+   "v": "melee",
    "n": "night_vision",
-   "l": "lighter",
-   "b": "binoculars",
-   "m": "map_journal",
-   "i": "backpack",
-   "Tab": "weapons_inventory"
+   "m": "map",
+   "Space": "jump",
+   "MouseLeft": "fire",
+   "MouseRight": "aim"
   }
  },
  {
@@ -8673,6 +8980,20 @@
    "MouseRight": "aim",
    "MouseMiddle": "melee"
   }
+ },
+ {
+  "game": "Middle-earth: Shadow of War",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "27421",
+  "default_key_mapping": null
  },
  {
   "game": "Millennium Dream",
@@ -8838,7 +9159,6 @@
    "d": "move_right",
    "MouseLeft": "fire",
    "MouseRight": "attack_heavy",
-   "f": "parry",
    "LControl": "harden",
    "Space": "dodge",
    "z": "cycle_abilities",
@@ -9435,6 +9755,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "One More Line",
+  "perspective": "",
+  "genre": "Music, Puzzle, Racing, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "35584",
+  "default_key_mapping": null
+ },
+ {
   "game": "One Piece Odyssey",
   "perspective": "Third Person",
   "genre": "JRPG, Role-playing (RPG)",
@@ -10021,6 +10355,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "PC Building Simulator 2",
+  "perspective": "First Person",
+  "genre": "Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "194247",
+  "default_key_mapping": null
+ },
+ {
   "game": "Peak",
   "perspective": "First Person",
   "genre": "Platform",
@@ -10170,6 +10518,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Police Simulator: Patrol Officers",
+  "perspective": "Third Person",
+  "genre": "Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "152297",
+  "default_key_mapping": null
+ },
+ {
   "game": "Portal 2",
   "perspective": "First Person",
   "genre": "Platform, Puzzle",
@@ -10224,6 +10586,20 @@
    "c": "push_to_talk",
    "t": "chat"
   }
+ },
+ {
+  "game": "PowerWash Simulator 2",
+  "perspective": "First Person",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "335439",
+  "default_key_mapping": null
  },
  {
   "game": "Prison Simulator",
@@ -10381,6 +10757,20 @@
   ],
   "developer": "semiwork",
   "igdb_id": "332780",
+  "default_key_mapping": null
+ },
+ {
+  "game": "RaceRoom Racing Experience",
+  "perspective": "First Person",
+  "genre": "Racing, Simulator, Sport",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "90561",
   "default_key_mapping": null
  },
  {
@@ -11034,6 +11424,20 @@
    "Left": "move_left",
    "Right": "move_right"
   }
+ },
+ {
+  "game": "Rocket League",
+  "perspective": "Third Person",
+  "genre": "Racing, Sport, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "11198",
+  "default_key_mapping": null
  },
  {
   "game": "Rogue Point",
@@ -11708,6 +12112,20 @@
   ],
   "developer": "TVGS",
   "igdb_id": "328373",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Search",
+  "perspective": "",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "384390",
   "default_key_mapping": null
  },
  {
@@ -12729,7 +13147,17 @@
   ],
   "developer": "SUPERHOT Team",
   "igdb_id": "27448",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "MouseLeft": "fire",
+   "MouseRight": "throw",
+   "Space": "jump",
+   "e": "ability",
+   "r": "replay"
+  }
  },
  {
   "game": "Superliminal",
@@ -12764,6 +13192,20 @@
   ],
   "developer": "Pillow Castle Games",
   "igdb_id": "68447",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Supermarket Simulator",
+  "perspective": "First Person",
+  "genre": "Simulator, Strategy, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "274920",
   "default_key_mapping": null
  },
  {
@@ -12999,6 +13441,20 @@
   ],
   "developer": "Knight Fever Games",
   "igdb_id": "343187",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Tabletop Simulator",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Simulator, Strategy, Indie, Card & Board Game",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "8351",
   "default_key_mapping": null
  },
  {
@@ -13240,6 +13696,34 @@
   ],
   "developer": "Simteract",
   "igdb_id": "215898",
+  "default_key_mapping": null
+ },
+ {
+  "game": "TBH: Task Bar Hero",
+  "perspective": "Side View",
+  "genre": "Platform, Role-playing (RPG), Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "372510",
+  "default_key_mapping": null
+ },
+ {
+  "game": "TCG Card Shop Simulator",
+  "perspective": "First Person",
+  "genre": "Simulator, Strategy, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "309862",
   "default_key_mapping": null
  },
  {
@@ -14722,6 +15206,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Trading Card Shop Simulator",
+  "perspective": "First Person",
+  "genre": "Simulator, Strategy, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "322504",
+  "default_key_mapping": null
+ },
+ {
   "game": "Train Sim World 5",
   "perspective": "First Person",
   "genre": "Simulation, Simulator",
@@ -14873,6 +15371,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "UNCHARTED™: Legacy of Thieves Collection",
+  "perspective": "Third Person",
+  "genre": "Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": null,
+  "default_key_mapping": null
+ },
+ {
   "game": "Until Dawn",
   "perspective": "Third Person",
   "genre": "Narrative Adventure",
@@ -14946,20 +15458,25 @@
   "igdb_id": "104967",
   "default_key_mapping": {
    "w": "move_forward",
-   "a": "move_left",
    "s": "move_backward",
+   "a": "move_left",
    "d": "move_right",
-   "Space": "jump",
-   "LControl": "crouch",
-   "LShift": "run",
-   "MouseLeft": "attack",
+   "MouseLeft": "fire",
+   "MouseMiddle": "attack_secondary",
    "MouseRight": "block",
-   "MouseMiddle": "secondary_attack",
    "e": "interact",
+   "Space": "jump",
+   "LShift": "sprint",
+   "c": "walk",
+   "LControl": "crouch",
+   "r": "toggle_weapon",
    "x": "sit",
-   "r": "sheath_weapon",
+   "f": "forsaken_power",
+   "q": "auto_run",
+   "v": "auto_pickup",
    "Tab": "inventory",
-   "m": "map"
+   "m": "map",
+   "t": "emote_wheel"
   }
  },
  {
