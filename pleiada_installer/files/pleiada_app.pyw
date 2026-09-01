@@ -15,7 +15,7 @@ import pleiada_sync_limits as sync_limits
 import obs_encoding
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.14"
+VERSION = "v0.9.15"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -1900,24 +1900,130 @@ def package_session(session_dir):
 
 # ─── Session metadata (v0.4) ─────────────────────────────────────────────────
 
+# OBS: bitmask de alineación de un scene item. El default de OBS es 5 (LEFT|TOP),
+# que es justamente el caso que hacía fallar la versión anterior de esta función.
+_OBS_ALIGN_LEFT, _OBS_ALIGN_RIGHT, _OBS_ALIGN_TOP, _OBS_ALIGN_BOTTOM = 1, 2, 4, 8
+
+
+def _encuadre_geometria(tr, cw, ch):
+    """
+    Geometría pura del encuadre: dado el transform de un scene item de OBS y el
+    tamaño del lienzo, ¿qué fracción del cuadro quedó en negro y de qué lado?
+
+    Va separada de `_meta_encuadre()` —que es la que habla con OBS— para poder
+    probarla sin OBS ni juego corriendo. `tests/test_encuadre.py` la corre contra
+    las cuatro configuraciones que QA reportó fallando el 02-09-2026.
+
+    ⚠ MEDIMOS GEOMETRÍA, NO PROPORCIÓN. La v1 comparaba el aspecto de la fuente
+    contra el del lienzo, asumiendo que OBS escala la captura para que entre
+    centrada. **Es falso**: OBS la deja en su tamaño nativo pegada arriba a la
+    izquierda (alignment 5), así que el negro queda a la DERECHA y ABAJO, no
+    repartido. De ahí que 16:9 en ventana diera "sin barras": el aspecto coincide
+    con el del lienzo, y la comparación de proporciones es ciega a una captura de
+    1280x720 apoyada sobre un lienzo de 1920x1080.
+
+    Retorna dict, o None si el transform todavía no tiene tamaño.
+    """
+    def _num(k, default=0.0):
+        try:
+            v = tr.get(k)
+            return float(v) if v is not None else float(default)
+        except Exception:
+            return float(default)
+
+    sw, sh = _num("sourceWidth"), _num("sourceHeight")
+    if sw <= 0 or sh <= 0 or cw <= 0 or ch <= 0:
+        return None   # la fuente todavía no capturó nada
+
+    # Tamaño ya dibujado. OBS lo publica en `width`/`height` (post escala y post
+    # recorte); si viniera en cero se reconstruye a mano.
+    w, h = _num("width"), _num("height")
+    if w <= 0 or h <= 0:
+        w = max(0.0, sw - _num("cropLeft") - _num("cropRight")) * _num("scaleX", 1)
+        h = max(0.0, sh - _num("cropTop") - _num("cropBottom")) * _num("scaleY", 1)
+    if w <= 0 or h <= 0:
+        return None
+
+    # Posición: `positionX/Y` es el punto de anclaje, y cuál de las esquinas (o el
+    # centro) sea ese punto lo dice `alignment`.
+    align = int(_num("alignment", _OBS_ALIGN_LEFT | _OBS_ALIGN_TOP))
+    px, py = _num("positionX"), _num("positionY")
+    if align & _OBS_ALIGN_LEFT:
+        x0 = px
+    elif align & _OBS_ALIGN_RIGHT:
+        x0 = px - w
+    else:
+        x0 = px - w / 2.0
+    if align & _OBS_ALIGN_TOP:
+        y0 = py
+    elif align & _OBS_ALIGN_BOTTOM:
+        y0 = py - h
+    else:
+        y0 = py - h / 2.0
+    x1, y1 = x0 + w, y0 + h
+
+    # Lo que se ve del juego es la intersección con el lienzo: lo que se pasa de
+    # borde se recorta y no cuenta como cubierto.
+    vis_w = max(0.0, min(x1, cw) - max(x0, 0.0))
+    vis_h = max(0.0, min(y1, ch) - max(y0, 0.0))
+    barras = max(0.0, min(1.0, 1.0 - (vis_w * vis_h) / (cw * ch)))
+
+    # Hueco de cada borde, como fracción del lado correspondiente.
+    g_izq = max(0.0, min(x0, cw)) / cw
+    g_der = max(0.0, min(cw - x1, cw)) / cw
+    g_arr = max(0.0, min(y0, ch)) / ch
+    g_aba = max(0.0, min(ch - y1, ch)) / ch
+
+    TOL = 0.005   # medio punto: redondeos de escalado no son barras de verdad
+    hay_horiz = (g_izq + g_der) > TOL
+    hay_vert = (g_arr + g_aba) > TOL
+    if hay_horiz and hay_vert:
+        lado = "costados_y_arriba_abajo"
+    elif hay_horiz:
+        lado = "costados"
+    elif hay_vert:
+        lado = "arriba_abajo"
+    else:
+        lado = "ninguna"
+
+    return {
+        "fuente_ancho": int(sw), "fuente_alto": int(sh),
+        "lienzo_ancho": int(cw), "lienzo_alto": int(ch),
+        "dibujado_ancho": round(w, 1), "dibujado_alto": round(h, 1),
+        "dibujado_x": round(x0, 1), "dibujado_y": round(y0, 1),
+        "aspecto_fuente": round(sw / sh, 4),
+        "aspecto_lienzo": round(cw / ch, 4),
+        "barras_fraccion": round(barras, 4),
+        "barras_lado": lado,
+        "barras_por_borde": {
+            "izquierda": round(g_izq, 4), "derecha": round(g_der, 4),
+            "arriba": round(g_arr, 4), "abajo": round(g_aba, 4),
+        },
+        # Se recorta contra el lienzo, así que una fuente más grande que el cuadro
+        # no genera barras pero sí pierde imagen: se dice aparte.
+        "fuente_excede_lienzo": bool(x0 < -TOL * cw or y0 < -TOL * ch
+                                     or x1 > cw * (1 + TOL) or y1 > ch * (1 + TOL)),
+        "ocupa_cuadro_completo": barras < 0.01,
+    }
+
+
 def _meta_encuadre():
     """
-    ¿El juego ocupa todo el cuadro, o quedan franjas negras a los costados?
+    ¿El juego ocupa todo el cuadro, o quedan franjas negras?
 
     Troveo lo pide literal: "the gameplay display must occupy the entire frame".
     El control de QA que tenemos hoy solo rechaza lo ULTRAWIDE (más ancho que
     1,80) — o sea que ve el archivo demasiado ancho, pero NO ve las franjas
-    negras DENTRO de un archivo 16:9, que es el caso frecuente: un juego 4:3 o
-    16:10 metido en un lienzo 16:9 deja barras a los lados y el archivo mide
-    1920x1080 igual.
+    negras DENTRO de un archivo 16:9, que es el caso frecuente.
 
-    No hace falta decodificar un solo frame: OBS sabe el tamaño real de lo que
-    está capturando. Se compara esa proporción contra el lienzo (1920x1080) y se
-    estima qué fracción del cuadro es barra negra.
+    No hace falta decodificar un solo frame: OBS sabe dónde y de qué tamaño
+    dibujó la captura sobre el lienzo. Se hace acá y no mirando píxeles porque en
+    la máquina del usuario NO hay ffmpeg (verificado el 01-09-2026: el instalador
+    no lo trae y OBS solo trae las librerías, no un ejecutable de propósito
+    general).
 
-    Se hace acá y no mirando píxeles porque en la máquina del usuario NO hay
-    ffmpeg (verificado el 01-09-2026: el instalador no lo trae y OBS solo trae
-    las librerías, no un ejecutable de propósito general).
+    La cuenta vive en `_encuadre_geometria()`; acá solo se junta lo que hace
+    falta preguntarle a OBS.
 
     Retorna dict o None. NUNCA lanza: es telemetría, no puede tumbar una sesión.
     """
@@ -1939,37 +2045,21 @@ def _meta_encuadre():
         tr = (obs_send(ws, "GetSceneItemTransform",
                        {"sceneName": cur, "sceneItemId": item.get("sceneItemId")})
               .get("d", {}).get("responseData", {}).get("sceneItemTransform", {}))
-        sw = int(tr.get("sourceWidth") or 0)
-        sh = int(tr.get("sourceHeight") or 0)
-        if sw <= 0 or sh <= 0:
-            return None   # la fuente todavía no capturó nada
 
-        cw = int(OBS_TARGET_VIDEO.get("outputWidth") or 1920)
-        ch = int(OBS_TARGET_VIDEO.get("outputHeight") or 1080)
-        ar_src, ar_out = sw / sh, cw / ch
+        # El lienzo se lee en vivo: los items se posicionan en coordenadas BASE,
+        # que no tienen por qué coincidir con la resolución de salida.
+        cw = ch = 0.0
+        try:
+            vs = (obs_send(ws, "GetVideoSettings")
+                  .get("d", {}).get("responseData", {}))
+            cw, ch = float(vs.get("baseWidth") or 0), float(vs.get("baseHeight") or 0)
+        except Exception:
+            pass
+        if cw <= 0 or ch <= 0:
+            cw = float(OBS_TARGET_VIDEO.get("baseWidth") or 1920)
+            ch = float(OBS_TARGET_VIDEO.get("baseHeight") or 1080)
 
-        # El juego se escala para ENTRAR en el lienzo conservando proporción: lo
-        # que sobra en el otro eje son barras. Si la fuente es más ancha que el
-        # lienzo, las barras van arriba y abajo; si es más angosta, a los lados.
-        if ar_src > ar_out:
-            barras = 1.0 - (ar_out / ar_src)     # letterbox
-            lado = "arriba_abajo"
-        elif ar_src < ar_out:
-            barras = 1.0 - (ar_src / ar_out)     # pillarbox
-            lado = "costados"
-        else:
-            barras, lado = 0.0, "ninguna"
-
-        return {
-            "fuente_ancho": sw, "fuente_alto": sh,
-            "lienzo_ancho": cw, "lienzo_alto": ch,
-            "aspecto_fuente": round(ar_src, 4),
-            "aspecto_lienzo": round(ar_out, 4),
-            "barras_fraccion": round(barras, 4),
-            "barras_lado": lado,
-            # 1% de tolerancia: redondeos de escalado no son barras de verdad.
-            "ocupa_cuadro_completo": barras < 0.01,
-        }
+        return _encuadre_geometria(tr, cw, ch)
     except Exception as e:
         _obs_dbg(f"_meta_encuadre: {e}")
         return None
@@ -2413,14 +2503,53 @@ def _camel_snake(s):
     return re.sub(r"_+", "_", s).lower()
 
 # Archivo de configuración de teclas que efectivamente se leyó en esta sesión.
-# Lo dejan anotado los parsers al usarlo, para que `_meta_rebind_evidence()`
-# pueda después preguntarle si cambió mientras se grababa. Es una variable de
-# módulo y no un retorno más porque los parsers los consume un solo lugar y no
-# vale la pena cambiarles la firma.
-_KM_CONFIG_USADO = {"path": None}
+# `path` lo dejan anotado los parsers al usarlo; `inicio` lo deja
+# `_km_snapshot_inicio()` al arrancar la grabación. Los consume
+# `_meta_rebind_evidence()` al cerrarla. Es una variable de módulo y no un
+# retorno más porque los parsers los consume un solo lugar y no vale la pena
+# cambiarles la firma.
+_KM_CONFIG_USADO = {"path": None, "inicio": None}
 
 
-def _meta_rebind_evidence(start_ms, end_ms):
+def _km_snapshot_inicio(exe_path, game_name=""):
+    """
+    Foto del key mapping AL ARRANCAR la grabación, para poder compararla al
+    cerrarla y saber si se re-mapeó una tecla mientras se jugaba.
+
+    Sin esta foto la única señal disponible es la fecha de modificación del
+    archivo de config, que en Source es inservible: `config.cfg` guarda los binds
+    JUNTO con video, audio y sensibilidad, así que cambiar el volumen reescribe
+    el archivo y dispara un falso positivo. Lo reportó QA el 02-09-2026.
+
+    Se llama en un thread aparte: `_meta_key_mapping()` puede recorrer
+    directorios del juego buscando el config, y eso no puede demorar el arranque
+    de una grabación. El resultado recién hace falta minutos después, al cerrar.
+
+    NUNCA lanza: si algo falla, queda sin snapshot y se degrada a la señal de
+    mtime, que es lo que había antes.
+    """
+    _KM_CONFIG_USADO["inicio"] = None
+    try:
+        game_dir = os.path.dirname(exe_path) if exe_path else None
+        engine = _meta_detect_engine(game_dir)
+        mapping, src = _meta_key_mapping(exe_path, engine, game_name)
+        if src != "config" or not mapping:
+            return   # sin parser para este motor, o no se encontró el archivo
+        path = _KM_CONFIG_USADO.get("path")
+        mtime = None
+        try:
+            mtime = int(os.stat(path).st_mtime * 1000) if path else None
+        except Exception:
+            pass
+        _KM_CONFIG_USADO["inicio"] = {
+            "path": path, "mapping": dict(mapping), "mtime_unix_ms": mtime,
+        }
+    except Exception as e:
+        _obs_dbg(f"_km_snapshot_inicio: {e}")
+
+
+def _meta_rebind_evidence(start_ms, end_ms, key_map_final=None,
+                          binding_src_final=None):
     """
     ¿Se re-mapearon teclas MIENTRAS se grababa?
 
@@ -2428,15 +2557,21 @@ def _meta_rebind_evidence(start_ms, end_ms):
     active gameplay"). No podemos impedirlo, pero sí podemos decir si hay
     evidencia — y decirlo es lo que pide el requisito.
 
-    La señal: la fecha de modificación del archivo de configuración del juego
-    cae DENTRO de la ventana de grabación. Si el jugador entra a opciones y
-    cambia un bind, el juego reescribe ese archivo en el momento.
+    Se reportan DOS señales, de fuerza distinta:
 
-    ⚠ Es una SEÑAL, no un veredicto, y hay que leerla junto con `possible_remaps`
-    (que mira teclas usadas que no figuran en el mapping). Un juego puede
-    reescribir su config por otros motivos —cambiar resolución, volumen— y eso
-    daría un positivo sin que haya habido re-mapeo. Por eso el campo se llama
-    `config_modificada_durante_sesion` y no `rebind_detectado`.
+    `binds_modificados_durante_sesion` — la buena. Compara el key mapping leído
+    al arrancar contra el leído al cerrar. Si cambió, cambió un bind: no hay
+    ambigüedad, y se listan las teclas en `binds_cambiados`.
+
+    `config_modificada_durante_sesion` — la débil, la que ya existía. Solo mira
+    si la fecha de modificación del archivo cae dentro de la ventana grabada.
+    Se queda porque cubre el caso en que no hubo snapshot, pero ⚠ tiene falsos
+    positivos conocidos: en Source, `config.cfg` guarda los binds junto con
+    video, audio y sensibilidad, así que subir el volumen la enciende. QA lo
+    reportó el 02-09-2026 y por eso se agregó la señal fuerte.
+
+    Leerlas junto con `possible_remaps` (que mira teclas usadas que no figuran en
+    el mapping), no en lugar de él.
 
     `verificable: False` cuando no tenemos parser para ese motor (Unity y otros):
     ahí no afirmamos nada en ninguna dirección.
@@ -2448,13 +2583,35 @@ def _meta_rebind_evidence(start_ms, end_ms):
         st = os.stat(path)
     except Exception:
         return {"verificable": False, "motivo": "el archivo ya no está accesible"}
-    mtime_ms = int(st.st_mtime * 1000)
-    return {
+
+    out = {
         "verificable": True,
         "archivo": os.path.basename(path),
-        "mtime_unix_ms": mtime_ms,
-        "config_modificada_durante_sesion": bool(start_ms <= mtime_ms <= end_ms),
+        "mtime_unix_ms": int(st.st_mtime * 1000),
+        "config_modificada_durante_sesion":
+            bool(start_ms <= int(st.st_mtime * 1000) <= end_ms),
     }
+
+    ini = _KM_CONFIG_USADO.get("inicio")
+    if not ini or not ini.get("mapping"):
+        out["binds_modificados_durante_sesion"] = None
+        out["motivo_sin_comparacion"] = "no se pudo leer el mapping al arrancar"
+        return out
+    if binding_src_final != "config" or not key_map_final:
+        out["binds_modificados_durante_sesion"] = None
+        out["motivo_sin_comparacion"] = "no se pudo leer el mapping al cerrar"
+        return out
+
+    antes, despues = ini["mapping"], key_map_final
+    cambiadas = sorted(k for k in set(antes) | set(despues)
+                       if antes.get(k) != despues.get(k))
+    out["binds_modificados_durante_sesion"] = bool(cambiadas)
+    if cambiadas:
+        # Se listan acotadas: un config reescrito entero no tiene por qué llenar
+        # la metadata, y con las primeras alcanza para auditar.
+        out["binds_cambiados"] = cambiadas[:25]
+        out["binds_cambiados_total"] = len(cambiadas)
+    return out
 
 
 def _parse_ue_input_ini(ini_path):
@@ -3023,7 +3180,13 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
         integrity = _build_integrity(session_dir)
 
         metadata = {
-            "schema_version":   "1.1",
+            # Bump 1.1 -> 1.2 (01-09-2026). La convencion de este repo es NO
+            # bumpear cuando se AGREGA un campo opcional: no rompe a ningun
+            # consumidor. Aca es al reves — se SACARON `anchor_method` y
+            # `anchor_precision_ms` de `timing`. Un lab que ya parsea 1.1 y los
+            # lee se rompe, o peor: usa un default y sigue andando con un dato
+            # inventado. Una remocion si cambia el contrato, por eso bumpea.
+            "schema_version":   "1.2",
             "session_id":       session_id,
             "source_id":        source_id,
             "recorder_version": VERSION,
@@ -3100,7 +3263,8 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 # Troveo prohíbe re-mapear teclas durante el gameplay. No lo
                 # impedimos; esto declara si hay evidencia de que pasó. Se lee
                 # JUNTO con possible_remaps, no en lugar de él.
-                "rebind_evidence": _meta_rebind_evidence(start_ms, end_ms),
+                "rebind_evidence": _meta_rebind_evidence(
+                    start_ms, end_ms, key_map, binding_src),
                 "sampling_hz": {
                     "video_timeline": hz.get("video_timeline"),
                     "mouse_position": hz.get("mouse_log"),
@@ -6234,6 +6398,21 @@ class PleiadaApp:
         # estaba capturando OBS cuando se grabó, y un mismatch de título queda
         # indetectable una vez subida la sesión.
         self._recording_obs_window = _win or ""
+
+        # Foto del key mapping ANTES de jugar, para poder decir al cerrar si se
+        # re-mapeó una tecla durante la sesión (Troveo lo prohíbe). Va en un
+        # thread porque buscar el config puede recorrer directorios del juego y
+        # nada de eso puede demorar el arranque de la grabación; el resultado
+        # recién se consume en build_session_metadata.
+        try:
+            _t_km = threading.Thread(
+                target=_km_snapshot_inicio,
+                args=(self._recording_exe_path,
+                      (self.selected_game or {}).get("game", "")),
+                daemon=True)
+            _t_km.start()
+        except Exception:
+            pass
 
         # e. Arrancar AHK con el exe YA resuelto (filtro de ventana correcto) +
         #    los VK de los hotkeys del Recorder para que AHK no los registre en key_log.

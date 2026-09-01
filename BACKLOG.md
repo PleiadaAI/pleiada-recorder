@@ -5,10 +5,11 @@ curso. Lo más urgente arriba. Cuando algo se implementa, se borra de acá.
 
 ---
 
-## 00. AL PUBLICAR LA v0.9.14: es update OBLIGATORIO
+## 00. AL PUBLICAR LA v0.9.15: es update OBLIGATORIO
 
-**Decidido por Martín el 01/09/2026, condicionado al OK de QA.** El build ya está
-entregado a QA; cuando aprueben, la v0.9.14 sale como **mandatoria**.
+**Decidido por Martín el 01/09/2026, condicionado al OK de QA.** Aplica a la **v0.9.15**:
+la v0.9.14 se entregó a QA, rebotó por la detección de franjas negras (ver abajo) y no
+se publica. Cuando QA apruebe la v0.9.15, sale como **mandatoria**.
 
 El motivo es el audio: hasta que cada máquina actualice, se sigue grabando el audio de
 escritorio, y por ahí puede entrar chat de voz de terceros que nunca consintieron. Es el
@@ -17,7 +18,7 @@ mismo criterio con el que se hizo mandatoria la v0.9.10.
 **Qué hay que tocar, y CUÁNDO:**
 
 ```
-pleiada_installer/min_version.txt   →   v0.9.14
+pleiada_installer/min_version.txt   →   v0.9.15
 ```
 
 ⚠️ **Tiene que estar commiteado ANTES de tagear el release.** El workflow
