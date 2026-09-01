@@ -44,6 +44,15 @@ es el que usa el auto-update). La version tiene que coincidir con `VERSION` en
 Desde la GUI (File -> Open -> setup.iss -> F9) tambien compila, pero no permite
 pasar `/DAppVersion`.
 
+### Ojo: los builds locales salen SIN FIRMAR
+La firma de codigo (SSL.com / eSigner) la hace el CI, no ISCC. Un .exe compilado
+aca sale sin firma: Windows lo muestra como "Editor desconocido" y SmartScreen
+advierte. Sirve igual para probar, pero **no es lo mismo que se publica**, y no
+sirve para validar nada relacionado con la firma. Ver `..\FIRMA_CODIGO_SSLCOM.md`.
+
+**Nunca distribuir un .exe compilado local como si fuera un release.** Lo que va a
+produccion sale siempre del tag, por GitHub Actions.
+
 ### Por que los .exe siguen diciendo PleiadaRecorder
 La app se llama Gameplay Recorder desde v0.8.10, pero el nombre de los .exe NO
 cambio: el boton de descarga del sitio apunta al permalink

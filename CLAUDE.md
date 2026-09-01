@@ -47,9 +47,10 @@ El rename de las carpetas de datos es una versión aparte, con migración. No ha
 pleiada-recorder/
 ├── CHANGELOG.md                      # una sección por versión, la nueva arriba
 ├── COMO_PUBLICAR_ACTUALIZACIONES.md  # runbook de release (leer antes de publicar)
+├── FIRMA_CODIGO_SSLCOM.md            # firma de código: activación, cuota, troubleshooting
 ├── LICENSE                           # source-available
 ├── README.md                         # doc de usuario (ver §8: la parte "Para devs" está vieja)
-├── .github/workflows/build.yml       # CI: tag → compila → publica Release
+├── .github/workflows/build.yml       # CI: tag → compila → FIRMA → publica Release
 └── pleiada_installer/
     ├── setup.iss                     # Inno Setup: genera el completo Y el LITE
     ├── min_version.txt               # versión mínima soportada (update obligatorio)
