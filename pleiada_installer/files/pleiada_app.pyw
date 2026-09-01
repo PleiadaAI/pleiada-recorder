@@ -2794,12 +2794,26 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
         start_ms, end_ms = _meta_csv_anchors(session_dir)
         duration_ms = (end_ms - start_ms) if (start_ms and end_ms) else None
 
-        # Detectar si el anchor fue moof2 o fallback (fallback tiende a ser múltiplo de 1000)
-        anchor_method    = "moof2"
-        anchor_precision = 50
-        if start_ms and (start_ms % 1000 < 10 or start_ms % 1000 > 990):
-            anchor_method    = "fallback_system_time"
-            anchor_precision = 1000
+        # El anchor sale de `time.time()` al recibir OUTPUT_STARTED del WebSocket de
+        # OBS (bloque "b. Anchor timestamp" del launch). Eso es lo que se declara.
+        #
+        # 🔴 Lo que había acá antes era una FABRICACIÓN, y el cliente la audita.
+        # Declaraba "moof2 / 50 ms" salvo que `start_ms` cayera cerca de un múltiplo
+        # de 1000, y entonces declaraba "fallback_system_time / 1000 ms". Las tres
+        # partes eran falsas:
+        #   · `compute_anchor_ts()` (el método moof2) está escrito en este archivo
+        #     pero NUNCA se llama;
+        #   · el 50 era la precisión teórica de ese método que no corre — y encima
+        #     ese método hace polling cada 100 ms, o sea ±3 cuadros: PEOR que el
+        #     error real medido (mediana 1 cuadro). No cablearlo;
+        #   · `start_ms % 1000` no tiene ninguna relación con cómo se obtuvo el
+        #     anchor: es una coincidencia del reloj.
+        # Troveo lo cruza contra su propia medición: `agrees_declared_tolerance` les
+        # dio False en 35 de 462 sesiones de troveo-001.
+        #
+        # Los dos campos se sacaron del metadata (ver el bloque "timing" más abajo):
+        # no se reemplazan por otros valores, porque la precisión por sesión no se
+        # mide y el método no aporta nada sin ella.
 
         # IDs anónimos
         session_id = _hashlib.sha256(
@@ -2888,8 +2902,20 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 "end_unix_ms":         end_ms,
                 "duration_ms":         duration_ms,
                 "anchor_ts":           start_ms,
-                "anchor_method":       anchor_method,
-                "anchor_precision_ms": anchor_precision,
+                # `anchor_method` y `anchor_precision_ms` SE SACARON (01-09-2026,
+                # decisión de Martín). Declaraban un método que no corre y una
+                # precisión que nunca se midió, y el cliente los audita. No se
+                # reemplazan por otros valores: si algún día se mide la precisión
+                # por sesión, ahí se agrega el campo — con el número medido.
+                # La explicación del fenómeno queda abajo, que es lo único que
+                # podemos afirmar de verdad.
+                "anchor_notes": (
+                    "Anchor taken from the host clock when OBS reported the recording "
+                    "had started; it carries that machine's capture start-up latency. "
+                    "Per-session alignment accuracy is not measured, so no value is "
+                    "declared. The offset is close to constant for a given machine and "
+                    "title, so it can be measured once and corrected."
+                ),
             },
 
             "game": {

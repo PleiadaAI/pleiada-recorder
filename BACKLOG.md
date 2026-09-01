@@ -274,6 +274,80 @@ explícitamente y el número cierra.
 
 ---
 
+## 7. Annotations: qué toca al Recorder y qué no
+
+**Estado: pedido por clientes, nada decidido ni implementado (30/08/2026).** Se anota acá
+para que entre junto con los requirements nuevos de Troveo y de AI Ranch. El grueso del
+trabajo es del backend (ver su BACKLOG #3) y el formato canónico, el mapeo campo por campo
+y las reglas de procedencia están en `_programa/annotation_spec_v1.md` (30/08/2026).
+
+**Lo primero es lo que NO hay que hacer: la mayoría de las anotaciones se derivan
+post-grabación de lo que ya capturamos, y no justifican tocar el Recorder.** Las action
+labels por frame ya salen de `key_log` + `mouse_delta_log` + el `key_mapping`, igual que en
+el exporter de Odyssey. Antes de meter features de anotación en el cliente, revisar si no
+sale del CSV que ya tenemos.
+
+Del lado del Recorder quedan cuatro cosas reales:
+
+### 7.a · Etiquetar cada frame como nuevo / repetido / faltante 🔴
+
+Es un **requisito duro** del sample kit de AI Ranch, no un extra: *"For each sample, label
+whether the image is a new presentation, repeated presentation, capture-missing, generated,
+or unknown"*.
+
+Hoy no lo tenemos y encima lo tenemos **mal**: OBS duplica frames para sostener el CFR 60 y
+`frames_dropped` (`pleiada_app.pyw:2828`, `esperado − frame_count`) da 0, así que una sesión
+con 10 imágenes distintas por segundo sale declarando 60 fps y pasa todos los gates. Es el
+mismo agujero que ya rompe el requisito de Troveo de flaggear los intervalos degradados.
+
+La medición ya está resuelta: `medir_calidad.py` (v1.0) usa
+`ffmpeg -vf mpdecimate -fps_mode passthrough -f null -` y compara los frames de salida
+contra el total. **El `-fps_mode passthrough` es obligatorio.** Lo que falta es pasar de
+"medir una sesión a mano" a emitir la etiqueta por frame. ⚠ `mpdecimate` no distingue
+"corrió a 10 fps" de "la pantalla estuvo quieta" — para la etiqueta de AI Ranch eso importa
+menos que para el gate de calidad (un menú fijo *es* presentación repetida), pero no se
+puede reusar el mismo umbral para las dos cosas sin calibrar.
+
+### 7.b · Límites de episodio: marcarlos en vivo sale mucho más barato que inferirlos
+
+`annotations/episode_boundaries.jsonl` quiere los cortes de episodio y las discontinuidades
+(muerte, fin de ronda, loading, cambio de mapa). Inferirlos del video es un detector por
+título; **registrarlos en el momento es un timestamp**. Vale evaluar dos fuentes baratas
+antes de invertir en detección: una hotkey de marca manual, y los eventos que el propio
+Recorder ya conoce (pausa, pérdida de foco de ventana, arranque/fin de grabación).
+
+### 7.c · Mutear el audio de escritorio 🔴
+
+**Estado: DECIDIDO por Martín el 30/08/2026, sin implementar.** Se mutea el audio de
+escritorio en el Recorder, y por separado se educa a la comunidad para que lo apague por su
+cuenta.
+
+Cierra un riesgo que estaba abierto desde antes de todo esto: el audio de escritorio se graba
+sin mutear y ahí puede entrar chat de voz de terceros que nunca consintieron. Con esto,
+`voice_chat` pasa a declararse `not_captured` en cualquier entrega.
+
+**Lo que se pierde, para que quede escrito:** era la mejor señal para detectar disparo,
+muerte, pickup y fin de ronda, y la más limpia para separar cinemática de gameplay. Esas
+anotaciones pasan a depender solo de input y video, con menos precisión — y el OCR de HUD
+sube de prioridad porque queda como única señal fuerte además del input. AI Ranch pide
+`media/audio.<container>`: se declara `not_applicable` (decidimos no capturarlo), no
+`not_available`.
+
+`obs_control.py` ya tiene el mute del micrófono; acá se trata del audio de **escritorio**, que
+es otra fuente en el perfil de OBS. Verificar que el cambio sobreviva a que el usuario toque
+OBS por su cuenta, y que el instalador lo deje así en máquinas nuevas.
+
+### 7.d · Timing: el anchor fallback limita cuánto se puede prometer
+
+AI Ranch pide **milisegundos monotónicos relativos a la sesión** y evidencia de
+sincronización. Input↔input es exacto (epoch QPC), pero video↔input arrastra el anchor por
+system-time con la latencia de arranque de OBS. Cualquier anotación temporal que se cuelgue
+del video hereda ese error. Es el mismo pendiente de siempre (cablear el moof2, que está
+escrito y muerto en el código); acá lo que cambia es que ahora **hay un cliente que pide la
+evidencia de sync por escrito**.
+
+---
+
 ## Decisiones tomadas de NO hacer
 
 - **Borrar carpetas de grabaciones desde la app** (16/08/2026). Los archivos de una sesión
