@@ -8,25 +8,50 @@
 
 ## 0. Qué resuelve esto y qué NO
 
-**Qué resuelve.** Hoy el instalador sale sin firmar. Windows lo muestra como
-*"Editor desconocido"* en el cartel de UAC y SmartScreen tira *"Windows protegió
-su PC"*. Firmado, el cartel de UAC pasa a decir **Sunrise Advisors Generation
-Ltd** (el `AppPublisher` que ya está en `setup.iss`) y el .exe deja de ser
-anónimo: cualquiera puede verificar que lo compilamos nosotros y que nadie lo
-tocó en el camino.
+**Qué resuelve.** Antes el instalador salía sin firmar y Windows lo mostraba
+como *"Editor desconocido"*. Firmado, Windows lee la firma y muestra el nombre
+de la organización: el .exe deja de ser anónimo y cualquiera puede verificar que
+lo compilamos nosotros y que nadie lo tocó en el camino.
 
-**Qué NO resuelve — leer antes de prometerle nada a nadie.** El mail dice
-*"SSL.com 1 Year Code Signing"*, que es un certificado **OV**, no **EV**. La
-diferencia importa: con OV, SmartScreen **no** deja de advertir el primer día. La
-reputación se acumula por editor a medida que la gente descarga e instala, así
-que durante las primeras semanas/meses una parte de los usuarios va a seguir
-viendo el cartel azul — con la diferencia de que ahora aparece nuestro nombre y
-hay un botón "Más información → Ejecutar de todas formas" que ya no dice
-"desconocido". El EV es el que arranca con reputación desde el día uno.
+**Qué NO resuelve — leer antes de prometerle nada a nadie.** Es un certificado
+**OV** (confirmado en el portal: `certificate type: Code Signing`,
+`validation level: organization`), no EV. Con OV, SmartScreen **no** deja de
+advertir el primer día: la reputación se acumula por certificado a medida que la
+gente descarga e instala, sin umbral público ni plazo garantizado. Verificado en
+una máquina real el 01-09-2026 — el cartel *"Windows protegió su PC"* sigue
+apareciendo. Lo que cambió es que la línea `Editor:` ya no dice "desconocido".
+El EV es el que arranca con reputación desde el día uno.
 
-⚠ **Verificar esto en el portal antes de comunicar nada**: entrar a la orden y
-mirar si el producto dice *Code Signing* o *EV Code Signing*. Si es EV, el
-párrafo de arriba no aplica y la mejora se ve enseguida.
+### ⚠ El nombre que ve el usuario NO es la marca
+
+El certificado se emitió a nombre de **PLAYDATA SAS**, con `O=Pleiada`. Windows
+muestra el Subject completo del certificado, así que el cartel de SmartScreen
+dice, textual:
+
+```
+Editor: AR, Autonomous City Of Buenos Aires, Buenos Aires, Pleiada, PLAYDATA SAS
+```
+
+Eso deja tres nombres distintos de cara al usuario, y ninguno es el producto:
+
+| Dónde | Qué ve el usuario |
+|---|---|
+| Cartel de SmartScreen | `AR, ..., Pleiada, PLAYDATA SAS` (del certificado) |
+| Programas y características | Sunrise Advisors Generation Ltd (`AppPublisher` de `setup.iss`) |
+| La app | Gameplay Recorder |
+
+**Esto no se arregla con código.** El Subject está firmado por SSL.com: no hay
+flag de `signtool` ni de Inno que lo cambie. La única vía es reemitir el
+certificado, y si Sunrise es una entidad legal distinta de PLAYDATA SAS eso es
+una orden nueva con validación OV desde cero.
+
+**Decisión de Martín (01-09-2026): se deja para más adelante.** Por eso
+`AppPublisher` tampoco se tocó — alinearlo hoy a PLAYDATA SAS significaría
+cambiarlo de nuevo si el certificado se reemite.
+
+> El costo de postergarlo: la reputación de SmartScreen se acumula **por
+> certificado**. Reemitir más adelante reinicia el contador, así que lo que se
+> gane firmando releases con este certificado se pierde el día que se cambie.
 
 **Tampoco cubre:**
 
@@ -80,32 +105,39 @@ PowerShell explícito, igual que el resto del workflow.
 crear el PIN. Si se recarga la página desaparece. Tener el bloc de notas abierto
 antes de llegar al paso 4. (Si ya pasó, se puede volver a mostrar — paso 5.)
 
+> Etiquetas verificadas en el portal el 01-09-2026. Si SSL.com rediseña la
+> página pueden cambiar, pero el flujo es este.
+
 1. Entrar a **https://secure.ssl.com/certificate_orders/co-431kv1dia0e** con la
-   cuenta de SSL.com.
-2. La orden tiene que figurar como **`eSigner Ready`**.
-   - Si aparece un botón **issue certificate** (porque el PIN ya estaba puesto),
-     tocarlo y saltar al paso 5.
-3. Tocar uno de los links de **download** de la tabla de descargas del certificado.
-4. Se pide crear un PIN: escribir un **PIN de 4 dígitos**, confirmarlo y tocar
-   **create PIN**.
-   - **Anotar el PIN.** Sin él no se puede volver a ver el secret code.
-   - Después de unos segundos aparece un **QR code** arriba de la tabla
-     **certificate downloads**, y debajo un recuadro **secret code**.
-5. **Copiar el `secret code` completo.** Es el TOTP secret (una cadena larga
-   tipo `ii5gVvZ9G+WkxB3FauAnoL/z14AXSMistcE0jZMWWNSjQDlql2kt2D6Z+l8=`).
-   - Si el QR ya no está: en la misma página escribir el PIN de 4 dígitos y tocar
-     **Show QR Code**. El TOTP vuelve a aparecer en el recuadro **secret code**.
-   - De paso, escanear el QR con Google Authenticator o Authy: sirve para firmar a
-     mano desde una PC si alguna vez hace falta.
-6. **Buscar el `credential ID`**: en la página de detalle del certificado, sección
-   **SIGNING CREDENTIALS**. Es un UUID
-   (tipo `fe537ace-e132-52a9-c2e7-egcd2ac3f1e6`).
+   cuenta de SSL.com. La orden figura como `issued` / `(eSigner active)`.
+2. Abrir **CERTIFICATE DETAILS**. A la derecha, debajo de los botones
+   `SHOW MY SIGNING CREDENTIALS` e `INVITE USERS`, está el bloque
+   **eSigner.com Cloud Signing Enrollment**.
+3. El desplegable **`Second factor authentication`** tiene que quedar en
+   **`OTP APP`**.
+   - **No elegir SMS.** El CI necesita un secreto TOTP para generar los códigos
+     solo; con SMS habría que firmar a mano cada release.
+4. Llenar **`set 4 digit PIN`** y **`confirm PIN`** con el mismo PIN de 4
+   dígitos, y tocar el botón **`create OTP`**.
+   - **Anotar el PIN antes de seguir.** El portal avisa que hace falta para
+     reemplazar o quitar dispositivos de firma, y es lo que permite volver a
+     mostrar el QR.
+   - Después de unos segundos aparece el **QR code**.
+5. **Escanear el QR con Google Authenticator o Authy** (el portal lo pide
+   inmediatamente) y después **copiar el `secret code` completo**: es el TOTP
+   secret, una cadena larga que termina en `=`, tipo
+   `ii5gVvZ9G+WkxB3FauAnoL/z14AXSMistcE0jZMWWNSjQDlql2kt2D6Z+l8=`.
+   - **Copiarlo entero, con el `=` final.** Al seleccionar con el mouse se corta
+     el último carácter y después el CI falla con "Invalid OTP" sin explicar por qué.
+   - Si el QR ya no está: escribir el PIN de 4 dígitos y tocar **Show QR Code**.
+6. **Buscar el `credential ID`**: botón verde **`SHOW MY SIGNING CREDENTIALS`**.
+   Es un UUID (tipo `fe537ace-e132-52a9-c2e7-egcd2ac3f1e6`).
 
 Al terminar tenés que tener estas cuatro cosas anotadas:
 
 | Dato | De dónde sale |
 |---|---|
-| Usuario de SSL.com | el mail con el que entrás a la cuenta |
+| Usuario de SSL.com | lo que se tipea en el campo de usuario del login |
 | Contraseña de SSL.com | la de la cuenta |
 | `credential ID` | sección **SIGNING CREDENTIALS** de la orden |
 | `secret code` (TOTP) | el recuadro debajo del QR |
@@ -155,19 +187,29 @@ toca producción**.
 
 1. Ir a
    **https://github.com/PleiadaAI/pleiada-recorder/actions/workflows/build.yml**
-2. Botón **Run workflow** (arriba a la derecha) → branch `main` → **Run workflow**.
-3. Esperar ~15 min y abrir el run.
+2. Botón **Run workflow** (arriba a la derecha) → elegir la rama en
+   **`Use workflow from`** → **Run workflow**.
+   - ⚠ Si se deja en `main` cuando el cambio está en una rama, corre el workflow
+     de `main` y no se prueba nada.
+3. Esperar ~3 min y abrir el run.
 4. **Qué mirar, en este orden:**
    - Paso **Check signing secrets** → tiene que decir
      `Secretos de firma presentes: se van a firmar los dos instaladores.`
    - Paso **Sign installers with eSigner** → dos líneas
      `OK: ... firmado y reemplazado en Output\`
    - Paso **Verify Authenticode signature** → tiene que decir `Valid` en los dos
-     y mostrar `Firmante: CN=Sunrise Advisors Generation Ltd, ...` más una línea
-     `Timestamp:`.
-5. Bajar el artifact **PleiadaRecorder_Setup_main** del run y probar el .exe en una
-   máquina limpia: el cartel de UAC tiene que decir **Sunrise Advisors Generation
-   Ltd** en vez de *Editor desconocido*.
+     y mostrar `Firmante: CN=PLAYDATA SAS, O=Pleiada, ...` más una línea
+     `Timestamp: CN=SSL.com Timestamping Unit ...`.
+   - Paso **Verify output** → `PleiadaRecorder_Setup.exe (181 MB)` y
+     `PleiadaRecorder_Update.exe (2.2 MB)`. Un tamaño muy distinto en el completo
+     significa que faltó algo en `deps\`.
+5. Bajar el artifact del run (sección **Artifacts**, al final de la página; viene
+   como .zip con los dos .exe) y probar el completo en una máquina limpia.
+
+**Resultado real del 01-09-2026** (run `33568429344`), para que sirva de
+referencia: SmartScreen **sí** apareció, y la línea `Editor:` mostró
+`AR, Autonomous City Of Buenos Aires, Buenos Aires, Pleiada, PLAYDATA SAS`.
+Eso es lo esperado con un certificado OV recién emitido — ver §0.
 
 Para chequearlo desde PowerShell en tu PC, sobre el .exe bajado:
 
@@ -193,22 +235,27 @@ Dos cosas propias de este primer release:
 
 1. **Versión nueva.** Los .exe firmados son bytes distintos a los sin firmar, así
    que es un build distinto y le toca número nuevo (regla del proyecto: nunca dos
-   builds con el mismo número). Hoy `pleiada_app.pyw` ya está en `v0.9.14` y ese
-   tag todavía no se publicó — lo más limpio es que **la v0.9.14 sea el primer
-   release firmado** y no bumpear nada. Si la v0.9.14 se publica antes de que esto
-   esté probado, entonces la firma entra en la v0.9.15.
+   builds con el mismo número). La firma entra en el primer tag que salga después
+   de mergear esta rama a `main`; no hace falta un bump extra por la firma en sí.
 2. **CHANGELOG.** Es un cambio que el usuario ve, así que va una línea — y como
    todo copy visible, **la confirma Martín antes de publicar**. Propuesta para
    pegar en la sección de la versión:
 
 ```
-### Windows ya no dice "Editor desconocido"
+### El instalador ahora está firmado
 
-El instalador ahora está firmado digitalmente a nombre de Sunrise Advisors
-Generation Ltd. Al instalarlo, Windows muestra nuestro nombre en vez de una
-advertencia de editor desconocido, y podés verificar que el archivo es el que
-publicamos nosotros y que nadie lo modificó.
+Windows ya no lo marca como de editor desconocido: al instalarlo podés ver la
+organización que lo publica y verificar que el archivo es el que publicamos
+nosotros y que nadie lo modificó por el camino.
+
+Windows puede seguir mostrando una advertencia las primeras veces, hasta que
+reconozca la firma como conocida. Si aparece, "Más información" y "Ejecutar de
+todas formas".
 ```
+
+⚠ Esa propuesta evita nombrar a la organización a propósito, porque hoy el
+certificado dice PLAYDATA SAS y `AppPublisher` dice Sunrise (ver §0). Si el
+certificado se reemite, revisar si conviene nombrarla.
 
 ---
 

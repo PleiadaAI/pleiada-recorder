@@ -19,12 +19,13 @@
   | `PleiadaRecorder_Setup.exe` | Instalador completo (app + Python + AHK + OBS). Para instalaciones nuevas / la página de descarga. |
   | `PleiadaRecorder_Update.exe` | Updater liviano (solo los scripts de la app). Lo descarga la app instalada para auto-actualizarse. |
   | `latest.json` | Manifiesto que lee la app al arrancar: versión nueva, versión mínima, URLs y hashes SHA-256. |
-- **Los dos .exe salen firmados digitalmente** (SSL.com / eSigner) a nombre de
-  Sunrise Advisors Generation Ltd. Lo hace el CI solo, entre compilar y publicar: no
-  hay nada que hacer al publicar. Lo único a saber acá es que **si faltan los secrets
-  de firma, el build de un tag falla a propósito** — un release de producción no sale
-  sin firmar. Activación, detalle y troubleshooting en
-  [`FIRMA_CODIGO_SSLCOM.md`](FIRMA_CODIGO_SSLCOM.md).
+- **Los dos .exe salen firmados digitalmente** (SSL.com / eSigner), hoy a nombre de
+  **PLAYDATA SAS** — que NO es lo que dice `AppPublisher`; ver §0 de
+  [`FIRMA_CODIGO_SSLCOM.md`](FIRMA_CODIGO_SSLCOM.md). Lo hace el CI solo, entre
+  compilar y publicar: no hay nada que hacer al publicar. Lo único a saber acá es
+  que **si faltan los secrets de firma, el build de un tag falla a propósito** — un
+  release de producción no sale sin firmar. Activación, detalle y troubleshooting
+  en ese mismo runbook.
 - La app instalada chequea al arrancar
   `https://github.com/PleiadaAI/pleiada-recorder/releases/latest/download/latest.json`.
   Si la versión del manifiesto es más nueva que la instalada, muestra el banner
@@ -102,13 +103,12 @@ Esto arranca el build en GitHub Actions (~10-15 min).
 3. Abrir `https://github.com/PleiadaAI/pleiada-recorder/releases/latest/download/latest.json`
    en el navegador y confirmar que `version` es la nueva.
 4. En el log del workflow, paso **Verify Authenticode signature**: los dos .exe tienen
-   que decir `Valid`, mostrar `Firmante: CN=Sunrise Advisors Generation Ltd, ...` y
-   una línea `Timestamp:`. (Si alguno quedó `NotSigned` el build ya falló solo y no
-   hay release.)
+   que decir `Valid`, mostrar `Firmante: CN=PLAYDATA SAS, ...` y una línea
+   `Timestamp:`. (Si alguno quedó `NotSigned` el build ya falló solo y no hay release.)
 5. Abrir el Recorder en una máquina con la versión anterior → debe aparecer el banner
-   "Nueva versión disponible" → "Actualizar ahora" → un prompt de UAC —que ahora dice
-   **Sunrise Advisors Generation Ltd** en vez de "Editor desconocido"— → la app se
-   reinicia actualizada (verificar la versión en la barra de título).
+   "Nueva versión disponible" → "Actualizar ahora" → un prompt de UAC —que ahora
+   identifica al editor en vez de decir "Editor desconocido"— → la app se reinicia
+   actualizada (verificar la versión en la barra de título).
 
 ---
 
