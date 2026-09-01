@@ -254,12 +254,18 @@ jobs:
           }
           echo "EXE_PATH=$((Resolve-Path $full).Path)" >> $env:GITHUB_ENV
           echo "LITE_PATH=$((Resolve-Path $lite).Path)" >> $env:GITHUB_ENV
+          # upload-artifact rechaza / \ : " < > | * ? en el nombre del artifact.
+          # En un tag (v0.9.14) ref_name no tiene ninguno, pero en un run manual
+          # sobre una rama tipo feature/xxx la barra hace fallar el upload — y el
+          # run se pone rojo por algo que no tiene nada que ver con el build.
+          $safeRef = "${{ github.ref_name }}" -replace '[\\/:"<>|*?]', '-'
+          echo "ARTIFACT_NAME=PleiadaRecorder_Setup_$safeRef" >> $env:GITHUB_ENV
 
       # ── 9. Upload as workflow artifact (versioned, for internal use) ─
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PleiadaRecorder_Setup_${{ github.ref_name }}
+          name: ${{ env.ARTIFACT_NAME }}
           path: |
             ${{ env.EXE_PATH }}
             ${{ env.LITE_PATH }}
