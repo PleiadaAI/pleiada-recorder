@@ -129,6 +129,118 @@ jobs:
             exit 1
           }
 
+      # ── 7.5. Firma de codigo (SSL.com eSigner / CodeSignTool) ──────
+      #    ORDEN CRITICO: la firma modifica los bytes del .exe, asi que
+      #    tiene que correr ANTES del paso 9.5 (que calcula los SHA-256
+      #    del latest.json). Si se firma despues, el hash del manifiesto
+      #    no coincide con el archivo y el auto-update descarta la
+      #    descarga en silencio: nadie se puede actualizar.
+      #    Runbook completo: FIRMA_CODIGO_SSLCOM.md
+      - name: Check signing secrets
+        shell: pwsh
+        env:
+          ES_USERNAME:      ${{ secrets.ES_USERNAME }}
+          ES_PASSWORD:      ${{ secrets.ES_PASSWORD }}
+          ES_CREDENTIAL_ID: ${{ secrets.ES_CREDENTIAL_ID }}
+          ES_TOTP_SECRET:   ${{ secrets.ES_TOTP_SECRET }}
+        run: |
+          $faltan = @()
+          foreach ($n in 'ES_USERNAME','ES_PASSWORD','ES_CREDENTIAL_ID','ES_TOTP_SECRET') {
+            if (-not [Environment]::GetEnvironmentVariable($n)) { $faltan += $n }
+          }
+          if ($faltan.Count -eq 0) {
+            Write-Host "Secretos de firma presentes: se van a firmar los dos instaladores."
+            echo "SIGNING=on" >> $env:GITHUB_ENV
+            return
+          }
+          $msg = "Faltan secretos de firma en el repo: " + ($faltan -join ', ')
+          if ("${{ github.ref }}".StartsWith("refs/tags/")) {
+            Write-Error "$msg. Un release de produccion NO puede salir sin firmar."
+            exit 1
+          }
+          Write-Warning "$msg. Es un build de prueba (no es un tag): se omite la firma."
+          echo "SIGNING=off" >> $env:GITHUB_ENV
+
+      - name: Download CodeSignTool
+        if: env.SIGNING == 'on'
+        shell: pwsh
+        run: |
+          # Version clavada a proposito. El .zip -windows trae su propio JRE,
+          # asi que no depende de la version de Java del runner.
+          $url = "https://github.com/SSLcom/CodeSignTool/releases/download/v1.3.2/CodeSignTool-v1.3.2-windows.zip"
+          $zip  = "$env:RUNNER_TEMP\CodeSignTool.zip"
+          $dest = "$env:RUNNER_TEMP\codesigntool"
+          Write-Host "Descargando CodeSignTool v1.3.2..."
+          Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+          $mb = [math]::Round((Get-Item $zip).Length / 1MB, 1)
+          Write-Host "CodeSignTool: $mb MB"
+          Expand-Archive -Path $zip -DestinationPath $dest -Force
+          $bat = Get-ChildItem $dest -Recurse -Filter "CodeSignTool.bat" | Select-Object -First 1
+          if (-not $bat) { Write-Error "No se encontro CodeSignTool.bat dentro del zip"; exit 1 }
+          Write-Host "CodeSignTool.bat: $($bat.FullName)"
+          echo "CST_DIR=$($bat.DirectoryName)" >> $env:GITHUB_ENV
+
+      - name: Sign installers with eSigner
+        if: env.SIGNING == 'on'
+        shell: pwsh
+        env:
+          ES_USERNAME:      ${{ secrets.ES_USERNAME }}
+          ES_PASSWORD:      ${{ secrets.ES_PASSWORD }}
+          ES_CREDENTIAL_ID: ${{ secrets.ES_CREDENTIAL_ID }}
+          ES_TOTP_SECRET:   ${{ secrets.ES_TOTP_SECRET }}
+        run: |
+          $outDir    = (Resolve-Path "pleiada_installer\Output").Path
+          $signedDir = "$env:RUNNER_TEMP\signed"
+          New-Item -ItemType Directory -Force -Path $signedDir | Out-Null
+          # CodeSignTool.bat SOLO corre desde su propia carpeta: resuelve sus
+          # jars y su JRE con rutas relativas al directorio de trabajo.
+          Push-Location $env:CST_DIR
+          foreach ($name in @("PleiadaRecorder_Setup.exe", "PleiadaRecorder_Update.exe")) {
+            $src    = Join-Path $outDir    $name
+            $signed = Join-Path $signedDir $name
+            Write-Host "Firmando $name ..."
+            & ".\CodeSignTool.bat" sign `
+              "-credential_id=$env:ES_CREDENTIAL_ID" `
+              "-username=$env:ES_USERNAME" `
+              "-password=$env:ES_PASSWORD" `
+              "-totp_secret=$env:ES_TOTP_SECRET" `
+              "-input_file_path=$src" `
+              "-output_dir_path=$signedDir"
+            $code = $LASTEXITCODE
+            # CodeSignTool no siempre devuelve un exit code distinto de 0 cuando
+            # falla, asi que el chequeo que vale es que el archivo firmado exista.
+            if ($code -ne 0) { Write-Error "CodeSignTool fallo en $name (codigo $code)"; exit 1 }
+            if (-not (Test-Path $signed)) { Write-Error "CodeSignTool no genero el firmado de $name"; exit 1 }
+            Move-Item $signed $src -Force
+            Write-Host "  OK: $name firmado y reemplazado en Output\"
+          }
+          Pop-Location
+
+      - name: Verify Authenticode signature
+        if: env.SIGNING == 'on'
+        shell: pwsh
+        run: |
+          $fallo = $false
+          foreach ($name in @("PleiadaRecorder_Setup.exe", "PleiadaRecorder_Update.exe")) {
+            $sig = Get-AuthenticodeSignature "pleiada_installer\Output\$name"
+            Write-Host "$name -> $($sig.Status)"
+            if ($sig.Status -eq 'NotSigned') {
+              Write-Error "  $name quedo SIN firmar"
+              $fallo = $true
+              continue
+            }
+            Write-Host "  Firmante: $($sig.SignerCertificate.Subject)"
+            if ($sig.TimeStamperCertificate) {
+              Write-Host "  Timestamp: $($sig.TimeStamperCertificate.Subject)"
+            } else {
+              # Sin timestamp la firma deja de validar el dia que vence el
+              # certificado (1 anio), incluso en los .exe ya distribuidos.
+              Write-Warning "  $name quedo SIN timestamp"
+            }
+            if ($sig.Status -ne 'Valid') { Write-Warning "  Estado inesperado: $($sig.Status)" }
+          }
+          if ($fallo) { exit 1 }
+
       # ── 8. Locate compiled .exe ───────────────────────────────────
       - name: Verify output
         shell: pwsh
@@ -157,6 +269,8 @@ jobs:
       #    El cliente instalado lo lee desde
       #    releases/latest/download/latest.json para saber si hay una
       #    version nueva, de donde bajarla y su SHA-256.
+      #    NO mover este paso antes de la firma (7.5): los hashes se calculan
+      #    sobre los .exe YA firmados. Ver el comentario del paso 7.5.
       - name: Generate update manifest (latest.json)
         if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
