@@ -5,6 +5,34 @@ curso. Lo más urgente arriba. Cuando algo se implementa, se borra de acá.
 
 ---
 
+## 00. AL PUBLICAR LA v0.9.14: es update OBLIGATORIO
+
+**Decidido por Martín el 01/09/2026, condicionado al OK de QA.** El build ya está
+entregado a QA; cuando aprueben, la v0.9.14 sale como **mandatoria**.
+
+El motivo es el audio: hasta que cada máquina actualice, se sigue grabando el audio de
+escritorio, y por ahí puede entrar chat de voz de terceros que nunca consintieron. Es el
+mismo criterio con el que se hizo mandatoria la v0.9.10.
+
+**Qué hay que tocar, y CUÁNDO:**
+
+```
+pleiada_installer/min_version.txt   →   v0.9.14
+```
+
+⚠️ **Tiene que estar commiteado ANTES de tagear el release.** El workflow
+(`.github/workflows/build.yml:166`) lee ese archivo en tiempo de build y lo escribe
+dentro de `latest.json`. No se puede subir después "sin release": habría que republicar.
+
+⚠️ Al verificar el release recién publicado, `releases/latest/download/latest.json` puede
+servir el manifiesto VIEJO por caché del CDN durante algunos minutos. No concluir que
+salió mal: reintentar con `?cb=<timestamp>` y contrastar con `gh release list`.
+
+⚠️ El `Output/latest.json` del repo local es un artefacto de build viejo y **miente**
+(dice v0.8.11). No leer la versión de ahí.
+
+---
+
 ## 0-. Calidad de grabación: lo que quedó pendiente de la v0.9.12
 
 **La v0.9.12 ya implementó el grueso** (calidad constante con techo, en modo Avanzado, con
