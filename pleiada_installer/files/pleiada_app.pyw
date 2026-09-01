@@ -15,7 +15,7 @@ import pleiada_sync_limits as sync_limits
 import obs_encoding
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.13"
+VERSION = "v0.9.14"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -1041,16 +1041,26 @@ def _obs_do_start():
     try:
         ws = obs_connect()   # puede lanzar OBSAuthError — se deja propagar
 
-        # Unmute desktop audio, mute mic
+        # Mutear TODO el audio: escritorio y micrófono.
+        #
+        # El audio de escritorio se grababa a propósito (era la mejor señal para
+        # detectar disparo, muerte y fin de ronda, y para separar cinemática de
+        # gameplay). Se apaga por DECISIÓN de Martín del 30/08/2026, y el motivo es
+        # de privacidad, no técnico: por ahí entra chat de voz de terceros que nunca
+        # consintieron aparecer en un dataset. En las entregas, `voice_chat` pasa a
+        # declararse `not_captured` y el stream de audio `not_applicable` — o sea
+        # "decidimos no capturarlo", no "no pudimos".
+        #
+        # Lo que esto cuesta, para que quede escrito: las anotaciones de eventos y
+        # la separación cinemática/gameplay pasan a depender solo de input y video,
+        # con menos precisión.
         try:
             resp   = obs_send(ws, "GetInputList")
             inputs = resp.get("d", {}).get("responseData", {}).get("inputs", [])
             for inp in inputs:
                 kind = inp.get("inputKind", "")
                 name = inp.get("inputName", "")
-                if kind == "wasapi_output_capture":
-                    obs_send(ws, "SetInputMute", {"inputName": name, "inputMuted": False})
-                elif kind == "wasapi_input_capture":
+                if kind in ("wasapi_output_capture", "wasapi_input_capture"):
                     obs_send(ws, "SetInputMute", {"inputName": name, "inputMuted": True})
         except Exception as e:
             _obs_dbg(f"audio setup error: {e}")
@@ -1890,6 +1900,86 @@ def package_session(session_dir):
 
 # ─── Session metadata (v0.4) ─────────────────────────────────────────────────
 
+def _meta_encuadre():
+    """
+    ¿El juego ocupa todo el cuadro, o quedan franjas negras a los costados?
+
+    Troveo lo pide literal: "the gameplay display must occupy the entire frame".
+    El control de QA que tenemos hoy solo rechaza lo ULTRAWIDE (más ancho que
+    1,80) — o sea que ve el archivo demasiado ancho, pero NO ve las franjas
+    negras DENTRO de un archivo 16:9, que es el caso frecuente: un juego 4:3 o
+    16:10 metido en un lienzo 16:9 deja barras a los lados y el archivo mide
+    1920x1080 igual.
+
+    No hace falta decodificar un solo frame: OBS sabe el tamaño real de lo que
+    está capturando. Se compara esa proporción contra el lienzo (1920x1080) y se
+    estima qué fracción del cuadro es barra negra.
+
+    Se hace acá y no mirando píxeles porque en la máquina del usuario NO hay
+    ffmpeg (verificado el 01-09-2026: el instalador no lo trae y OBS solo trae
+    las librerías, no un ejecutable de propósito general).
+
+    Retorna dict o None. NUNCA lanza: es telemetría, no puede tumbar una sesión.
+    """
+    try:
+        ws = obs_connect()
+    except Exception:
+        return None
+    try:
+        cur = (obs_send(ws, "GetCurrentProgramScene")
+               .get("d", {}).get("responseData", {})
+               .get("currentProgramSceneName", ""))
+        items = (obs_send(ws, "GetSceneItemList", {"sceneName": cur})
+                 .get("d", {}).get("responseData", {}).get("sceneItems", []))
+        item = next((i for i in items
+                     if i.get("inputKind") == "game_capture"
+                     and i.get("sceneItemEnabled", False)), None)
+        if not item:
+            return None
+        tr = (obs_send(ws, "GetSceneItemTransform",
+                       {"sceneName": cur, "sceneItemId": item.get("sceneItemId")})
+              .get("d", {}).get("responseData", {}).get("sceneItemTransform", {}))
+        sw = int(tr.get("sourceWidth") or 0)
+        sh = int(tr.get("sourceHeight") or 0)
+        if sw <= 0 or sh <= 0:
+            return None   # la fuente todavía no capturó nada
+
+        cw = int(OBS_TARGET_VIDEO.get("outputWidth") or 1920)
+        ch = int(OBS_TARGET_VIDEO.get("outputHeight") or 1080)
+        ar_src, ar_out = sw / sh, cw / ch
+
+        # El juego se escala para ENTRAR en el lienzo conservando proporción: lo
+        # que sobra en el otro eje son barras. Si la fuente es más ancha que el
+        # lienzo, las barras van arriba y abajo; si es más angosta, a los lados.
+        if ar_src > ar_out:
+            barras = 1.0 - (ar_out / ar_src)     # letterbox
+            lado = "arriba_abajo"
+        elif ar_src < ar_out:
+            barras = 1.0 - (ar_src / ar_out)     # pillarbox
+            lado = "costados"
+        else:
+            barras, lado = 0.0, "ninguna"
+
+        return {
+            "fuente_ancho": sw, "fuente_alto": sh,
+            "lienzo_ancho": cw, "lienzo_alto": ch,
+            "aspecto_fuente": round(ar_src, 4),
+            "aspecto_lienzo": round(ar_out, 4),
+            "barras_fraccion": round(barras, 4),
+            "barras_lado": lado,
+            # 1% de tolerancia: redondeos de escalado no son barras de verdad.
+            "ocupa_cuadro_completo": barras < 0.01,
+        }
+    except Exception as e:
+        _obs_dbg(f"_meta_encuadre: {e}")
+        return None
+    finally:
+        try:
+            ws.close()
+        except Exception:
+            pass
+
+
 def _meta_csv_anchors(session_dir):
     """Lee ANCHOR_START y ANCHOR_END de video_timeline.csv. Retorna (start_ms, end_ms)."""
     try:
@@ -2322,6 +2412,51 @@ def _camel_snake(s):
     s = re.sub(r"(?<!^)(?=[A-Z])", "_", s)
     return re.sub(r"_+", "_", s).lower()
 
+# Archivo de configuración de teclas que efectivamente se leyó en esta sesión.
+# Lo dejan anotado los parsers al usarlo, para que `_meta_rebind_evidence()`
+# pueda después preguntarle si cambió mientras se grababa. Es una variable de
+# módulo y no un retorno más porque los parsers los consume un solo lugar y no
+# vale la pena cambiarles la firma.
+_KM_CONFIG_USADO = {"path": None}
+
+
+def _meta_rebind_evidence(start_ms, end_ms):
+    """
+    ¿Se re-mapearon teclas MIENTRAS se grababa?
+
+    Troveo lo prohíbe explícitamente ("key re-bindings are not permitted during
+    active gameplay"). No podemos impedirlo, pero sí podemos decir si hay
+    evidencia — y decirlo es lo que pide el requisito.
+
+    La señal: la fecha de modificación del archivo de configuración del juego
+    cae DENTRO de la ventana de grabación. Si el jugador entra a opciones y
+    cambia un bind, el juego reescribe ese archivo en el momento.
+
+    ⚠ Es una SEÑAL, no un veredicto, y hay que leerla junto con `possible_remaps`
+    (que mira teclas usadas que no figuran en el mapping). Un juego puede
+    reescribir su config por otros motivos —cambiar resolución, volumen— y eso
+    daría un positivo sin que haya habido re-mapeo. Por eso el campo se llama
+    `config_modificada_durante_sesion` y no `rebind_detectado`.
+
+    `verificable: False` cuando no tenemos parser para ese motor (Unity y otros):
+    ahí no afirmamos nada en ninguna dirección.
+    """
+    path = _KM_CONFIG_USADO.get("path")
+    if not path or not start_ms or not end_ms:
+        return {"verificable": False, "motivo": "sin archivo de configuración leído"}
+    try:
+        st = os.stat(path)
+    except Exception:
+        return {"verificable": False, "motivo": "el archivo ya no está accesible"}
+    mtime_ms = int(st.st_mtime * 1000)
+    return {
+        "verificable": True,
+        "archivo": os.path.basename(path),
+        "mtime_unix_ms": mtime_ms,
+        "config_modificada_durante_sesion": bool(start_ms <= mtime_ms <= end_ms),
+    }
+
+
 def _parse_ue_input_ini(ini_path):
     """
     Parsea un Input.ini de Unreal Engine. Soporta DOS formatos:
@@ -2334,6 +2469,7 @@ def _parse_ue_input_ini(ini_path):
     try:
         with open(ini_path, encoding="utf-8", errors="ignore") as f:
             content = f.read()
+        _KM_CONFIG_USADO["path"] = ini_path   # para _meta_rebind_evidence()
     except Exception:
         return mapping
 
@@ -2548,6 +2684,7 @@ def _meta_source_key_mapping(game_dir, game_name=""):
         _obs_dbg(f"source key mapping: config.cfg no encontrado (dirs={search_dirs})")
         return None, "unknown"
     _obs_dbg(f"source key mapping: usando {cfg}")
+    _KM_CONFIG_USADO["path"] = cfg   # para _meta_rebind_evidence()
     # Tokens de teclas de gamepad/controller — se excluyen del key_mapping de
     # teclado/mouse (el config.cfg de Source bindea ambos al mismo comando).
     _GAMEPAD_TOKENS = ("_BUTTON", "_TRIGGER", "_SHOULDER", "STICK", "DPAD",
@@ -2960,6 +3097,10 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 # possible_remaps: observado pero ausente del config/game_default
                 # (posible remap del usuario o bind extra). Solo cuando hay base autoritativa.
                 **({"possible_remaps": possible_remaps} if possible_remaps else {}),
+                # Troveo prohíbe re-mapear teclas durante el gameplay. No lo
+                # impedimos; esto declara si hay evidencia de que pasó. Se lee
+                # JUNTO con possible_remaps, no en lugar de él.
+                "rebind_evidence": _meta_rebind_evidence(start_ms, end_ms),
                 "sampling_hz": {
                     "video_timeline": hz.get("video_timeline"),
                     "mouse_position": hz.get("mouse_log"),
@@ -2975,6 +3116,11 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 "bitrate_kbps":   video.get("bitrate_kbps"),
                 "frames_dropped": frames_dropped,
                 "hud_present":    None,  # Fase 3
+                # ¿El juego ocupa todo el cuadro, o quedan franjas negras?
+                # El control de QA solo ve lo ultrawide; esto ve las barras
+                # DENTRO de un archivo 16:9, que es el caso que se nos escapaba.
+                # None si OBS no estaba disponible al cerrar la sesión.
+                "encuadre":       _meta_encuadre(),
             },
 
             "sync": {
