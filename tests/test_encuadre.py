@@ -1,7 +1,7 @@
 """
 Geometria del encuadre: `_encuadre_geometria()` de pleiada_app.pyw.
 
-Nace del reporte de QA del 02-09-2026 (Pedro), que probo la deteccion de franjas
+Nace del reporte de QA del 01-09-2026 (Pedro), que probo la deteccion de franjas
 negras en cuatro configuraciones y fallo en las cuatro. La causa: la v1 comparaba
 el ASPECTO de la fuente contra el del lienzo, asumiendo que OBS escala la captura
 para que entre centrada. OBS no hace eso: la deja en su tamano nativo pegada

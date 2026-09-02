@@ -1,5 +1,43 @@
 # Changelog — Pleiada Recorder
 
+## V9.15 — 01/09/2026 — privacidad del audio · actualización obligatoria
+
+**Es una actualización obligatoria**: las versiones anteriores quedan bloqueadas para
+grabar hasta actualizarse. El motivo es el audio, y está explicado abajo.
+
+### El audio del escritorio ya no se graba
+
+Hasta ahora, además del juego se grababa el audio del escritorio. Por ahí podía colarse
+**chat de voz de otras personas** —compañeros de partida, alguien hablando en Discord—
+que nunca dieron permiso para aparecer en un dataset.
+
+A partir de esta versión el Recorder graba **sin audio**. Si entrás a OBS y lo
+desmuteás a mano, al arrancar la grabación se vuelve a mutear solo.
+
+Por eso la actualización es obligatoria: mientras una máquina siga en una versión
+anterior, sigue grabando ese audio. Es el mismo criterio con el que se hizo obligatoria
+la v0.9.10.
+
+**No cambia nada de la imagen**: la calidad, la resolución y el peso de los archivos
+salen iguales que en la v0.9.13.
+
+### Describimos mejor cada grabación
+
+El archivo de datos que acompaña a cada sesión ahora dice tres cosas que antes no decía
+o decía mal. No hay nada que configurar y no cambia cómo se graba: es información para
+que los clientes del dataset sepan exactamente qué están recibiendo.
+
+- **Si el juego no ocupó todo el cuadro.** Cuando el juego corre en una proporción
+  distinta a la del video, quedan franjas negras. Ahora se detectan y se anota de qué
+  lado quedaron.
+- **Si cambiaste alguna tecla mientras grababas.** Antes se marcaba también si cambiabas
+  el volumen o la resolución, porque muchos juegos guardan todo junto en el mismo
+  archivo. Ahora se comparan los controles del principio y del final, así que solo se
+  marca si de verdad cambió una tecla.
+- **Se dejó de declarar una precisión de sincronía que no medíamos.** Era un número
+  heredado que no correspondía con lo que el programa hace. Se saca en vez de
+  reemplazarlo por otro inventado.
+
 ## V9.13 — 25/08/2026 — calidad de grabación · actualización obligatoria
 
 **Es una actualización obligatoria**: las versiones anteriores quedan bloqueadas para grabar

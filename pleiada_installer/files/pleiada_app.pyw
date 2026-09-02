@@ -1912,7 +1912,7 @@ def _encuadre_geometria(tr, cw, ch):
 
     Va separada de `_meta_encuadre()` —que es la que habla con OBS— para poder
     probarla sin OBS ni juego corriendo. `tests/test_encuadre.py` la corre contra
-    las cuatro configuraciones que QA reportó fallando el 02-09-2026.
+    las cuatro configuraciones que QA reportó fallando el 01-09-2026.
 
     ⚠ MEDIMOS GEOMETRÍA, NO PROPORCIÓN. La v1 comparaba el aspecto de la fuente
     contra el del lienzo, asumiendo que OBS escala la captura para que entre
@@ -2519,7 +2519,7 @@ def _km_snapshot_inicio(exe_path, game_name=""):
     Sin esta foto la única señal disponible es la fecha de modificación del
     archivo de config, que en Source es inservible: `config.cfg` guarda los binds
     JUNTO con video, audio y sensibilidad, así que cambiar el volumen reescribe
-    el archivo y dispara un falso positivo. Lo reportó QA el 02-09-2026.
+    el archivo y dispara un falso positivo. Lo reportó QA el 01-09-2026.
 
     Se llama en un thread aparte: `_meta_key_mapping()` puede recorrer
     directorios del juego buscando el config, y eso no puede demorar el arranque
@@ -2568,7 +2568,7 @@ def _meta_rebind_evidence(start_ms, end_ms, key_map_final=None,
     Se queda porque cubre el caso en que no hubo snapshot, pero ⚠ tiene falsos
     positivos conocidos: en Source, `config.cfg` guarda los binds junto con
     video, audio y sensibilidad, así que subir el volumen la enciende. QA lo
-    reportó el 02-09-2026 y por eso se agregó la señal fuerte.
+    reportó el 01-09-2026 y por eso se agregó la señal fuerte.
 
     Leerlas junto con `possible_remaps` (que mira teclas usadas que no figuran en
     el mapping), no en lugar de él.

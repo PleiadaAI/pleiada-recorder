@@ -1,7 +1,7 @@
 """
 Evidencia de re-mapeo de teclas: `_meta_rebind_evidence()` de pleiada_app.pyw.
 
-Nace del reporte de QA del 02-09-2026 (Pedro): el campo se encendia al cambiar
+Nace del reporte de QA del 01-09-2026 (Pedro): el campo se encendia al cambiar
 CUALQUIER opcion del juego, no solo un bind. La causa es que la unica senal era
 la fecha de modificacion del archivo de config, y en Source `config.cfg` guarda
 los binds JUNTO con video, audio y sensibilidad: subir el volumen reescribe el
