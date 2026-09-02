@@ -58,30 +58,33 @@ del mínimo es hacia "no hay barras", que es el lado conservador.
 
 `ocupa_cuadro_completo` pasa a ser el AND de geometría y píxeles.
 
-### ⚠️ Lo que hay que decidir antes de publicarla
+### Lo que ya se resolvió (no volver a preguntarlo)
 
-**`ocupa_cuadro_completo` puede venir `null`.** Si el muestreo de píxeles no pudo
-correr (OBS sin captura activa, sin soporte de BMP, sesión más corta que la
-primera muestra), el campo queda en `null` en vez de `true`: no se afirma lo que
-no se midió. Es el criterio con el que se sacó `anchor_precision_ms`.
-
-Hay que confirmar que **Troveo tolera `null`** en ese campo, o acordar qué
-mandarles cuando no se midió. Si su validador espera un booleano, esto le rompe
-la validación a sesiones que hoy pasan.
+- ✅ **`ocupa_cuadro_completo` puede venir `null` y Troveo lo tolera.** Confirmado
+  por Martín el 01/09/2026. El campo queda en `null` cuando el muestreo de
+  píxeles no pudo correr, en vez de afirmar `true` sin haberlo medido — mismo
+  criterio con el que se sacó `anchor_precision_ms`.
+- ✅ **OBS ofrece capturas en BMP.** Verificado contra un OBS real el
+  01/09/2026 (OBS 32.2.2, obs-websocket 5.7.4): `GetVersion` devuelve 17
+  formatos y `bmp` está entre ellos. El código igual lo pregunta antes de usarlo
+  y lo dice en `barras_pixeles.motivo` si faltara.
+- ✅ **Qué contesta OBS cuando el juego no está dibujando.** Error **702
+  "Failed to render screenshot"**, con `responseData` vacío. Pasa siempre en los
+  primeros segundos de la sesión. La primera versión del muestreo abandonaba ahí
+  y **ninguna sesión se hubiera medido nunca**; ahora reintenta hasta agotar las
+  muestras. Está cubierto por `tests/test_barras_pixeles.py`.
 
 ### Lo que falta
 
-1. Decidir lo del `null` de arriba.
-2. Buildear y mandar a QA — que repita **las ocho configuraciones**, no solo las
+1. Buildear y mandar a QA — que repita **las ocho configuraciones**, no solo las
    dos que fallaron.
-3. ⚠️ **Verificar en la máquina de QA que OBS ofrece capturas en BMP.** El código
-   lo pregunta (`GetVersion` → `supportedImageFormats`) y si no está lo dice en
-   `barras_pixeles.motivo`, pero nunca se probó contra un OBS real: en esta
-   máquina OBS no estaba corriendo. **Si BMP no está, el arreglo no funciona** y
-   hay que decodificar PNG a mano.
-4. Medir cuánto tarda `GetSourceScreenshot` con el juego corriendo. Es una
-   captura de 480 px cada 60 segundos, tiene que ser imperceptible — pero está
-   sin medir.
+2. Medir cuánto tarda `GetSourceScreenshot` con el juego corriendo. Con la fuente
+   sin dibujar contesta en 1 ms, pero eso es el camino del error: **no dice nada
+   del costo real**. Es una captura de 480 px cada 60 segundos, tendría que ser
+   imperceptible, pero está sin medir.
+3. Confirmar en QA que el muestreo no le agrega latencia al arranque de la
+   grabación (el thread espera 20 s antes de la primera captura, justamente para
+   no competir con el arranque).
 
 ### Lo que NO cubre
 

@@ -2043,7 +2043,8 @@ def _muestrear_barras_pixeles():
                 ws = obs_connect()
             except Exception:
                 _BARRAS_PIXELES["motivo"] = "no se pudo conectar a OBS"
-                return
+                time.sleep(_BARRAS_PX_INTERVALO_S)
+                continue
             try:
                 est = (obs_send(ws, "GetRecordStatus")
                        .get("d", {}).get("responseData", {}))
@@ -2069,19 +2070,29 @@ def _muestrear_barras_pixeles():
                              if i.get("inputKind") == "game_capture"
                              and i.get("sceneItemEnabled", False)), None)
                 if not item:
+                    # Puede ser transitorio: la escena todavía no terminó de
+                    # armarse. Se reintenta en la próxima vuelta.
                     _BARRAS_PIXELES["motivo"] = "no hay captura de juego activa"
-                    return
-
-                resp = (obs_send(ws, "GetSourceScreenshot", {
-                            "sourceName": item.get("sourceName"),
-                            "imageFormat": "bmp",
-                            "imageWidth": _BARRAS_PX_ANCHO})
-                        .get("d", {}).get("responseData", {}))
-                uri = resp.get("imageData") or ""
-                if "," not in uri:
-                    _BARRAS_PIXELES["motivo"] = "OBS no devolvió la captura"
-                    return
-                r = _barras_de_bmp(base64.b64decode(uri.split(",", 1)[1]))
+                    r = None
+                else:
+                    resp = (obs_send(ws, "GetSourceScreenshot", {
+                                "sourceName": item.get("sourceName"),
+                                "imageFormat": "bmp",
+                                "imageWidth": _BARRAS_PX_ANCHO})
+                            .get("d", {}).get("responseData", {}))
+                    uri = resp.get("imageData") or ""
+                    if "," not in uri:
+                        # ⚠ OBS responde 702 "Failed to render screenshot"
+                        # mientras la fuente no esté dibujando. Pasa siempre en
+                        # los primeros segundos de la sesión, y verificado
+                        # contra un OBS real el 01-09-2026. Por eso acá NUNCA se
+                        # abandona: se reintenta hasta agotar las muestras.
+                        _BARRAS_PIXELES["motivo"] = "OBS no pudo renderizar la captura"
+                        r = None
+                    else:
+                        r = _barras_de_bmp(base64.b64decode(uri.split(",", 1)[1]))
+                        if r is None:
+                            _BARRAS_PIXELES["motivo"] = "no se pudo leer la captura"
             finally:
                 try:
                     ws.close()
@@ -2089,8 +2100,8 @@ def _muestrear_barras_pixeles():
                     pass
 
             if r is None:
-                _BARRAS_PIXELES["motivo"] = "no se pudo leer la captura"
-                return
+                time.sleep(_BARRAS_PX_INTERVALO_S)
+                continue
             if r.get("todo_negro"):
                 _BARRAS_PIXELES["muestras_todo_negro"] += 1
             else:

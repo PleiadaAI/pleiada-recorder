@@ -196,5 +196,114 @@ if _encuadre_con_pixeles(None) is not None:
 else:
     print("ok     geometria None")
 
+print("")
+print("--- el muestreo reintenta en vez de abandonar ---")
+
+# Este bloque nace de probar contra un OBS real (01-09-2026): mientras el juego
+# no esta dibujando, OBS responde 702 "Failed to render screenshot" y devuelve
+# vacio. Pasa SIEMPRE en los primeros segundos de una sesion. La primera version
+# abandonaba el muestreo ahi, o sea que ninguna sesion se hubiera medido nunca.
+
+_m_muestreo = re.search(r"^def _muestrear_barras_pixeles.*?(?=^_OBS_ALIGN_LEFT)",
+                        fuente, re.S | re.M)
+if not _m_muestreo:
+    sys.exit("No se encontro _muestrear_barras_pixeles en pleiada_app.pyw")
+
+
+class _RelojFalso(object):
+    """time.sleep que no duerme: el muestreo espera minutos entre capturas."""
+
+    def __init__(self):
+        self.dormido = 0
+
+    def sleep(self, s):
+        self.dormido += s
+
+
+class _WSFalso(object):
+    def close(self):
+        pass
+
+
+def correr_muestreo(respuestas, formatos=("bmp", "png"), grabando=True):
+    """
+    Corre el muestreador contra un OBS de mentira. `respuestas` es lo que
+    devuelve cada GetSourceScreenshot: None = error 702 (no pudo renderizar), o
+    los bytes de un BMP.
+    """
+    import base64 as _b64
+    estado = {"i": 0}
+
+    def _obs_send(ws, tipo, datos=None):
+        def resp(d):
+            return {"d": {"responseData": d}}
+        if tipo == "GetRecordStatus":
+            return resp({"outputActive": grabando})
+        if tipo == "GetVersion":
+            return resp({"supportedImageFormats": list(formatos)})
+        if tipo == "GetCurrentProgramScene":
+            return resp({"currentProgramSceneName": "Escena"})
+        if tipo == "GetSceneItemList":
+            return resp({"sceneItems": [{"inputKind": "game_capture",
+                                         "sceneItemEnabled": True,
+                                         "sceneItemId": 1,
+                                         "sourceName": "Captura de juego"}]})
+        if tipo == "GetSourceScreenshot":
+            i = estado["i"]
+            estado["i"] += 1
+            b = respuestas[i] if i < len(respuestas) else None
+            if b is None:
+                return resp({})          # asi contesta OBS con el error 702
+            return resp({"imageData": "data:image/bmp;base64,"
+                         + _b64.b64encode(b).decode()})
+        return resp({})
+
+    ns2 = dict(ns)
+    ns2.update({"time": _RelojFalso(), "obs_connect": lambda: _WSFalso(),
+                "obs_send": _obs_send, "_obs_dbg": lambda *a: None,
+                "base64": _b64})
+    exec(compile(_m_muestreo.group(0), APP, "exec"), ns2)
+    ns2["_BARRAS_PIXELES"].update({"muestras": 0, "margenes": None,
+                                   "motivo": None, "muestras_todo_negro": 0})
+    ns2["_muestrear_barras_pixeles"]()
+    return ns2["_BARRAS_PIXELES"]
+
+
+CON_BARRAS = bmp(480, 270, izq=60, der=60)
+SIN_BARRAS = bmp(480, 270)
+
+# 🔴 El caso real: las primeras capturas fallan y despues empieza a andar.
+r = correr_muestreo([None, None, None, CON_BARRAS, CON_BARRAS])
+chequear("arranca fallando y despues mide", r, {"muestras": 2})
+if not r["margenes"] or abs(r["margenes"]["izquierda"] - 0.125) > 0.001:
+    fallos.append("margenes tras reintentar")
+    print("FALLA  margenes tras reintentar: %r" % (r["margenes"],))
+else:
+    print("ok     margenes tras reintentar")
+
+# Nunca pudo capturar: se reporta el motivo, sin muestras y sin romperse.
+chequear("nunca pudo capturar", correr_muestreo([None] * 20),
+         {"muestras": 0, "margenes": None,
+          "motivo": "OBS no pudo renderizar la captura"})
+
+# Se queda con el MINIMO: un fundido a negro en el medio no inventa franjas.
+r = correr_muestreo([CON_BARRAS, bmp(480, 270, izq=240, der=240), SIN_BARRAS])
+chequear("un cuadro todo negro no cuenta como franja", r,
+         {"muestras": 2, "muestras_todo_negro": 1})
+if r["margenes"]["izquierda"] != 0.0:
+    fallos.append("minimo entre muestras")
+    print("FALLA  minimo entre muestras: %r" % (r["margenes"],))
+else:
+    print("ok     minimo entre muestras")
+
+# Sin BMP no hay con que decodificar: se abandona y se dice por que.
+chequear("OBS sin soporte de BMP",
+         correr_muestreo([CON_BARRAS], formatos=("png", "jpg")),
+         {"muestras": 0, "motivo": "OBS no ofrece capturas en BMP"})
+
+# Si ya no se esta grabando, corta sin tomar nada.
+chequear("la grabacion ya termino", correr_muestreo([CON_BARRAS], grabando=False),
+         {"muestras": 0})
+
 print("\n%s" % ("TODO OK" if not fallos else "%d FALLAS: %s" % (len(fallos), fallos)))
 sys.exit(1 if fallos else 0)
