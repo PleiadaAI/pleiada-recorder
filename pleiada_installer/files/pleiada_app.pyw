@@ -15,7 +15,7 @@ import pleiada_sync_limits as sync_limits
 import obs_encoding
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.15"
+VERSION = "v0.9.16"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -1900,6 +1900,214 @@ def package_session(session_dir):
 
 # ─── Session metadata (v0.4) ─────────────────────────────────────────────────
 
+# ── Franjas negras que están DENTRO de la imagen (v0.9.16) ───────────────────
+#
+# La geometría de `_encuadre_geometria()` ve las franjas que produce OBS al
+# componer la escena, y eso alcanza en modo ventana. **No alcanza en pantalla
+# completa**: ahí, un juego que corre en una resolución distinta a la del monitor
+# lo escala la placa de video, que agrega las franjas ANTES de que OBS capture.
+# Para OBS la fuente es el monitor entero, lleno y sin barras — las barras son
+# contenido de la imagen, no un hueco del lienzo.
+#
+# QA lo probó el 01-09-2026 con Valheim, y las dos configuraciones que fallaron
+# reportaron `fuente_ancho: 2560, fuente_alto: 1440` = la resolución del
+# escritorio, no la del juego. Verificado después contra los píxeles del MP4:
+#
+#   16:10 a 1920x1200 sobre 2560x1440  ->   5,0% de negro por lado
+#   4:3   a 1600x1200 sobre 2560x1440  ->  12,5% de negro por lado
+#
+# que es exactamente lo que dan las cuentas de escalar conservando proporción.
+#
+# Por eso hay que mirar píxeles. Se le piden capturas chicas a OBS DURANTE la
+# grabación — después no se puede, el juego ya cerró — y se buscan los bordes
+# uniformemente negros.
+
+_BARRAS_PX_MAX_MUESTRAS = 12
+_BARRAS_PX_INTERVALO_S  = 60      # entre muestra y muestra
+_BARRAS_PX_ESPERA_S     = 20      # antes de la primera: que el juego dibuje algo
+_BARRAS_PX_ANCHO        = 480     # captura chica: alcanza y es barata
+_BARRAS_PX_NEGRO_MAX    = 16      # luminancia máxima para contar como negro
+_BARRAS_PX_FRAC_LINEA   = 0.99    # qué fracción de la línea tiene que ser negra
+
+# Lo llena el thread de muestreo; lo consume `_meta_encuadre()` al cerrar.
+_BARRAS_PIXELES = {"muestras": 0, "margenes": None, "motivo": None,
+                   "muestras_todo_negro": 0}
+
+
+def _bmp_filas(datos):
+    """
+    BMP de 24/32 bits sin comprimir -> (ancho, alto, filas de arriba a abajo).
+
+    Se piden capturas en BMP y no en PNG porque hay que decodificarlas sin
+    librerías: el Recorder corre sobre el Python que instala él mismo, sin
+    Pillow ni numpy. Un BMP es encabezado + píxeles crudos; un PNG habría que
+    inflarlo y des-filtrarlo a mano.
+
+    Retorna None si el formato no es uno de los dos que se soportan.
+    """
+    try:
+        if datos[:2] != b"BM" or len(datos) < 54:
+            return None
+        off = struct.unpack_from("<I", datos, 10)[0]
+        if struct.unpack_from("<I", datos, 14)[0] < 40:
+            return None
+        w, h = struct.unpack_from("<ii", datos, 18)
+        bpp = struct.unpack_from("<H", datos, 28)[0]
+        comp = struct.unpack_from("<I", datos, 30)[0]
+        if comp != 0 or bpp not in (24, 32) or w <= 0 or h == 0:
+            return None
+        bot_up = h > 0          # el BMP va de abajo hacia arriba salvo alto < 0
+        h = abs(h)
+        bp = bpp // 8
+        stride = ((w * bpp + 31) // 32) * 4      # las filas se alinean a 4 bytes
+        if off + stride * h > len(datos):
+            return None
+        filas = []
+        for y in range(h):
+            base = off + y * stride
+            filas.append([(datos[i + 2], datos[i + 1], datos[i])
+                          for i in range(base, base + w * bp, bp)])
+        if bot_up:
+            filas.reverse()
+        return w, h, filas
+    except Exception:
+        return None
+
+
+def _linea_negra(linea):
+    """
+    Es esta fila/columna una franja negra? Se tolera un 1% de píxeles que no lo
+    sean: la compresión del video ensucia los bordes.
+    """
+    negros = 0
+    for r, g, b in linea:
+        if (r * 299 + g * 587 + b * 114) // 1000 <= _BARRAS_PX_NEGRO_MAX:
+            negros += 1
+    return negros >= len(linea) * _BARRAS_PX_FRAC_LINEA
+
+
+def _barras_de_bmp(datos):
+    """
+    Márgenes negros de una captura, como fracción de cada lado.
+
+    None si no se pudo leer la imagen. `{"todo_negro": True}` si el cuadro entero
+    es negro: eso NO es un encuadre con barras sino una pantalla apagada o una
+    transición, y se descarta como muestra.
+    """
+    img = _bmp_filas(datos)
+    if not img:
+        return None
+    w, h, filas = img
+    arriba = 0
+    while arriba < h and _linea_negra(filas[arriba]):
+        arriba += 1
+    if arriba == h:
+        return {"todo_negro": True}
+    abajo = 0
+    while abajo < h - arriba and _linea_negra(filas[h - 1 - abajo]):
+        abajo += 1
+    cols = [[filas[y][x] for y in range(h)] for x in range(w)]
+    izq = 0
+    while izq < w and _linea_negra(cols[izq]):
+        izq += 1
+    der = 0
+    while der < w - izq and _linea_negra(cols[w - 1 - der]):
+        der += 1
+    return {"todo_negro": False,
+            "izquierda": izq / w, "derecha": der / w,
+            "arriba": arriba / h, "abajo": abajo / h}
+
+
+def _muestrear_barras_pixeles():
+    """
+    Thread: le pide capturas a OBS mientras se graba y busca franjas negras.
+
+    Se toman VARIAS muestras y se conserva el MÍNIMO de cada borde. Una franja de
+    verdad está en todos los cuadros; una escena oscura o un fundido a negro
+    aparecen en una muestra y no en las otras, y el mínimo los descarta. El sesgo
+    del mínimo es hacia decir "no hay barras", que es el lado conservador: puede
+    dejar pasar un defecto, nunca inventa uno que no está.
+
+    Se corta solo cuando OBS deja de grabar, así que no necesita que nadie lo
+    frene desde afuera.
+
+    NUNCA lanza: es telemetría, no puede tumbar una sesión.
+    """
+    _BARRAS_PIXELES.update({"muestras": 0, "margenes": None, "motivo": None,
+                            "muestras_todo_negro": 0})
+    try:
+        time.sleep(_BARRAS_PX_ESPERA_S)
+        acum = None
+        for _ in range(_BARRAS_PX_MAX_MUESTRAS):
+            try:
+                ws = obs_connect()
+            except Exception:
+                _BARRAS_PIXELES["motivo"] = "no se pudo conectar a OBS"
+                return
+            try:
+                est = (obs_send(ws, "GetRecordStatus")
+                       .get("d", {}).get("responseData", {}))
+                if not est.get("outputActive", False):
+                    break        # se cortó la grabación: listo
+
+                # Los formatos dependen de cómo se compiló Qt: se pregunta en vez
+                # de asumir. Sin BMP no hay con qué decodificar sin librerías.
+                fmts = (obs_send(ws, "GetVersion")
+                        .get("d", {}).get("responseData", {})
+                        .get("supportedImageFormats") or [])
+                if "bmp" not in [str(f).lower() for f in fmts]:
+                    _BARRAS_PIXELES["motivo"] = "OBS no ofrece capturas en BMP"
+                    return
+
+                cur = (obs_send(ws, "GetCurrentProgramScene")
+                       .get("d", {}).get("responseData", {})
+                       .get("currentProgramSceneName", ""))
+                items = (obs_send(ws, "GetSceneItemList", {"sceneName": cur})
+                         .get("d", {}).get("responseData", {})
+                         .get("sceneItems", []))
+                item = next((i for i in items
+                             if i.get("inputKind") == "game_capture"
+                             and i.get("sceneItemEnabled", False)), None)
+                if not item:
+                    _BARRAS_PIXELES["motivo"] = "no hay captura de juego activa"
+                    return
+
+                resp = (obs_send(ws, "GetSourceScreenshot", {
+                            "sourceName": item.get("sourceName"),
+                            "imageFormat": "bmp",
+                            "imageWidth": _BARRAS_PX_ANCHO})
+                        .get("d", {}).get("responseData", {}))
+                uri = resp.get("imageData") or ""
+                if "," not in uri:
+                    _BARRAS_PIXELES["motivo"] = "OBS no devolvió la captura"
+                    return
+                r = _barras_de_bmp(base64.b64decode(uri.split(",", 1)[1]))
+            finally:
+                try:
+                    ws.close()
+                except Exception:
+                    pass
+
+            if r is None:
+                _BARRAS_PIXELES["motivo"] = "no se pudo leer la captura"
+                return
+            if r.get("todo_negro"):
+                _BARRAS_PIXELES["muestras_todo_negro"] += 1
+            else:
+                acum = r if acum is None else dict(
+                    (k, min(acum[k], r[k]))
+                    for k in ("izquierda", "derecha", "arriba", "abajo"))
+                _BARRAS_PIXELES["muestras"] += 1
+                _BARRAS_PIXELES["margenes"] = acum
+            time.sleep(_BARRAS_PX_INTERVALO_S)
+
+        if _BARRAS_PIXELES["muestras"] == 0 and not _BARRAS_PIXELES["motivo"]:
+            _BARRAS_PIXELES["motivo"] = "no se llegó a tomar ninguna muestra útil"
+    except Exception as e:
+        _obs_dbg(f"_muestrear_barras_pixeles: {e}")
+        _BARRAS_PIXELES["motivo"] = "error al muestrear"
+
+
 # OBS: bitmask de alineación de un scene item. El default de OBS es 5 (LEFT|TOP),
 # que es justamente el caso que hacía fallar la versión anterior de esta función.
 _OBS_ALIGN_LEFT, _OBS_ALIGN_RIGHT, _OBS_ALIGN_TOP, _OBS_ALIGN_BOTTOM = 1, 2, 4, 8
@@ -2007,6 +2215,57 @@ def _encuadre_geometria(tr, cw, ch):
     }
 
 
+def _encuadre_con_pixeles(geo):
+    """
+    Cruza la geometría con lo que se vio en los píxeles y arma el veredicto.
+
+    Son dos preguntas distintas y hay que hacer las dos:
+
+      - La geometría ve el hueco que deja OBS al componer la escena. Es la que
+        agarra el modo ventana.
+      - Los píxeles ven las franjas que ya venían dentro de la imagen capturada.
+        Es la que agarra la pantalla completa a una resolución que no es la del
+        monitor, donde para OBS la fuente llena el cuadro y las barras son parte
+        del contenido.
+
+    `ocupa_cuadro_completo` pasa a ser el AND de las dos: para afirmar que el
+    juego ocupa todo el cuadro tienen que estar de acuerdo. Si el muestreo de
+    píxeles no pudo correr, el campo queda en `None` en vez de `True`: no se
+    afirma lo que no se midió — es el error que ya cometimos declarando una
+    precisión de sincronía inventada.
+    """
+    if geo is None:
+        return None
+    px = dict(_BARRAS_PIXELES)
+    m = px.get("margenes")
+    geo["barras_pixeles"] = {
+        "muestras": px.get("muestras", 0),
+        "muestras_todo_negro": px.get("muestras_todo_negro", 0),
+        "motivo": px.get("motivo"),
+        "por_borde": (None if not m else
+                      dict((k, round(v, 4)) for k, v in m.items())),
+    }
+    if not m:
+        # Sin medición de píxeles no se puede afirmar que ocupa todo el cuadro;
+        # sí se puede seguir afirmando lo contrario cuando la geometría ya vio
+        # un hueco.
+        geo["ocupa_cuadro_completo"] = (
+            False if not geo.get("ocupa_cuadro_completo") else None)
+        return geo
+
+    frac_px = max(m["izquierda"] + m["derecha"], m["arriba"] + m["abajo"])
+    geo["barras_pixeles"]["fraccion"] = round(frac_px, 4)
+    hay_px = frac_px > 0.005
+    geo["ocupa_cuadro_completo"] = bool(
+        geo.get("ocupa_cuadro_completo") and not hay_px)
+    if hay_px and geo.get("barras_lado") == "ninguna":
+        horiz = (m["izquierda"] + m["derecha"]) > 0.005
+        vert = (m["arriba"] + m["abajo"]) > 0.005
+        geo["barras_lado"] = ("costados_y_arriba_abajo" if horiz and vert
+                              else "costados" if horiz else "arriba_abajo")
+    return geo
+
+
 def _meta_encuadre():
     """
     ¿El juego ocupa todo el cuadro, o quedan franjas negras?
@@ -2059,7 +2318,8 @@ def _meta_encuadre():
             cw = float(OBS_TARGET_VIDEO.get("baseWidth") or 1920)
             ch = float(OBS_TARGET_VIDEO.get("baseHeight") or 1080)
 
-        return _encuadre_geometria(tr, cw, ch)
+        geo = _encuadre_geometria(tr, cw, ch)
+        return _encuadre_con_pixeles(geo)
     except Exception as e:
         _obs_dbg(f"_meta_encuadre: {e}")
         return None
@@ -6411,6 +6671,15 @@ class PleiadaApp:
                       (self.selected_game or {}).get("game", "")),
                 daemon=True)
             _t_km.start()
+        except Exception:
+            pass
+
+        # Muestreo de franjas negras DENTRO de la imagen. Tiene que correr
+        # mientras se graba: al cerrar la sesion el juego ya no esta y OBS no
+        # puede capturarlo. Ver el bloque de `_muestrear_barras_pixeles`.
+        try:
+            threading.Thread(target=_muestrear_barras_pixeles,
+                             daemon=True).start()
         except Exception:
             pass
 

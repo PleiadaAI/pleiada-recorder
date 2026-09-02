@@ -5,6 +5,93 @@ curso. Lo más urgente arriba. Cuando algo se implementa, se borra de acá.
 
 ---
 
+## 00. v0.9.16 — YA ESTÁ IMPLEMENTADA Y COMMITEADA, falta build + QA
+
+**Estado: código escrito, con tests, commiteado local. NO se buildeó ni se
+publicó.** Decisión de Martín el 01/09/2026: publicar primero la v0.9.15 (hecho)
+y dejar esto listo para la vuelta siguiente.
+
+### Qué arregla
+
+El segundo reporte de QA de la v0.9.15 (Yai, 01/09/2026): de ocho
+configuraciones de encuadre, seis bien y **dos mal, las dos de pantalla completa
+a una resolución distinta a la del monitor**.
+
+| Configuración | Resultado |
+|---|---|
+| 16:9 Full Screen 2560x1440 | ✅ |
+| 16:9 Modo Ventana 1920x1080 | ✅ |
+| 16:9 Modo Ventana Centrado Manual | ✅ |
+| **16:10 Full Screen 1920x1200** | ❌ |
+| 16:10 Modo Ventana 1920x1200 | ✅ |
+| 16:10 Modo Ventana Fuente Excedida | ✅ |
+| **4:3 Full Screen 1600x1200** | ❌ |
+| 4:3 Modo Ventana 1600x1200 | ✅ |
+
+**La causa.** En pantalla completa a una resolución que no es la del monitor, la
+placa de video escala el juego y agrega las franjas **antes** de que OBS capture.
+Para OBS la fuente es el monitor entero (las dos sesiones que fallaron reportan
+`fuente_ancho: 2560, fuente_alto: 1440` = el escritorio, no el juego), lleno y
+sin huecos. Las barras son **contenido de la imagen**, y la geometría no puede
+verlas por definición.
+
+Medido sobre los píxeles de los MP4 que mandó QA:
+
+```
+16:10 a 1920x1200 sobre 2560x1440  ->   5,0% de negro por lado
+4:3   a 1600x1200 sobre 2560x1440  ->  12,5% de negro por lado
+```
+
+Los dos coinciden exactamente con la cuenta de escalar conservando proporción,
+así que la causa está confirmada y no supuesta.
+
+### Cómo se arregla
+
+Se le piden capturas chicas a OBS (`GetSourceScreenshot`, BMP de 480 px de ancho)
+**mientras se graba** —después no se puede, el juego ya cerró— y se buscan bordes
+uniformemente negros. Se decodifica BMP y no PNG porque hay que hacerlo sin
+librerías: el Recorder corre sobre su propio Python, sin Pillow ni numpy.
+
+Se toman hasta 12 muestras espaciadas y se conserva el **mínimo** de cada borde:
+una franja de verdad está en todos los cuadros, un fundido a negro no. El sesgo
+del mínimo es hacia "no hay barras", que es el lado conservador.
+
+`ocupa_cuadro_completo` pasa a ser el AND de geometría y píxeles.
+
+### ⚠️ Lo que hay que decidir antes de publicarla
+
+**`ocupa_cuadro_completo` puede venir `null`.** Si el muestreo de píxeles no pudo
+correr (OBS sin captura activa, sin soporte de BMP, sesión más corta que la
+primera muestra), el campo queda en `null` en vez de `true`: no se afirma lo que
+no se midió. Es el criterio con el que se sacó `anchor_precision_ms`.
+
+Hay que confirmar que **Troveo tolera `null`** en ese campo, o acordar qué
+mandarles cuando no se midió. Si su validador espera un booleano, esto le rompe
+la validación a sesiones que hoy pasan.
+
+### Lo que falta
+
+1. Decidir lo del `null` de arriba.
+2. Buildear y mandar a QA — que repita **las ocho configuraciones**, no solo las
+   dos que fallaron.
+3. ⚠️ **Verificar en la máquina de QA que OBS ofrece capturas en BMP.** El código
+   lo pregunta (`GetVersion` → `supportedImageFormats`) y si no está lo dice en
+   `barras_pixeles.motivo`, pero nunca se probó contra un OBS real: en esta
+   máquina OBS no estaba corriendo. **Si BMP no está, el arreglo no funciona** y
+   hay que decodificar PNG a mano.
+4. Medir cuánto tarda `GetSourceScreenshot` con el juego corriendo. Es una
+   captura de 480 px cada 60 segundos, tiene que ser imperceptible — pero está
+   sin medir.
+
+### Lo que NO cubre
+
+Un juego con **barras negras propias** (cinemáticas en cinemascope, menús con
+letterbox de diseño) va a contar como encuadre incompleto durante esos tramos. El
+mínimo entre muestras lo mitiga si la cinemática no dura toda la sesión, pero una
+sesión entera de cinemáticas daría un falso positivo.
+
+---
+
 ## 0-. Calidad de grabación: lo que quedó pendiente de la v0.9.12
 
 **La v0.9.12 ya implementó el grueso** (calidad constante con techo, en modo Avanzado, con
