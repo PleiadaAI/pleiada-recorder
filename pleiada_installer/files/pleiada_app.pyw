@@ -7406,11 +7406,13 @@ class PleiadaApp:
             "truncated":("✗", RED,    "truncado"),
             "offset":   ("⚠", YELLOW, "desfase"),
         }
+        # v0.9.17: pady 3 -> 2 por fila. Con la tarjeta del bono arriba, los
+        # seis renglones a 3 px empujaban el bloque SESIÓN debajo de los botones.
         for key, label in file_items:
             s = statuses.get(key, "pending")
             mark_txt, col, val_txt = status_labels.get(s, ("·", DIMMER, "—"))
             row = tk.Frame(verify, bg=vbg)
-            row.pack(fill="x", padx=14, pady=3)
+            row.pack(fill="x", padx=14, pady=2)
             tk.Label(row, text=mark_txt, fg=col, bg=vbg,
                       font=("Cascadia Code", 10), width=2, anchor="w").pack(side="left")
             tk.Label(row, text=label, fg=TEXT if s != "pending" else DIM, bg=vbg,
@@ -7555,10 +7557,12 @@ class PleiadaApp:
         """Tarjeta A (con orden: bono) o A2 (modo libre: sorteo)."""
         b = self._bono
         card_bg, card_brd = "#171226", "#5a4d9a"
+        # Compacta a propósito: esta pantalla ya venía justa de alto y con la
+        # tarjeta el bloque SESIÓN quedaba cortado por los botones fijos.
         card = tk.Frame(slot, bg=card_bg, highlightthickness=1, highlightbackground=card_brd)
-        card.pack(fill="x", pady=(0, 12))
+        card.pack(fill="x", pady=(0, 8))
         row = tk.Frame(card, bg=card_bg)
-        row.pack(fill="x", padx=12, pady=10)
+        row.pack(fill="x", padx=10, pady=7)
         if b["oferta"] == "bono":
             icono, icol = "★", YELLOW
             titulo = "Ganá el 25 % de la hora por la metadata"
@@ -7573,17 +7577,17 @@ class PleiadaApp:
                       "sorteo mensual de la comunidad. Sin orden no hay bono en dinero, "
                       "pero el aporte cuenta igual como ticket para el sorteo.")
         tk.Label(row, text=icono, fg=icol, bg=card_bg,
-                 font=("Segoe UI", 13, "bold")).pack(side="left", padx=(0, 10), anchor="n")
+                 font=("Segoe UI", 12, "bold")).pack(side="left", padx=(0, 8), anchor="n")
         col = tk.Frame(row, bg=card_bg)
         col.pack(side="left", fill="x", expand=True)
-        tk.Label(col, text=titulo, fg=TEXT, bg=card_bg, font=("Segoe UI", 11, "bold"),
-                 anchor="w", justify="left", wraplength=WIN_W - 130).pack(fill="x")
-        tk.Label(col, text=cuerpo, fg=DIM, bg=card_bg, font=("Segoe UI", 10),
-                 anchor="w", justify="left", wraplength=WIN_W - 130).pack(fill="x", pady=(3, 0))
+        tk.Label(col, text=titulo, fg=TEXT, bg=card_bg, font=("Segoe UI", 10, "bold"),
+                 anchor="w", justify="left", wraplength=WIN_W - 120).pack(fill="x")
+        tk.Label(col, text=cuerpo, fg=DIM, bg=card_bg, font=("Segoe UI", 9),
+                 anchor="w", justify="left", wraplength=WIN_W - 120).pack(fill="x", pady=(2, 0))
         tk.Button(col, text="Compartir controles", fg="#fff", bg=ACCENT, relief="flat",
-                  bd=0, cursor="hand2", font=("Segoe UI", 10, "bold"),
+                  bd=0, cursor="hand2", font=("Segoe UI", 9, "bold"),
                   activebackground="#9080e0", activeforeground="#fff",
-                  command=self._bono_paso1).pack(fill="x", ipady=8, pady=(10, 0))
+                  command=self._bono_paso1).pack(fill="x", ipady=5, pady=(6, 0))
 
     def _bono_antes_de_subir(self):
         """Botón "Subir Data Set" de la pantalla de resultado (modal B)."""
