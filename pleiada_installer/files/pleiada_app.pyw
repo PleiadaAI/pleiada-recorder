@@ -15,7 +15,7 @@ import pleiada_sync_limits as sync_limits
 import obs_encoding
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.16"
+VERSION = "v0.9.17"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -7245,6 +7245,9 @@ class PleiadaApp:
 
     def _show_result(self, ok, results, out_path, note=None):
         self._clear_content()
+        # v0.9.17: el flujo del bono vuelve a esta pantalla y necesita los
+        # mismos resultados del sync check para redibujar el análisis.
+        self._last_sync_results = results
 
         # PLE-45: botones anclados al fondo — siempre visibles sin importar
         # resolución o escalado de pantalla. Se packean ANTES que el canvas
@@ -7287,11 +7290,13 @@ class PleiadaApp:
             side="left", fill="x", expand=True, ipady=10, padx=(0, 6) if ok else (0, 0))
 
         if ok:
+            # v0.9.17: pasa por el bono de metadata. Si el título pide sus
+            # controles y el usuario todavía no los compartió, primero se le
+            # pregunta (modal); si no, sigue derecho a la subida de siempre.
             tk.Button(btn_row, text="Subir Data Set", fg="#fff", bg=ACCENT,
                        relief="flat", bd=0, cursor="hand2",
                        font=("Segoe UI", 11, "bold"), activebackground="#9080e0",
-                       command=lambda: self._start_upload_flow(
-                           self.session_dir, self._show_idle)).pack(
+                       command=self._bono_antes_de_subir).pack(
                            side="right", fill="x", expand=True, ipady=10, padx=(6, 0))
 
         inner = tk.Frame(frame, bg=BG)
@@ -7368,6 +7373,15 @@ class PleiadaApp:
         tk.Label(nright, text=body, fg=DIM if ok else "#f0c0c0", bg=card_bg,
                   font=("Segoe UI", 10), anchor="w", justify="left",
                   wraplength=WIN_W - 130).pack(fill="x", pady=(3, 0))
+
+        # ── Bono por metadata de controles (v0.9.17) ──────────────────────────
+        # El hueco se reserva acá y se rellena cuando el backend contesta si el
+        # título pide su mapa de controles. Solo con sesión válida: una sesión
+        # rechazada no se sube y no hay nada que bonificar.
+        self._bono_slot = tk.Frame(inner, bg=BG)
+        self._bono_slot.pack(fill="x")
+        if ok and self.session_dir:
+            self._bono_iniciar(self.session_dir)
 
         # ── Panel de análisis (siempre visible) ───────────────────────────────
         _mk_section_label(inner, "ANÁLISIS DE SINCRONIZACIÓN")
@@ -7450,6 +7464,701 @@ class PleiadaApp:
             folder_btn.bind("<Button-1>", lambda e: _open_folder())
 
         # (botones movidos al fondo fijo de self.content — ver inicio de _show_result)
+
+    # ── Bono por metadata de controles (v0.9.17) ──────────────────────────────
+    #
+    # Al terminar una sesión válida, el backend dice si el título necesita su
+    # mapa de controles. Si hay orden con bono, el usuario sube capturas de la
+    # pantalla de controles (por defecto), el backend las lee con visión en el
+    # momento y, si pasan lo mínimo, el aporte queda en "Validación pendiente"
+    # hasta que otra persona mande lo mismo. Sin orden, el aporte vale como
+    # ticket del sorteo mensual. Todo el criterio vive en el backend: acá solo
+    # se muestran pantallas y se suben imágenes.
+    #
+    # Reglas que esta parte respeta a rajatabla: nunca antes de grabar (recién
+    # al cerrar la sesión se sabe si el config se leyó solo), solo capturas de
+    # pantalla (sin portapapeles, sin texto, sin archivos de config), casilla
+    # "por defecto" obligatoria, y si el análisis falla NO queda nada registrado.
+
+    BONO_MAX_IMAGENES  = 6
+    BONO_MAX_MB_IMAGEN = 10          # de entrada; se normaliza a <= 4,5 MB antes de subir
+    BONO_MAX_MB_TOTAL  = 40
+    BONO_MIN_W, BONO_MIN_H = 1280, 720
+    BONO_MAX_INTENTOS  = 3
+    _BONO_UPLOAD_MAX   = int(4.5 * 1024 * 1024)
+
+    def _bono_reset(self, sdir):
+        self._bono = {"sdir": sdir, "oferta": None, "monto_usd": 0.0, "pct": 0,
+                      "aportado": False, "intentos": 0, "imgs": [],
+                      "game": "", "session_id": "", "call_id": "",
+                      "binding_source": "", "keys_top": {}, "aporte_id": ""}
+
+    def _bono_iniciar(self, sdir):
+        """Lee lo que hace falta del metadata y pregunta al backend.
+
+        Si se vuelve a esta pantalla desde el flujo (Volver del paso 1), el
+        estado de la misma sesión se conserva: no se vuelve a preguntar ni se
+        pierde lo elegido. Solo una sesión nueva arranca de cero.
+        """
+        previo = getattr(self, "_bono", None)
+        if previo and previo.get("sdir") == sdir:
+            slot = getattr(self, "_bono_slot", None)
+            if previo.get("oferta") and not previo.get("aportado") and slot is not None:
+                self._bono_render_oferta(slot)
+            return
+        self._bono_reset(sdir)
+        b = self._bono
+        try:
+            meta = json.loads((Path(sdir) / "session_metadata.json").read_text(encoding="utf-8"))
+        except Exception:
+            return
+        b["game"] = ((meta.get("game") or {}).get("title") or "").strip()
+        b["session_id"] = meta.get("session_id") or ""
+        b["binding_source"] = ((meta.get("input") or {}).get("binding_source") or "")
+        b["call_id"] = getattr(self, "selected_call", None) or ""
+        try:
+            keys, _, _ = _meta_observed_keys(Path(sdir))
+            b["keys_top"] = {k: int(n) for k, n in keys.most_common(15)}
+        except Exception:
+            b["keys_top"] = {}
+        if not b["game"] or not b["session_id"] or not self.auth_token:
+            return
+
+        def _worker(token=self.auth_token, game=b["game"], call_id=b["call_id"],
+                    src=b["binding_source"], sdir_ref=sdir):
+            try:
+                res = pleiada_api.metadata_offer(token, game, call_id, src)
+            except Exception as e:
+                _obs_dbg(f"metadata_offer: {e}")
+                return
+            def _aplicar():
+                # La pantalla pudo cambiar mientras tanto: solo se pinta si el
+                # hueco sigue vivo y es de la misma sesión.
+                if getattr(self, "_bono", {}).get("sdir") != sdir_ref:
+                    return
+                slot = getattr(self, "_bono_slot", None)
+                if slot is None or not slot.winfo_exists():
+                    return
+                self._bono["oferta"] = res.get("oferta")
+                self._bono["monto_usd"] = float(res.get("monto_usd") or 0)
+                self._bono["pct"] = res.get("pct") or 0
+                if self._bono["oferta"]:
+                    self._bono_render_oferta(slot)
+            self.root.after(0, _aplicar)
+        threading.Thread(target=_worker, daemon=True).start()
+
+    @staticmethod
+    def _fmt_usd(x):
+        return "US$ " + f"{float(x or 0):.2f}".replace(".", ",")
+
+    def _bono_render_oferta(self, slot):
+        """Tarjeta A (con orden: bono) o A2 (modo libre: sorteo)."""
+        b = self._bono
+        card_bg, card_brd = "#171226", "#5a4d9a"
+        card = tk.Frame(slot, bg=card_bg, highlightthickness=1, highlightbackground=card_brd)
+        card.pack(fill="x", pady=(0, 12))
+        row = tk.Frame(card, bg=card_bg)
+        row.pack(fill="x", padx=12, pady=10)
+        if b["oferta"] == "bono":
+            icono, icol = "★", YELLOW
+            titulo = "Ganá el 25 % de la hora por la metadata"
+            cuerpo = (f"{b['game']} todavía no tiene su mapa de controles. Compartí la "
+                      f"pantalla de controles del título y cobrás {self._fmt_usd(b['monto_usd'])} "
+                      "cuando se valide, aunque el dataset no se comercialice. Se paga "
+                      "dentro de los 45 días a tu wallet.")
+        else:
+            icono, icol = "◈", ACCENT
+            titulo = "Este título no tiene mapa de controles"
+            cuerpo = (f"Compartí la pantalla de controles de {b['game']} y participás del "
+                      "sorteo mensual de la comunidad. Sin orden no hay bono en dinero, "
+                      "pero el aporte cuenta igual como ticket para el sorteo.")
+        tk.Label(row, text=icono, fg=icol, bg=card_bg,
+                 font=("Segoe UI", 13, "bold")).pack(side="left", padx=(0, 10), anchor="n")
+        col = tk.Frame(row, bg=card_bg)
+        col.pack(side="left", fill="x", expand=True)
+        tk.Label(col, text=titulo, fg=TEXT, bg=card_bg, font=("Segoe UI", 11, "bold"),
+                 anchor="w", justify="left", wraplength=WIN_W - 130).pack(fill="x")
+        tk.Label(col, text=cuerpo, fg=DIM, bg=card_bg, font=("Segoe UI", 10),
+                 anchor="w", justify="left", wraplength=WIN_W - 130).pack(fill="x", pady=(3, 0))
+        tk.Button(col, text="Compartir controles", fg="#fff", bg=ACCENT, relief="flat",
+                  bd=0, cursor="hand2", font=("Segoe UI", 10, "bold"),
+                  activebackground="#9080e0", activeforeground="#fff",
+                  command=self._bono_paso1).pack(fill="x", ipady=8, pady=(10, 0))
+
+    def _bono_antes_de_subir(self):
+        """Botón "Subir Data Set" de la pantalla de resultado (modal B)."""
+        b = getattr(self, "_bono", None) or {}
+        if b.get("oferta") == "bono" and not b.get("aportado"):
+            self._bono_modal_sin_metadata()
+            return
+        self._start_upload_flow(self.session_dir, self._show_idle)
+
+    def _bono_modal_sin_metadata(self):
+        b = self._bono
+        dlg = tk.Toplevel(self.root)
+        dlg.withdraw()
+        dlg.overrideredirect(True)
+        dlg.configure(bg=CARD2, highlightthickness=1, highlightbackground="#5a4d9a")
+        dlg.transient(self.root)
+        inner = tk.Frame(dlg, bg=CARD2)
+        inner.pack(fill="both", expand=True, padx=16, pady=16)
+        tk.Label(inner, text="¿Subir el dataset sin la metadata?", fg=TEXT, bg=CARD2,
+                 font=("Segoe UI", 12, "bold"), anchor="w", justify="left",
+                 wraplength=WIN_W - 100).pack(fill="x")
+        tk.Label(inner, text=(f"Compartir los controles de {b['game']} te paga el 25 % de la "
+                              f"hora ({self._fmt_usd(b['monto_usd'])}) aunque el dataset no se "
+                              "comercialice. Lleva un minuto y se hace ahora, con el título abierto."),
+                 fg=DIM, bg=CARD2, font=("Segoe UI", 10), anchor="w", justify="left",
+                 wraplength=WIN_W - 100).pack(fill="x", pady=(8, 14))
+
+        def _compartir():
+            dlg.grab_release(); dlg.destroy()
+            self._bono_paso1()
+
+        def _sin():
+            dlg.grab_release(); dlg.destroy()
+            self._start_upload_flow(self.session_dir, self._show_idle)
+
+        tk.Button(inner, text="Compartir controles", fg="#fff", bg=ACCENT, relief="flat",
+                  bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
+                  activebackground="#9080e0", activeforeground="#fff",
+                  command=_compartir).pack(fill="x", ipady=10)
+        tk.Button(inner, text="Subir sin metadata", fg=TEXT, bg=CARD, relief="flat",
+                  bd=0, cursor="hand2", font=("Segoe UI", 10), activebackground=CARD2,
+                  activeforeground=TEXT, highlightthickness=1, highlightbackground=BORDER,
+                  command=_sin).pack(fill="x", ipady=8, pady=(8, 0))
+        self.root.update_idletasks()
+        w = WIN_W - 60
+        dlg.update_idletasks()
+        h = dlg.winfo_reqheight()
+        x = self.root.winfo_rootx() + (self.root.winfo_width() - w) // 2
+        y = self.root.winfo_rooty() + (self.root.winfo_height() - h) // 2
+        dlg.geometry(f"{w}x{h}+{x}+{y}")
+        dlg.deiconify()
+        dlg.grab_set()
+        dlg.focus_set()
+
+    # — Cabecera común de los tres pasos ——————————————————————
+
+    def _bono_frame(self, titulo, paso, volver_a):
+        frame = self._ident_frame(titulo, volver_a=volver_a)
+        migas = tk.Frame(frame, bg=BG)
+        migas.pack(fill="x", pady=(4, 12))
+        for i, txt in enumerate(("1 QUÉ", "2 CÓMO", "3 REVISAR"), start=1):
+            if i > 1:
+                tk.Label(migas, text="›", fg=DIMMER, bg=BG, font=("Segoe UI", 8)).pack(
+                    side="left", padx=4)
+            tk.Label(migas, text=txt, fg=ACCENT if i == paso else DIMMER, bg=BG,
+                     font=("Segoe UI", 8, "bold")).pack(side="left")
+        return frame
+
+    def _bono_botones(self, parent, izq, cmd_izq, der, cmd_der):
+        """Botonera anclada al pie. Se llama ANTES de armar el contenido (pack
+        reparte el espacio en orden): así los botones nunca quedan cortados
+        cuando la pantalla es alta, que fue lo que pasó con el paso 1."""
+        btns = tk.Frame(parent, bg=BG)
+        btns.pack(side="bottom", fill="x")
+        tk.Button(btns, text=izq, fg=DIM, bg=CARD, relief="flat", bd=0, cursor="hand2",
+                  font=("Segoe UI", 11), activebackground=CARD2, activeforeground=TEXT,
+                  command=cmd_izq, highlightthickness=1, highlightbackground=BORDER).pack(
+            side="left", fill="x", expand=True, ipady=10, padx=(0, 6))
+        b = tk.Button(btns, text=der, fg="#fff", bg=ACCENT, relief="flat", bd=0,
+                      cursor="hand2", font=("Segoe UI", 11, "bold"),
+                      activebackground="#9080e0", activeforeground="#fff", command=cmd_der)
+        b.pack(side="right", fill="x", expand=True, ipady=10, padx=(6, 0))
+        return b
+
+    def _bono_volver_al_resultado(self):
+        """Vuelve a la pantalla de resultado de la sesión con el hueco del bono."""
+        self._show_result(True, self._last_sync_results, None)
+
+    # — Paso 1 · Lo mínimo que necesitamos ————————————————————
+
+    def _bono_paso1(self):
+        b = self._bono
+        frame = self._bono_frame("Lo mínimo que necesitamos", 1, self._bono_volver_al_resultado)
+        self._bono_botones(frame, "Volver", self._bono_volver_al_resultado,
+                           "Siguiente", self._bono_paso2)
+        tk.Label(frame, text=("La pantalla de controles de teclado y mouse del título, con los "
+                              "controles por defecto. En la mayoría de los títulos está en "
+                              "Opciones → Controles."),
+                 fg=DIM, bg=BG, font=("Segoe UI", 10), anchor="w", justify="left",
+                 wraplength=WIN_W - 60).pack(fill="x")
+
+        ill = tk.Frame(frame, bg="#0b0b1d", highlightthickness=1, highlightbackground="#3a3768")
+        ill.pack(fill="x", pady=(8, 6))
+        win = tk.Frame(ill, bg="#1b1b2f", highlightthickness=1, highlightbackground="#33305a")
+        win.pack(fill="x", padx=10, pady=(8, 4))
+        tk.Label(win, text="TECLADO Y MOUSE", fg=TEXT, bg="#1b1b2f",
+                 font=("Cascadia Code", 8, "bold"), anchor="w").pack(fill="x", padx=8, pady=(4, 2))
+        filas = [("Avanzar", "W", True), ("Izquierda", "A", True), ("Retroceder", "S", True),
+                 ("Derecha", "D", True), ("Disparar / acción principal", "Mouse izq.", True),
+                 ("Recargar", "R", False), ("Interactuar", "F", False), ("Saltar", "Espacio", False)]
+        for accion, tecla, minimo in filas:
+            r = tk.Frame(win, bg="#1b1b2f")
+            r.pack(fill="x", padx=8)
+            tk.Label(r, text=("● " if minimo else "   ") + accion,
+                     fg=GREEN if minimo else "#c9c6e6", bg="#1b1b2f",
+                     font=("Cascadia Code", 8), anchor="w").pack(side="left")
+            tk.Label(r, text=tecla, fg=YELLOW, bg="#1b1b2f",
+                     font=("Cascadia Code", 8), anchor="e").pack(side="right")
+        tk.Frame(win, bg="#1b1b2f", height=4).pack()
+        tk.Label(ill, text=("Esta es la información mínima que necesitamos: ● las cuatro "
+                            "teclas de movimiento, el botón principal del mouse y al menos "
+                            "ocho controles en total."),
+                 fg=DIM, bg="#0b0b1d", font=("Segoe UI", 9), anchor="w", justify="left",
+                 wraplength=WIN_W - 90).pack(fill="x", padx=10, pady=(0, 8))
+
+        for mark, col, txt in (
+                ("✓", GREEN, "Si el título tiene varias pestañas (a pie, vehículo, inventario), mandá todas."),
+                ("!", YELLOW, "Si cambiaste teclas, restablecé los controles antes de la captura. "
+                              "Necesitamos siempre el teclado por defecto."),
+                ("✗", RED, "La pantalla de sensibilidad o la del mando no sirven.")):
+            r = tk.Frame(frame, bg=BG)
+            r.pack(fill="x")
+            tk.Label(r, text=mark, fg=col, bg=BG, font=("Segoe UI", 9, "bold"),
+                     width=2, anchor="w").pack(side="left", anchor="n")
+            tk.Label(r, text=txt, fg=TEXT, bg=BG, font=("Segoe UI", 9), anchor="w",
+                     justify="left", wraplength=WIN_W - 90).pack(side="left", fill="x", expand=True)
+
+        dos = tk.Frame(frame, bg=CARD, highlightthickness=1, highlightbackground="#4a3f7a")
+        dos.pack(fill="x", pady=(8, 8))
+        tk.Label(dos, text="Hacen falta dos personas", fg=YELLOW, bg=CARD,
+                 font=("Segoe UI", 10, "bold"), anchor="w").pack(fill="x", padx=12, pady=(6, 1))
+        tk.Label(dos, text=("Confirmamos el mapa de un título cuando dos usuarios distintos "
+                            "mandan los mismos controles. Si tu aporte es correcto y sos la "
+                            "primera persona, lo guardamos y queda en Validación pendiente "
+                            "hasta que llegue otro igual. Cuando coincide, los dos pasan a "
+                            "Pago pendiente."),
+                 fg=DIM, bg=CARD, font=("Segoe UI", 9), anchor="w", justify="left",
+                 wraplength=WIN_W - 90).pack(fill="x", padx=12, pady=(0, 8))
+
+    # — Paso 2 · Cómo lo compartís ————————————————————————
+
+    def _bono_paso2(self):
+        b = self._bono
+        frame = self._bono_frame("Cómo lo compartís", 2, self._bono_paso1)
+        btn_rev = self._bono_botones(frame, "Volver", self._bono_paso1, "Revisar", self._bono_paso3)
+
+        opt = tk.Frame(frame, bg=CARD2, highlightthickness=1, highlightbackground=ACCENT)
+        opt.pack(fill="x")
+        tk.Label(opt, text="Subí las capturas de la pantalla de controles", fg=TEXT, bg=CARD2,
+                 font=("Segoe UI", 11, "bold"), anchor="w", justify="left",
+                 wraplength=WIN_W - 90).pack(fill="x", padx=12, pady=(10, 2))
+        tk.Label(opt, text=("Sacá la captura en el título (Impr Pant, Win+Shift+S o Steam F12) "
+                            "y elegí las imágenes. Una por pestaña."),
+                 fg=DIM, bg=CARD2, font=("Segoe UI", 9), anchor="w", justify="left",
+                 wraplength=WIN_W - 90).pack(fill="x", padx=12, pady=(0, 10))
+
+        drop = tk.Frame(frame, bg="#0b0b1d", highlightthickness=1, highlightbackground="#4a4680")
+        drop.pack(fill="x", pady=(8, 0))
+        elegir = tk.Label(drop, text="Elegir imágenes…", fg=ACCENT, bg="#0b0b1d",
+                          font=("Segoe UI", 11, "underline"), cursor="hand2")
+        elegir.pack(pady=(16, 2))
+        tk.Label(drop, text="PNG, JPG o WebP · de a una o varias a la vez", fg=DIMMER,
+                 bg="#0b0b1d", font=("Segoe UI", 9)).pack(pady=(0, 14))
+        err = tk.Label(frame, text="", fg=RED, bg=BG, font=("Segoe UI", 9), anchor="w",
+                       justify="left", wraplength=WIN_W - 60)
+        err.pack(fill="x", pady=(6, 0))
+
+        _mk_section_label(frame, "LO QUE SUBISTE")
+        thumbs = tk.Frame(frame, bg=BG)
+        thumbs.pack(fill="x")
+        contador = tk.Label(frame, text="", fg=DIM, bg=BG, font=("Cascadia Code", 9), anchor="w")
+        contador.pack(fill="x", pady=(4, 0))
+        tk.Label(frame, text=("Máximo 6 imágenes, 10 MB cada una y 40 MB en total. PNG, JPG o "
+                              "WebP, de al menos 1280 × 720. Si la captura sale negra en pantalla "
+                              "completa, usá Steam F12 o pasá a modo ventana un momento."),
+                 fg=DIMMER, bg=BG, font=("Segoe UI", 8), anchor="w", justify="left",
+                 wraplength=WIN_W - 60).pack(fill="x", pady=(8, 0))
+
+        def _refrescar():
+            for w in thumbs.winfo_children():
+                w.destroy()
+            imgs = b["imgs"]
+            total = sum(len(i["bytes"]) for i in imgs)
+            for idx, im in enumerate(imgs):
+                cell = tk.Frame(thumbs, bg="#1e1e3a", highlightthickness=1,
+                                highlightbackground="#3a3768", width=96, height=64)
+                cell.pack_propagate(False)
+                cell.grid(row=idx // 4, column=idx % 4, padx=(0, 6), pady=(0, 6))
+                tk.Label(cell, image=im["thumb"], bg="#1e1e3a").place(x=0, y=0)
+                x = tk.Label(cell, text="✕", fg=TEXT, bg="#1e1e3a", font=("Segoe UI", 8, "bold"),
+                             cursor="hand2")
+                x.place(relx=1.0, x=-4, y=2, anchor="ne")
+                x.bind("<Button-1>", lambda e, i=idx: (imgs.pop(i), _refrescar()))
+            contador.config(text=f"{len(imgs)} de {self.BONO_MAX_IMAGENES} imágenes · "
+                                 f"{total / 1024 / 1024:.1f} de {self.BONO_MAX_MB_TOTAL} MB")
+            if imgs:
+                btn_rev.config(state="normal", bg=ACCENT, fg="#fff")
+            else:
+                btn_rev.config(state="disabled", bg=CARD, fg=DIMMER)
+
+        def _elegir():
+            from tkinter import filedialog
+            rutas = filedialog.askopenfilenames(
+                parent=self.root, title="Elegí las capturas de la pantalla de controles",
+                filetypes=[("Imágenes", "*.png *.jpg *.jpeg *.webp"), ("Todos", "*.*")])
+            errores = []
+            for ruta in rutas or ():
+                e = self._bono_agregar_imagen(ruta)
+                if e:
+                    errores.append(e)
+            err.config(text="\n".join(errores[:3]))
+            _refrescar()
+
+        elegir.bind("<Button-1>", lambda e: _elegir())
+        drop.bind("<Button-1>", lambda e: _elegir())
+        _refrescar()
+
+    def _bono_agregar_imagen(self, ruta):
+        """Valida y normaliza una imagen. Devuelve un mensaje de error o None."""
+        b = self._bono
+        nombre = os.path.basename(ruta)
+        if len(b["imgs"]) >= self.BONO_MAX_IMAGENES:
+            return f"Ya cargaste {self.BONO_MAX_IMAGENES} imágenes, el máximo."
+        try:
+            tam = os.path.getsize(ruta)
+        except Exception:
+            return f"{nombre}: no se pudo abrir."
+        if tam > self.BONO_MAX_MB_IMAGEN * 1024 * 1024:
+            return f"{nombre}: pesa más de {self.BONO_MAX_MB_IMAGEN} MB."
+        try:
+            from PIL import Image
+            im = Image.open(ruta)
+            im.load()
+        except Exception:
+            return f"{nombre}: no es una imagen PNG, JPG o WebP."
+        if (im.format or "").upper() not in ("PNG", "JPEG", "WEBP"):
+            return f"{nombre}: no es una imagen PNG, JPG o WebP."
+        w, h = im.size
+        if w < self.BONO_MIN_W or h < self.BONO_MIN_H:
+            return f"{nombre}: es muy chica ({w}×{h}). Necesitamos al menos 1280 × 720 para leer las teclas."
+        datos = self._bono_normalizar(im)
+        if not datos:
+            return f"{nombre}: no se pudo procesar."
+        digest = _hashlib.sha256(datos).hexdigest()
+        if any(i["sha256"] == digest for i in b["imgs"]):
+            return f"{nombre}: esa imagen ya está cargada."
+        total = sum(len(i["bytes"]) for i in b["imgs"]) + len(datos)
+        if total > self.BONO_MAX_MB_TOTAL * 1024 * 1024:
+            return f"{nombre}: con esta imagen superás los {self.BONO_MAX_MB_TOTAL} MB en total."
+        try:
+            from PIL import ImageTk
+            th = im.copy()
+            th.thumbnail((96, 64))
+            thumb = ImageTk.PhotoImage(th)
+        except Exception:
+            thumb = None
+        base = os.path.splitext(nombre)[0][:40] or "captura"
+        ext = ".png" if datos[:4] == b"\x89PNG" else ".jpg"
+        b["imgs"].append({"nombre": base + ext, "bytes": datos, "sha256": digest,
+                          "w": w, "h": h, "thumb": thumb})
+        return None
+
+    def _bono_normalizar(self, im):
+        """Deja la imagen en PNG o JPEG de hasta 4,5 MB, sin perder legibilidad.
+        El backend acepta hasta 5 MB por imagen; una captura 4K en PNG pesa más."""
+        try:
+            if im.mode not in ("RGB", "L"):
+                im = im.convert("RGB")
+            w, h = im.size
+            if max(w, h) > 2560:
+                im = im.copy()
+                im.thumbnail((2560, 2560))
+            buf = io.BytesIO()
+            im.save(buf, format="PNG", optimize=True)
+            if buf.tell() <= self._BONO_UPLOAD_MAX:
+                return buf.getvalue()
+            for q in (90, 82):
+                buf = io.BytesIO()
+                im.save(buf, format="JPEG", quality=q, optimize=True)
+                if buf.tell() <= self._BONO_UPLOAD_MAX:
+                    return buf.getvalue()
+            im = im.copy()
+            im.thumbnail((1920, 1920))
+            buf = io.BytesIO()
+            im.save(buf, format="JPEG", quality=85, optimize=True)
+            return buf.getvalue() if buf.tell() <= self._BONO_UPLOAD_MAX else None
+        except Exception as e:
+            _obs_dbg(f"bono normalizar: {e}")
+            return None
+
+    # — Paso 3 · Revisá antes de enviar ——————————————————————
+
+    def _bono_paso3(self):
+        b = self._bono
+        if not b["imgs"]:
+            self._bono_paso2()
+            return
+        frame = self._bono_frame("Revisá antes de enviar", 3, self._bono_paso2)
+        btn = self._bono_botones(frame, "Volver", self._bono_paso2,
+                                 "Analizar metadata", self._bono_analizar)
+        btn.config(state="disabled", bg=CARD, fg=DIMMER)
+        card = tk.Frame(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+        card.pack(fill="x")
+        bono_txt = (f"{self._fmt_usd(b['monto_usd'])} al validarse" if b["oferta"] == "bono"
+                    else "Ticket para el sorteo mensual")
+        for k, v in (("Título", b["game"]), ("Dataset", Path(b["sdir"]).name),
+                     ("Enviás", f"{len(b['imgs'])} captura{'s' if len(b['imgs']) != 1 else ''}"),
+                     ("Bono", bono_txt)):
+            r = tk.Frame(card, bg=CARD)
+            r.pack(fill="x", padx=12, pady=3)
+            tk.Label(r, text=k, fg=DIM, bg=CARD, font=("Segoe UI", 9, "bold"), width=8,
+                     anchor="w").pack(side="left")
+            tk.Label(r, text=v, fg=YELLOW if k == "Bono" else TEXT, bg=CARD,
+                     font=("Segoe UI", 9), anchor="w", justify="left",
+                     wraplength=WIN_W - 150).pack(side="left", fill="x", expand=True)
+        tk.Frame(card, bg=CARD, height=6).pack()
+
+        thumbs = tk.Frame(frame, bg=BG)
+        thumbs.pack(fill="x", pady=(10, 0))
+        for idx, im in enumerate(b["imgs"]):
+            cell = tk.Frame(thumbs, bg="#1e1e3a", highlightthickness=1,
+                            highlightbackground="#3a3768", width=96, height=64)
+            cell.pack_propagate(False)
+            cell.grid(row=idx // 4, column=idx % 4, padx=(0, 6), pady=(0, 6))
+            if im.get("thumb"):
+                tk.Label(cell, image=im["thumb"], bg="#1e1e3a").place(x=0, y=0)
+
+        tk.Label(frame, text=("Vamos a leer las capturas ahora mismo. Si falta algo de lo "
+                              "mínimo, te lo decimos y podés sumar otra captura."),
+                 fg=DIM, bg=BG, font=("Segoe UI", 9), anchor="w", justify="left",
+                 wraplength=WIN_W - 60).pack(fill="x", pady=(6, 0))
+
+        box = tk.Frame(frame, bg="#181428", highlightthickness=1, highlightbackground=YELLOW)
+        box.pack(fill="x", pady=(10, 0))
+        tk.Label(box, text="OBLIGATORIO PARA ANALIZAR", fg=YELLOW, bg="#181428",
+                 font=("Segoe UI", 8, "bold"), anchor="w").pack(fill="x", padx=12, pady=(8, 4))
+        chk_var = tk.BooleanVar(value=False)
+        chk = tk.Checkbutton(
+            box, variable=chk_var, fg=TEXT, bg="#181428", selectcolor=CARD,
+            activebackground="#181428", activeforeground=TEXT, highlightthickness=0, bd=0,
+            font=("Segoe UI", 9), anchor="w", justify="left", wraplength=WIN_W - 120,
+            text=(f"Confirmo que es la pantalla de controles por defecto de {b['game']}, "
+                  "no de otro título ni de otro modo de juego."))
+        chk.pack(fill="x", padx=8, pady=(0, 8))
+        tk.Label(frame, text="El botón se habilita al marcar la casilla.", fg=DIMMER, bg=BG,
+                 font=("Segoe UI", 8), anchor="w").pack(fill="x", pady=(4, 0))
+
+        def _toggle(*_):
+            if chk_var.get():
+                btn.config(state="normal", bg=ACCENT, fg="#fff")
+            else:
+                btn.config(state="disabled", bg=CARD, fg=DIMMER)
+        chk_var.trace_add("write", _toggle)
+
+    # — Análisis (F), error (F2) y resultado (G) ————————————————
+
+    def _bono_analizar(self):
+        b = self._bono
+        self._clear_content()
+        self._set_back(None)
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        tk.Label(frame, text="Analizando tus capturas", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 14, "bold"), anchor="w").pack(fill="x")
+        tk.Label(frame, text="No cierres el Recorder. Suele tardar menos de un minuto.",
+                 fg=DIM, bg=BG, font=("Segoe UI", 10), anchor="w").pack(fill="x", pady=(4, 0))
+        spin = tk.Label(frame, text="⠋", fg=ACCENT, bg=BG, font=("Segoe UI", 40))
+        spin.pack(pady=(26, 10))
+        etapas = ["Capturas subidas", "Leyendo los controles…",
+                  "Comparando con tu sesión", "Validando el mapa del título"]
+        labels = []
+        for t in etapas:
+            l = tk.Label(frame, text="○ " + t, fg=DIMMER, bg=BG, font=("Segoe UI", 10))
+            l.pack()
+            labels.append(l)
+        estado = {"vivo": True, "etapa": 0, "frame": 0}
+        frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+        def _tick():
+            if not estado["vivo"] or not spin.winfo_exists():
+                return
+            estado["frame"] = (estado["frame"] + 1) % len(frames)
+            spin.config(text=frames[estado["frame"]])
+            self.root.after(90, _tick)
+        _tick()
+
+        def _etapa(i):
+            def _do():
+                if not spin.winfo_exists():
+                    return
+                for j, l in enumerate(labels):
+                    if j < i:
+                        l.config(text="✓ " + etapas[j], fg=GREEN)
+                    elif j == i:
+                        l.config(text="● " + etapas[j], fg=TEXT)
+                    else:
+                        l.config(text="○ " + etapas[j], fg=DIMMER)
+            self.root.after(0, _do)
+        _etapa(0)
+
+        def _worker(token=self.auth_token):
+            try:
+                archivos = [{"nombre": i["nombre"], "bytes": len(i["bytes"]), "sha256": i["sha256"]}
+                            for i in b["imgs"]]
+                res = pleiada_api.submit_key_mapping(
+                    token, b["game"], b["call_id"], b["session_id"], archivos,
+                    keys_top=b["keys_top"], binding_source=b["binding_source"],
+                    recorder_version=VERSION)
+                b["aporte_id"] = res.get("aporte_id", "")
+                urls = res.get("urls") or {}
+                for i in b["imgs"]:
+                    url = urls.get(i["nombre"])
+                    if not url:
+                        raise pleiada_api.ApiError("No se pudo preparar la subida de una imagen.")
+                    req = urllib_request.Request(url, data=i["bytes"], method="PUT")
+                    req.add_header("Content-Length", str(len(i["bytes"])))
+                    with session_uploader._open(req, timeout=180):
+                        pass
+                _etapa(1)
+                out = pleiada_api.analyze_key_mapping(token, b["aporte_id"])
+            except pleiada_api.ApiError as e:
+                if _es_error_de_sesion(e):
+                    self.root.after(0, lambda: self._on_auth_expired(
+                        "Volvé a iniciar sesión para poder enviar la metadata."))
+                    return
+                code = getattr(e, "code", "") or ""
+                msg = str(e)
+                # Un título que se confirmó mientras tanto no es un error del
+                # usuario: se le agradece y sigue con la subida.
+                if code in ("titulo_ya_confirmado", "tope_titulo", "ya_aportaste"):
+                    self.root.after(0, lambda: self._bono_cerrado(msg))
+                else:
+                    self.root.after(0, lambda: self._bono_error("", msg, tecnico=True))
+                return
+            except Exception as e:
+                _obs_dbg(f"bono analizar: {e}")
+                self.root.after(0, lambda: self._bono_error(
+                    "", "No pudimos subir las capturas. Revisá tu conexión e intentá de nuevo.",
+                    tecnico=True))
+                return
+            finally:
+                estado["vivo"] = False
+            _etapa(3)
+            if out.get("estado") == "ok":
+                self.root.after(0, lambda: self._bono_ok(out))
+            else:
+                self.root.after(0, lambda: self._bono_error(
+                    out.get("codigo", ""), out.get("message", "")))
+
+        import urllib.request as urllib_request
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _bono_error(self, codigo, mensaje, tecnico=False):
+        """F2: no se leyó lo mínimo (o falló la subida). Nada quedó registrado."""
+        b = self._bono
+        if not tecnico:
+            b["intentos"] += 1
+        frame = self._ident_frame("No pudimos leer lo mínimo" if not tecnico
+                                  else "No se pudo analizar", volver_a=self._bono_paso2)
+        btn = self._bono_botones(frame, "Subir sin metadata",
+                                 lambda: self._start_upload_flow(self.session_dir, self._show_idle),
+                                 "Volver a intentar", self._bono_paso2)
+        card_bg, card_brd = "#140606", "#7a2020"
+        card = tk.Frame(frame, bg=card_bg, highlightthickness=1, highlightbackground=card_brd)
+        card.pack(fill="x", pady=(12, 0))
+        row = tk.Frame(card, bg=card_bg)
+        row.pack(fill="x", padx=12, pady=10)
+        tk.Label(row, text="✗", fg=RED, bg=card_bg, font=("Segoe UI", 13, "bold")).pack(
+            side="left", padx=(0, 10), anchor="n")
+        col = tk.Frame(row, bg=card_bg)
+        col.pack(side="left", fill="x", expand=True)
+        tk.Label(col, text=("Falta información en las capturas" if not tecnico
+                            else "Algo falló de nuestro lado"),
+                 fg=TEXT, bg=card_bg, font=("Segoe UI", 11, "bold"), anchor="w").pack(fill="x")
+        base = ("No encontramos la información mínima: las cuatro teclas de movimiento, "
+                "el botón principal del mouse y al menos ocho controles.")
+        detalle = mensaje if tecnico else (mensaje if mensaje and mensaje != base else "")
+        texto = mensaje if tecnico else (base + (" " + detalle if detalle and codigo != "piso" else ""))
+        tk.Label(col, text=texto, fg="#f0c0c0", bg=card_bg, font=("Segoe UI", 10),
+                 anchor="w", justify="left", wraplength=WIN_W - 130).pack(fill="x", pady=(3, 0))
+        if not tecnico:
+            tk.Label(frame, text=("Revisá que sea la pantalla de controles de teclado y mouse, "
+                                  "con los valores por defecto, y que las teclas se lean bien. "
+                                  "Podés sumar otra captura a las que ya cargaste."),
+                     fg=DIM, bg=BG, font=("Segoe UI", 10), anchor="w", justify="left",
+                     wraplength=WIN_W - 60).pack(fill="x", pady=(12, 0))
+            agotado = b["intentos"] >= self.BONO_MAX_INTENTOS
+            tk.Label(frame, text=(f"Intento {b['intentos']} de {self.BONO_MAX_INTENTOS} en esta sesión."
+                                  if not agotado else
+                                  "Ya probaste tres veces en esta sesión. Podés subir el dataset "
+                                  "igual y volver a intentarlo en la próxima grabación de este título."),
+                     fg=DIMMER, bg=BG, font=("Segoe UI", 9), anchor="w", justify="left",
+                     wraplength=WIN_W - 60).pack(fill="x", pady=(8, 0))
+        else:
+            agotado = False
+        if agotado:
+            btn.config(state="disabled", bg=CARD, fg=DIMMER)
+
+    def _bono_cerrado(self, mensaje):
+        """El título se confirmó (o el usuario ya aportó) mientras tanto: no hay
+        nada que enviar. Se agradece y se sigue con la subida."""
+        self._bono["aportado"] = True
+        frame = self._ident_frame("Este título ya tiene su mapa de controles",
+                                  mensaje or "¡Gracias igual!", volver_a=None)
+        self._set_back(None)
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        tk.Button(frame, text="Continuar con la subida del dataset", fg="#fff", bg=ACCENT,
+                  relief="flat", bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
+                  activebackground="#9080e0",
+                  command=lambda: self._start_upload_flow(self.session_dir, self._show_idle)
+                  ).pack(fill="x", ipady=10)
+
+    def _bono_ok(self, out):
+        """G: el aporte quedó registrado. Siempre "Validación pendiente" acá; si
+        completó el consenso, el cambio se ve en el perfil."""
+        b = self._bono
+        b["aportado"] = True
+        frame = self._ident_frame("Controles recibidos", volver_a=None)
+        self._set_back(None)
+        card_bg, card_brd = "#06140d", "#1e6644"
+        card = tk.Frame(frame, bg=card_bg, highlightthickness=1, highlightbackground=card_brd)
+        card.pack(fill="x", pady=(12, 0))
+        row = tk.Frame(card, bg=card_bg)
+        row.pack(fill="x", padx=12, pady=10)
+        tk.Label(row, text="✓", fg=GREEN, bg=card_bg, font=("Segoe UI", 13, "bold")).pack(
+            side="left", padx=(0, 10), anchor="n")
+        col = tk.Frame(row, bg=card_bg)
+        col.pack(side="left", fill="x", expand=True)
+        n = int(out.get("binds") or 0)
+        tk.Label(col, text=f"Leímos {n} controles de {b['game']}", fg=TEXT, bg=card_bg,
+                 font=("Segoe UI", 11, "bold"), anchor="w", justify="left",
+                 wraplength=WIN_W - 130).pack(fill="x")
+        if b["oferta"] == "bono":
+            cuerpo = ("Tu aporte queda registrado. El mapa del título se valida cuando otra "
+                      "persona confirma los mismos controles; en ese momento tu bono de "
+                      f"{self._fmt_usd(b['monto_usd'])} entra a Pago pendiente y se acredita "
+                      "dentro de los 45 días a tu wallet.")
+        else:
+            cuerpo = ("Tu aporte queda registrado. El mapa del título se valida cuando otra "
+                      "persona confirma los mismos controles; en ese momento tu ticket para "
+                      "el sorteo mensual queda confirmado.")
+        tk.Label(col, text=cuerpo, fg=DIM, bg=card_bg, font=("Segoe UI", 10), anchor="w",
+                 justify="left", wraplength=WIN_W - 130).pack(fill="x", pady=(3, 0))
+
+        info = tk.Frame(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+        info.pack(fill="x", pady=(12, 0))
+        for k, v, col_v in (("Estado", "Validación pendiente", YELLOW),
+                            ("Lo ves en", "tu perfil, debajo de este dataset", TEXT)):
+            r = tk.Frame(info, bg=CARD)
+            r.pack(fill="x", padx=12, pady=4)
+            tk.Label(r, text=k, fg=DIM, bg=CARD, font=("Segoe UI", 9, "bold"), width=9,
+                     anchor="w").pack(side="left")
+            tk.Label(r, text=v, fg=col_v, bg=CARD, font=("Segoe UI", 9), anchor="w").pack(
+                side="left")
+        tk.Frame(info, bg=CARD, height=4).pack()
+
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        if b["call_id"]:
+            texto, cmd = ("Continuar con la subida del dataset",
+                          lambda: self._start_upload_flow(self.session_dir, self._show_idle))
+        else:
+            texto, cmd = "Listo", self._show_idle
+        tk.Button(frame, text=texto, fg="#fff", bg=ACCENT, relief="flat", bd=0,
+                  cursor="hand2", font=("Segoe UI", 11, "bold"), activebackground="#9080e0",
+                  command=cmd).pack(fill="x", ipady=10)
 
     # ── Upload a S3 (vistas in-window) ─────────────────────────────────────────
 

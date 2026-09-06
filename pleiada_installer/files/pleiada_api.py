@@ -207,6 +207,51 @@ def abort_multipart(token, call_id, session_name, filename, s3_upload_id):
     })
 
 
+def metadata_offer(token, game_name, call_id="", binding_source=""):
+    """
+    ¿El título necesita su mapa de controles? Se pregunta AL TERMINAR la
+    sesión, nunca antes: recién ahí se sabe si el Recorder leyó el config solo
+    (`binding_source == "config"`), y en ese caso no se ofrece nada.
+
+    Devuelve {"oferta": "bono"|"sorteo"|None, "pct", "monto_usd", "motivo"}.
+    Todo el criterio vive en el backend.
+    """
+    return _call("metadata_offer", {
+        "token": token, "game_name": game_name or "", "call_id": call_id or "",
+        "binding_source": binding_source or "",
+    })
+
+
+def submit_key_mapping(token, game_name, call_id, session_id, archivos,
+                       keys_top=None, binding_source="", dataset_hash="",
+                       recorder_version=""):
+    """
+    Paso 1 del aporte de controles: el backend valida (título vigente, tope,
+    imágenes repetidas) y devuelve {"aporte_id", "urls": {nombre: url}, ...}.
+    `archivos` = [{"nombre", "bytes", "sha256"}]. Lanza ApiError con `code`
+    (titulo_ya_confirmado, aporte_duplicado, ya_aportaste, tope_titulo...).
+    """
+    return _call("submit_key_mapping", {
+        "token": token, "game_name": game_name, "call_id": call_id or "",
+        "session_id": session_id, "archivos": archivos, "keys_top": keys_top or {},
+        "binding_source": binding_source or "", "dataset_hash": dataset_hash or "",
+        "recorder_version": recorder_version or "",
+    }, timeout=30)
+
+
+def analyze_key_mapping(token, aporte_id, timeout=240):
+    """
+    Paso 2: el backend lee las capturas con visión, valida el piso y corre el
+    consenso. Es sincrónico y puede tardar hasta un minuto largo: el llamador
+    muestra la animación de espera mientras tanto.
+
+    Devuelve {"estado": "ok", "binds", "validado", "sorteo", "monto_usd"} o
+    {"estado": "error", "codigo", "message"} (el aporte NO quedó registrado).
+    """
+    return _call("analyze_key_mapping", {"token": token, "aporte_id": aporte_id},
+                 timeout=timeout)
+
+
 def finalize_upload(token, dataset_hash, session_name, call_id="", game_name="",
                     duration_seconds=0, session_id="", files=None, bytes_total=0):
     """

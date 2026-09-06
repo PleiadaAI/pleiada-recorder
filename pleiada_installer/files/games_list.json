@@ -28,7 +28,31 @@
   ],
   "developer": "IO Interactive",
   "igdb_id": "141114",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "LShift": "sprint",
+   "LControl": "crouch",
+   "Space": "agilidad",
+   "e": "bajar_mientras_usas_agilidad_instinto",
+   "MouseRight": "apuntar_zoom",
+   "f": "abrir_puerta_interactuar",
+   "MouseLeft": "patear_puerta_ataque_disparar",
+   "q": "enfrentar_parar",
+   "v": "atraer",
+   "x": "ejecucion_eliminacion_sigilosa",
+   "r": "reload",
+   "4": "cambiar_hombro",
+   "1": "switch_weapon",
+   "3": "arma_especial",
+   "g": "lanzar_arma_mientras_apuntas",
+   "LAlt": "visor_q",
+   "Escape": "pause",
+   "Tab": "diario_rastrear_objetivo",
+   "j": "journal"
+  }
  },
  {
   "game": "7 Days to Die",
@@ -125,7 +149,19 @@
   ],
   "developer": "Gears for Breakfast",
   "igdb_id": "6705",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "MouseLeft": "fire",
+   "MouseRight": "attack_secondary",
+   "LControl": "jump",
+   "Space": "jump",
+   "e": "interact",
+   "Up": "move_forward",
+   "Down": "move_backward"
+  }
  },
  {
   "game": "A Plague Tale: Innocence",
@@ -161,7 +197,34 @@
   ],
   "developer": "Asobo Studio",
   "igdb_id": "27316",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "c": "crouch",
+   "e": "interact",
+   "Space": "jump",
+   "LShift": "sprint",
+   "MouseLeft": "disparar_lanzar",
+   "MouseRight": "apuntar_con_la_honda_dejar_caer",
+   "LControl": "apuntar_lanzamiento_manual",
+   "Tab": "seleccionar_municion",
+   "MouseMiddle": "cambiar_municion",
+   "1": "piedra",
+   "2": "ignifer",
+   "3": "devorantis",
+   "4": "odoris",
+   "5": "exstinguis",
+   "6": "olla",
+   "7": "somnum",
+   "8": "luminosa",
+   "9": "imperium",
+   "z": "orden_ven_detente",
+   "q": "orden_accion",
+   "f": "mirar",
+   "i": "menu_de_fabricacion"
+  }
  },
  {
   "game": "A Plague Tale: Requiem",
@@ -358,6 +421,20 @@
   ],
   "developer": "Giant Squid",
   "igdb_id": "7352",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Aion 2",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "117297",
   "default_key_mapping": null
  },
  {
@@ -977,6 +1054,20 @@
   }
  },
  {
+  "game": "Arknights: Endfield",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Strategy, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "194558",
+  "default_key_mapping": null
+ },
+ {
   "game": "Arma 3",
   "perspective": "First Person",
   "genre": "Tactical Shooter, Shooter, Simulator, Tactical",
@@ -1320,6 +1411,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "B1",
+  "perspective": "",
+  "genre": "Simulator, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "289342",
+  "default_key_mapping": null
+ },
+ {
   "game": "Back 4 Blood",
   "perspective": "First Person",
   "genre": "Shooter",
@@ -1440,6 +1545,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Banana Shooter",
+  "perspective": "First Person",
+  "genre": "Shooter, Indie",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "195285",
+  "default_key_mapping": null
+ },
+ {
   "game": "Banishers: Ghosts of New Eden",
   "perspective": "Third Person",
   "genre": "Action RPG, Role-playing (RPG)",
@@ -1488,7 +1607,20 @@
   ],
   "developer": "Rocksteady Studios",
   "igdb_id": "500",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "MouseLeft": "fire",
+   "MouseRight": "attack_secondary",
+   "LControl": "jump",
+   "Space": "jump",
+   "e": "interact",
+   "Up": "move_forward",
+   "Down": "move_backward",
+   "f": "grapple"
+  }
  },
  {
   "game": "Batman: Arkham City",
@@ -1774,6 +1906,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Black Desert Online: Prestige Edition",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Simulator, Strategy, Adventure",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "139914",
+  "default_key_mapping": null
+ },
+ {
   "game": "Black Mesa",
   "perspective": "First Person",
   "genre": "Shooter, Platform",
@@ -1832,31 +1978,6 @@
  {
   "game": "Black Myth: Wukong",
   "perspective": "Third Person",
-  "genre": "Action RPG",
-  "mode": "",
-  "process_name": null,
-  "process_source": "legacy_alias",
-  "engine": null,
-  "themes": [],
-  "languages": [],
-  "developer": null,
-  "igdb_id": null,
-  "default_key_mapping": {
-   "w": "move_forward",
-   "a": "move_left",
-   "s": "move_backward",
-   "d": "move_right",
-   "LShift": "sprint",
-   "Space": "dodge",
-   "LControl": "jump",
-   "MouseLeft": "fire",
-   "MouseRight": "attack_secondary",
-   "e": "interact"
-  }
- },
- {
-  "game": "Black Myth: Wukong (b1)",
-  "perspective": "Third Person",
   "genre": "Action RPG, Role-playing (RPG), Hack and slash/Beat 'em up",
   "mode": "Singleplayer",
   "process_name": null,
@@ -1891,6 +2012,7 @@
    "a": "move_left",
    "d": "move_right",
    "MouseLeft": "fire",
+   "MouseRight": "attack_heavy",
    "MouseMiddle": "lock_on",
    "LShift": "sprint",
    "LControl": "jump",
@@ -1907,7 +2029,12 @@
    "1": "spell_1",
    "2": "spell_2",
    "3": "spell_3",
-   "4": "spell_4"
+   "4": "spell_4",
+   "f": "usar_espiritu",
+   "g": "accion_habilidad_contextual",
+   "MouseWheel": "cambiar_objetivo",
+   "Escape": "abrir_el_menu_pausa",
+   "o": "dodge"
   }
  },
  {
@@ -2125,6 +2252,47 @@
   ],
   "developer": "Reissad Studio",
   "igdb_id": "248994",
+  "default_key_mapping": {
+   "Tab": "pause",
+   "v": "push_to_talk",
+   "w": "move_forward",
+   "a": "move_left",
+   "s": "move_backward",
+   "d": "move_right",
+   "LShift": "sprint",
+   "LControl": "crouch",
+   "e": "lean_right",
+   "q": "lean_left",
+   "Space": "jump",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "r": "reload",
+   "x": "melee",
+   "f": "interact",
+   "g": "drop_item",
+   "c": "flashlight",
+   "z": "laser",
+   "j": "inspect",
+   "1": "slot_1",
+   "2": "slot_2",
+   "3": "slot_3",
+   "4": "slot_4",
+   "5": "slot_5",
+   "6": "slot_6"
+  }
+ },
+ {
+  "game": "Bomb Farm",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Simulator, Strategy, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "413917",
   "default_key_mapping": null
  },
  {
@@ -2310,6 +2478,20 @@
   ],
   "developer": "Balloon Studios",
   "igdb_id": "225426",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Breathedge",
+  "perspective": "First Person",
+  "genre": "Role-playing (RPG), Simulator, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "89326",
   "default_key_mapping": null
  },
  {
@@ -3102,7 +3284,22 @@
   ],
   "developer": "Sandfall Interactive",
   "igdb_id": "305152",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "a": "move_left",
+   "s": "move_backward",
+   "d": "move_right",
+   "LShift": "sprint",
+   "Space": "jump",
+   "e": "interact",
+   "MouseRight": "free_aim",
+   "q": "fire",
+   "r": "disparo_en_free_aim",
+   "f": "melee",
+   "Escape": "pause",
+   "LControl": "walk",
+   "t": "switch_character"
+  }
  },
  {
   "game": "Cleaning up the Puzzle Gallery",
@@ -3325,6 +3522,20 @@
   ],
   "developer": "Big Cheese Studio",
   "igdb_id": "259127",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Core Keeper",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Simulator, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "152127",
   "default_key_mapping": null
  },
  {
@@ -3708,6 +3919,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Cyberpunk",
+  "perspective": "VR",
+  "genre": "",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "236691",
+  "default_key_mapping": null
+ },
+ {
   "game": "Cyberpunk 2077",
   "perspective": "First Person",
   "genre": "Action RPG, Shooter, Role-playing (RPG)",
@@ -3769,6 +3994,20 @@
    "F5": "quicksave",
    "F9": "quickload"
   }
+ },
+ {
+  "game": "Cyberpunk Sex",
+  "perspective": "Third Person",
+  "genre": "Simulator, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "277366",
+  "default_key_mapping": null
  },
  {
   "game": "Dagger Directive",
@@ -3989,7 +4228,46 @@
   ],
   "developer": "Bend Studio",
   "igdb_id": "19561",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "LShift": "sprint",
+   "LControl": "crouch",
+   "c": "crouch",
+   "Space": "climb",
+   "CapsLock": "walk",
+   "z": "switch_shoulder",
+   "q": "survival_wheel",
+   "r": "reload",
+   "x": "quick_heal",
+   "f": "flashlight",
+   "g": "detonator",
+   "b": "binoculars",
+   "e": "interact",
+   "m": "map",
+   "i": "inventory",
+   "F2": "photo_mode",
+   "1": "slot_primary",
+   "2": "slot_secondary",
+   "3": "slot_special",
+   "4": "slot_throwable",
+   "5": "slot_trap",
+   "6": "slot_lure",
+   "MouseLeft": "fire",
+   "v": "focus_mode_survival_vision",
+   "LAlt": "nitro",
+   "MouseRight": "cycle_target_lock",
+   "Escape": "pause",
+   "j": "show_storylines",
+   "o": "show_skills",
+   "F3": "challenge_menu",
+   "h": "skip_event",
+   "Enter": "menu_confirm",
+   "u": "toggle_ui_visibility",
+   "n": "switch_characters"
+  }
  },
  {
   "game": "DayZ",
@@ -4076,6 +4354,20 @@
   ],
   "developer": "Behaviour Interactive",
   "igdb_id": "18866",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Dead Cells",
+  "perspective": "Side View",
+  "genre": "Platform, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "26855",
   "default_key_mapping": null
  },
  {
@@ -4478,6 +4770,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Dofus Retro",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Strategy, Turn-based strategy (TBS), Adventure",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "122562",
+  "default_key_mapping": null
+ },
+ {
   "game": "Don't Fool Me, Beauties!",
   "perspective": "First Person",
   "genre": "Role-playing (RPG), Simulator",
@@ -4530,6 +4836,34 @@
   ],
   "developer": "Digital Cybercherries",
   "igdb_id": "271422",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Don't Starve",
+  "perspective": "Isometric",
+  "genre": "Simulator, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "3152",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Don't Starve Together",
+  "perspective": "Isometric",
+  "genre": "Simulator, Strategy, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "17832",
   "default_key_mapping": null
  },
  {
@@ -4765,7 +5099,31 @@
   ],
   "developer": "Spike Chunsoft",
   "igdb_id": "279634",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "Tab": "pause",
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "Space": "ascend_jump",
+   "e": "guard",
+   "r": "revenge_counter",
+   "MouseLeft": "melee",
+   "MouseRight": "ki_blasts_rush_chain",
+   "q": "super_perception",
+   "f": "short_dash_step",
+   "v": "vanishing_assault",
+   "1": "skill_1",
+   "2": "skill_2",
+   "3": "blast_1",
+   "4": "blast_2",
+   "5": "ultimate_blast",
+   "z": "show_hide_transformation_fusion_panel",
+   "x": "show_hide_switch_panel",
+   "c": "show_hide_emote_panel",
+   "b": "trigger_event",
+   "Backspace": "move_backward"
+  }
  },
  {
   "game": "Dragon Ball: Xenoverse 2",
@@ -4798,7 +5156,24 @@
   ],
   "developer": "Dimps",
   "igdb_id": "19449",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "q": "ki_blast",
+   "Space": "jump",
+   "LAlt": "descend",
+   "LShift": "boost_step",
+   "e": "guard",
+   "z": "dragon_radar",
+   "f": "skills",
+   "r": "ultimate_attack",
+   "Tab": "combat_item",
+   "c": "chat_history",
+   "1": "tracker",
+   "2": "mission_info"
+  }
  },
  {
   "game": "DrainSim",
@@ -5531,6 +5906,53 @@
   ],
   "developer": "Keen Games",
   "igdb_id": "248643",
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "Space": "jump",
+   "c": "sneak_toggle",
+   "e": "conextual_action",
+   "f": "respawn_hold",
+   "x": "emote_menu",
+   "F1": "show_tutorial",
+   "p": "push_to_talk",
+   "LAlt": "action_bar_switch_release",
+   "1": "action_bar_slot_1",
+   "2": "action_bar_slot_2",
+   "3": "action_bar_slot_3",
+   "4": "action_bar_slot_4",
+   "5": "action_bar_slot_5",
+   "6": "action_bar_slot_6",
+   "7": "action_bar_slot_7",
+   "8": "action_bar_slot_8",
+   "y": "undo_build_action",
+   "r": "rotate_90",
+   "Escape": "move_backward",
+   "q": "previous_tab",
+   "t": "sort_inventory",
+   "g": "sort_storage",
+   "MouseRight": "cancel",
+   "MouseLeft": "use_item",
+   "LControl": "evade",
+   "i": "inventory",
+   "Tab": "quick_builder_menu",
+   "k": "open_notification"
+  }
+ },
+ {
+  "game": "Entropia Universe",
+  "perspective": "First Person",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "3086",
   "default_key_mapping": null
  },
  {
@@ -5761,6 +6183,20 @@
   ],
   "developer": "The Chinese Room",
   "igdb_id": "7405",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Exiled Survivors",
+  "perspective": "Isometric",
+  "genre": "Shooter, Role-playing (RPG), Hack and slash/Beat 'em up",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "278524",
   "default_key_mapping": null
  },
  {
@@ -6311,6 +6747,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Fortnite",
+  "perspective": "Third Person",
+  "genre": "Shooter, Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "1905",
+  "default_key_mapping": null
+ },
+ {
   "game": "Forza Horizon 6",
   "perspective": "First Person",
   "genre": "Racing, Simulator, Sport, Arcade",
@@ -6322,6 +6772,48 @@
   "languages": [],
   "developer": null,
   "igdb_id": "348330",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Game of Thrones",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "5489",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Game of Thrones: Legends",
+  "perspective": "Side View",
+  "genre": "Puzzle, Arcade, Card & Board Game",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "330384",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Game of Thrones: Winter is Coming",
+  "perspective": "",
+  "genre": "Role-playing (RPG), Simulator, Strategy",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "114007",
   "default_key_mapping": null
  },
  {
@@ -6403,6 +6895,20 @@
   ],
   "developer": "Euphoric Brothers",
   "igdb_id": "300548",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Gatekeeper",
+  "perspective": "Third Person",
+  "genre": "Shooter, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "222906",
   "default_key_mapping": null
  },
  {
@@ -6858,6 +7364,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Guild Wars 2: Heart of Thorns - Deluxe Edition",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG)",
+  "mode": "MMO",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "53067",
+  "default_key_mapping": null
+ },
+ {
   "game": "Gunfire Reborn",
   "perspective": "First Person",
   "genre": "Roguelike Shooter, Shooter, Role-playing (RPG)",
@@ -6968,6 +7488,33 @@
   ],
   "developer": "Valve",
   "igdb_id": "231",
+  "default_key_mapping": {
+   "Enter": "fire",
+   "Space": "jump",
+   "a": "move_left",
+   "d": "move_right",
+   "e": "interact",
+   "r": "reload",
+   "s": "move_backward",
+   "w": "move_forward",
+   "LControl": "crouch",
+   "LShift": "sprint",
+   "MouseLeft": "fire",
+   "MouseRight": "attack_secondary"
+  }
+ },
+ {
+  "game": "Halo Infinite",
+  "perspective": "First Person",
+  "genre": "Shooter, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "103281",
   "default_key_mapping": null
  },
  {
@@ -7345,7 +7892,18 @@
   ],
   "developer": "IO Interactive",
   "igdb_id": "134595",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "e": "interact",
+   "x": "agility_actions",
+   "f": "pick_up",
+   "Space": "cover",
+   "b": "drag_body",
+   "q": "melee"
+  }
  },
  {
   "game": "Hobo: Tough Life",
@@ -7425,6 +7983,20 @@
    "z": "ancient_magic_throw",
    "m": "map"
   }
+ },
+ {
+  "game": "Hollow Knight Silksong",
+  "perspective": "Side View",
+  "genre": "Platform, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "372563",
+  "default_key_mapping": null
  },
  {
   "game": "Homefront",
@@ -7603,6 +8175,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "How to Fish",
+  "perspective": "First Person",
+  "genre": "Shooter, Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "378170",
+  "default_key_mapping": null
+ },
+ {
   "game": "Hunt: Showdown",
   "perspective": "First Person",
   "genre": "Extraction Shooter, Shooter, Simulator",
@@ -7699,6 +8285,20 @@
   ],
   "developer": "RocketWerkz",
   "igdb_id": "134813",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Idle Slayer",
+  "perspective": "Side View",
+  "genre": "Strategy, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "139040",
   "default_key_mapping": null
  },
  {
@@ -8044,7 +8644,32 @@
   ],
   "developer": "Avalanche Studios",
   "igdb_id": "558",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "e": "interact",
+   "f": "grappling_hook",
+   "Space": "jump",
+   "LAlt": "stunt_jump",
+   "LShift": "sprint",
+   "Tab": "evade",
+   "q": "melee",
+   "LControl": "crouch",
+   "F1": "pda",
+   "MouseLeft": "fire",
+   "MouseRight": "attack_secondary",
+   "c": "aim",
+   "r": "reload",
+   "MouseWheelDown": "next_weapon",
+   "MouseWheelUp": "previous_weapon",
+   "1": "weapon_one_handed",
+   "2": "dual_wield",
+   "3": "weapon_two_handed",
+   "4": "beacon",
+   "g": "toggle_explosives"
+  }
  },
  {
   "game": "Kamla",
@@ -8180,7 +8805,50 @@
   ],
   "developer": "Warhorse Studios",
   "igdb_id": "4843",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "q": "toggle_hud",
+   "x": "move_object",
+   "t": "wait_dialog",
+   "f": "minigame_secondary",
+   "r": "reset_alchemy",
+   "F11": "eye_tracking",
+   "F12": "screenshot",
+   "a": "move_left",
+   "d": "move_right",
+   "w": "move_forward",
+   "s": "move_backward",
+   "e": "interact",
+   "Space": "jump",
+   "LShift": "sprint",
+   "c": "crouch",
+   "g": "throw_stone",
+   "v": "pat_your_dog_or_horse",
+   "z": "lower_helmet_visor",
+   "Escape": "pause_menu",
+   "CapsLock": "toggle_walk",
+   "k": "rotate_left",
+   "l": "rotate_right",
+   "MouseLeft": "fire",
+   "MouseRight": "block",
+   "MouseMiddle": "combat_free_lock",
+   "Tab": "lock_on_opponent",
+   "1": "quick_chat_first_option",
+   "2": "quick_chat_second_option",
+   "3": "quick_chat_third_option",
+   "4": "quick_chat_fourth_option",
+   "b": "quick_items",
+   "5": "first_consumable_slot",
+   "6": "second_consumable_slot",
+   "7": "third_consumable_slot",
+   "8": "fourth_consumable_slot",
+   "i": "inventory",
+   "p": "player",
+   "j": "journal",
+   "m": "map",
+   "n": "codex",
+   "o": "change_clothing_preset",
+   "F1": "photo_mode"
+  }
  },
  {
   "game": "Kingdom Come: Deliverance II",
@@ -8216,7 +8884,48 @@
   ],
   "developer": "Warhorse Studios",
   "igdb_id": "298526",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "a": "move_left",
+   "d": "move_right",
+   "w": "move_forward",
+   "s": "move_backward",
+   "e": "interact",
+   "g": "throw_stone",
+   "v": "pet_animal",
+   "r": "equip_torch",
+   "z": "lower_visor",
+   "Space": "skip_dialog",
+   "LControl": "brake_horse",
+   "Escape": "pause_menu",
+   "c": "toggle_crouch",
+   "CapsLock": "toggle_walk",
+   "x": "companion_control",
+   "k": "rotate_left",
+   "l": "rotate_right",
+   "MouseLeft": "fire",
+   "MouseRight": "block",
+   "MouseMiddle": "combat_free_lock",
+   "Tab": "lock_on_opponent",
+   "f": "special_attack",
+   "q": "quick_chat",
+   "1": "quick_chat_first_option",
+   "2": "quick_chat_second_option",
+   "3": "quick_chat_third_option",
+   "4": "quick_chat_fourth_option",
+   "b": "quick_items",
+   "5": "first_consumable_slot",
+   "6": "second_consumable_slot",
+   "7": "third_consumable_slot",
+   "8": "fourth_consumable_slot",
+   "i": "inventory",
+   "p": "player",
+   "j": "journal",
+   "m": "map",
+   "n": "codex",
+   "o": "change_clothing_preset",
+   "t": "skip_time_help",
+   "F1": "photo_mode"
+  }
  },
  {
   "game": "Kingdom Rush Origins",
@@ -8715,6 +9424,34 @@
   "default_key_mapping": null
  },
  {
+  "game": "Lineage",
+  "perspective": "Side View",
+  "genre": "",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "388008",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Lineage II",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "2971",
+  "default_key_mapping": null
+ },
+ {
   "game": "Link Penguins",
   "perspective": "First Person",
   "genre": "Puzzle",
@@ -8900,7 +9637,31 @@
   "languages": [],
   "developer": "Deck13 Interactive",
   "igdb_id": "194987",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "MouseRight": "heavy_attack",
+   "MouseLeft": "fire",
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "Tab": "switch_stance",
+   "v": "sprint",
+   "c": "walk",
+   "MouseMiddle": "lock_on",
+   "x": "cycle_next_target",
+   "z": "cycle_previous_target",
+   "r": "use_item",
+   "e": "interact",
+   "f": "jump",
+   "6": "toggle_ranged",
+   "2": "switch_to_ranged",
+   "1": "switch_to_lantern",
+   "g": "gestures",
+   "q": "umbral_rift",
+   "3": "spell_3",
+   "4": "spell_4",
+   "5": "spell_5"
+  }
  },
  {
   "game": "Love Is All Around",
@@ -8986,7 +9747,22 @@
   ],
   "developer": "Kwalee",
   "igdb_id": "213620",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "c": "crouch",
+   "MouseLeft": "use_weapon",
+   "MouseRight": "lock_on",
+   "f": "drift_kill",
+   "1": "scout_rifle_hotkey",
+   "2": "shield_breaker_hotkey",
+   "3": "monarch_s_lance_hotkey",
+   "4": "atom_splitter_hotkey",
+   "q": "shield",
+   "e": "interact"
+  }
  },
  {
   "game": "Lushfoil Photography Sim",
@@ -9447,6 +10223,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "MediEvil",
+  "perspective": "Third Person",
+  "genre": "Platform, Puzzle, Hack and slash/Beat 'em up, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "4000",
+  "default_key_mapping": null
+ },
+ {
   "game": "Metal Eden",
   "perspective": "First Person",
   "genre": "Shooter, Arcade",
@@ -9567,22 +10357,24 @@
   "developer": "4A Games",
   "igdb_id": "495",
   "default_key_mapping": {
+   "q": "heal",
    "w": "move_forward",
+   "e": "interact",
+   "r": "reload",
+   "LControl": "crouch",
    "a": "move_left",
    "s": "move_backward",
    "d": "move_right",
-   "LShift": "sprint",
-   "Space": "jump",
-   "LCtrl": "crouch",
-   "e": "use",
-   "MouseLeft": "fire",
-   "MouseRight": "aim",
-   "r": "reload",
-   "v": "melee",
    "f": "flashlight",
    "g": "gas_mask",
-   "q": "medkit",
-   "Tab": "weapons_inventory"
+   "LShift": "sprint",
+   "z": "crouch",
+   "x": "sprint",
+   "n": "night_vision",
+   "m": "map",
+   "Space": "jump",
+   "MouseLeft": "fire",
+   "MouseRight": "aim"
   }
  },
  {
@@ -9974,7 +10766,22 @@
   ],
   "developer": "NetherRealm Studios",
   "igdb_id": "239392",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "jump",
+   "s": "crouch",
+   "a": "move_left",
+   "d": "move_right",
+   "j": "front_punch",
+   "i": "back_punch",
+   "k": "front_kick",
+   "l": "back_kick",
+   "Space": "throw",
+   "o": "block",
+   "u": "switch_stance",
+   "b": "use_talisman",
+   "m": "reset_training",
+   "t": "push_to_talk"
+  }
  },
  {
   "game": "Mortal Shell",
@@ -10025,6 +10832,20 @@
    "1": "weapon_ability_1",
    "2": "weapon_ability_2"
   }
+ },
+ {
+  "game": "Mortal Shell II",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "347633",
+  "default_key_mapping": null
  },
  {
   "game": "Motor Town: Behind the Wheel",
@@ -10567,6 +11388,20 @@
   "languages": [],
   "developer": null,
   "igdb_id": "340570",
+  "default_key_mapping": null
+ },
+ {
+  "game": "NTE: Neverness to Everness",
+  "perspective": "First Person",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "308535",
   "default_key_mapping": null
  },
  {
@@ -11133,21 +11968,36 @@
   "developer": "PocketPair",
   "igdb_id": "151665",
   "default_key_mapping": {
+   "Space": "jump",
+   "MouseRight": "weapon_ready",
+   "MouseLeft": "weapon_use",
+   "e": "throw_pal",
+   "f": "coop",
+   "r": "reload",
+   "c": "riding_skill3",
+   "LControl": "rolling",
+   "LShift": "dash",
+   "x": "auto_run",
+   "z": "voice_chat_push_to_talk",
+   "q": "throw_object",
+   "4": "partner_pal_instructions",
+   "o": "debug_window",
+   "Backspace": "uiinput_guard_cancel",
+   "Escape": "uiinput_guard_cancel",
+   "3": "otomo_change_increment",
+   "1": "otomo_change_decrement",
+   "b": "open_construction_menu",
+   "2": "sphere_change",
+   "v": "interact2",
+   "MouseMiddle": "direct_attack_order",
    "w": "move_forward",
-   "a": "move_left",
    "s": "move_backward",
    "d": "move_right",
-   "Space": "jump",
-   "LShift": "sprint",
-   "LControl": "roll",
-   "c": "crouch",
-   "e": "summon_pal",
-   "q": "throw_pal_sphere",
-   "f": "partner_skill",
-   "1": "change_pal_left",
-   "2": "change_sphere",
-   "3": "change_pal_right",
-   "4": "pal_commands"
+   "a": "move_left",
+   "Tab": "character_menu",
+   "t": "tech_menu",
+   "m": "map",
+   "i": "inventory"
   }
  },
  {
@@ -11263,6 +12113,20 @@
   ],
   "developer": "Dansan Digital",
   "igdb_id": "251927",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Path of Exile",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Hack and slash/Beat 'em up, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "1911",
   "default_key_mapping": null
  },
  {
@@ -11701,6 +12565,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Prototype 2",
+  "perspective": "Third Person",
+  "genre": "Platform, Hack and slash/Beat 'em up, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "2988",
+  "default_key_mapping": null
+ },
+ {
   "game": "Quarantine Zone: The Last Check",
   "perspective": "First Person",
   "genre": "Simulator",
@@ -11730,7 +12608,35 @@
   ],
   "developer": "Brigada Games",
   "igdb_id": "342760",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "a": "move_left",
+   "d": "move_right",
+   "LControl": "crouch",
+   "LShift": "sprint",
+   "s": "move_backward",
+   "Space": "jump",
+   "w": "move_forward",
+   "b": "base",
+   "c": "symptoms",
+   "h": "manual",
+   "Tab": "tablet",
+   "u": "upgrades",
+   "e": "interact",
+   "MouseLeft": "interact",
+   "j": "apply",
+   "LAlt": "call_next",
+   "f": "flashlight",
+   "g": "pistol",
+   "q": "tools",
+   "r": "reload",
+   "0": "syringe",
+   "1": "thermopulsometer",
+   "2": "medical_hammer",
+   "3": "scanner",
+   "4": "stethoscope",
+   "5": "xray",
+   "6": "matioscope"
+  }
  },
  {
   "game": "R.E.P.O.",
@@ -11975,6 +12881,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Red Dead Redemption 2",
+  "perspective": "First Person",
+  "genre": "Shooter, Role-playing (RPG), Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "25076",
+  "default_key_mapping": null
+ },
+ {
   "game": "Red Orchestra 2: Heroes of Stalingrad with Rising Storm",
   "perspective": "First Person",
   "genre": "",
@@ -12014,7 +12934,15 @@
   ],
   "developer": "Gunfire Games",
   "igdb_id": "228535",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "Space": "dodge",
+   "LAlt": "crouch",
+   "LShift": "sprint"
+  }
  },
  {
   "game": "Resident Evil 3",
@@ -12277,7 +13205,22 @@
   ],
   "developer": "Hopoo Games",
   "igdb_id": "28512",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "d": "move_right",
+   "a": "move_left",
+   "Space": "jump",
+   "e": "interact",
+   "q": "activate_equipment",
+   "LControl": "toggle_sprint",
+   "MouseLeft": "primary_skill",
+   "MouseRight": "secondary_skill",
+   "LShift": "utility_skill",
+   "r": "special_skill",
+   "Tab": "info_screen",
+   "MouseMiddle": "ping"
+  }
  },
  {
   "game": "Riven",
@@ -12449,6 +13392,20 @@
   }
  },
  {
+  "game": "Robot Wars",
+  "perspective": "",
+  "genre": "",
+  "mode": "",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "86212",
+  "default_key_mapping": null
+ },
+ {
   "game": "Rocket League",
   "perspective": "Third Person",
   "genre": "Racing, Sport, Indie",
@@ -12545,6 +13502,20 @@
   ],
   "developer": "Lunar Software",
   "igdb_id": "8948",
+  "default_key_mapping": null
+ },
+ {
+  "game": "RPG MO Sandbox",
+  "perspective": "",
+  "genre": "",
+  "mode": "",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "102011",
   "default_key_mapping": null
  },
  {
@@ -13139,7 +14110,23 @@
   ],
   "developer": "TVGS",
   "igdb_id": "328373",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "MouseLeft": "use",
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "Space": "jump",
+   "LShift": "sprint",
+   "LControl": "crouch",
+   "e": "interact",
+   "Tab": "phone",
+   "f": "flashlight",
+   "m": "map",
+   "t": "texts",
+   "j": "journal",
+   "v": "view_avatar"
+  }
  },
  {
   "game": "Search",
@@ -13229,6 +14216,20 @@
   }
  },
  {
+  "game": "Sekiro: Shadows Die Twice - Game of the Year Edition",
+  "perspective": "Third Person",
+  "genre": "Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "365281",
+  "default_key_mapping": null
+ },
+ {
   "game": "Selaco",
   "perspective": "First Person",
   "genre": "Shooter",
@@ -13274,6 +14275,20 @@
   ],
   "developer": "Fireblade Software",
   "igdb_id": "172054",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Seven Deadly Sins",
+  "perspective": "Side View",
+  "genre": "Point-and-click",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "269851",
   "default_key_mapping": null
  },
  {
@@ -13371,6 +14386,20 @@
   "languages": [],
   "developer": null,
   "igdb_id": "264616",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Sky",
+  "perspective": "Isometric",
+  "genre": "Strategy",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "244940",
   "default_key_mapping": null
  },
  {
@@ -13725,6 +14754,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Spiral Knights",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Hack and slash/Beat 'em up, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "9265",
+  "default_key_mapping": null
+ },
+ {
   "game": "SpiritVale",
   "perspective": "Isometric",
   "genre": "Role-playing (RPG), Indie",
@@ -13824,6 +14867,20 @@
   "languages": [],
   "developer": null,
   "igdb_id": null,
+  "default_key_mapping": null
+ },
+ {
+  "game": "Stalzone",
+  "perspective": "First Person",
+  "genre": "Shooter, Role-playing (RPG), Adventure",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "133748",
   "default_key_mapping": null
  },
  {
@@ -13949,6 +15006,20 @@
   ],
   "developer": "The Chinese Room",
   "igdb_id": "252837",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Stoneshard",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Strategy, Turn-based strategy (TBS), Tactical, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "28649",
   "default_key_mapping": null
  },
  {
@@ -14164,7 +15235,32 @@
   ],
   "developer": "Unknown Worlds Entertainment",
   "igdb_id": "107315",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "Space": "jump",
+   "Tab": "pda",
+   "q": "deconstruct",
+   "e": "holster",
+   "MouseLeft": "use_left_hand",
+   "MouseRight": "use_right_hand",
+   "1": "slot_1",
+   "2": "slot_2",
+   "3": "slot_3",
+   "4": "slot_4",
+   "5": "slot_5",
+   "f": "load_tool",
+   "F11": "take_picture",
+   "r": "reload",
+   "c": "move_down",
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "F1": "debug_information_menu",
+   "F3": "debug_graphics_menu",
+   "F6": "hide_show_interface",
+   "F8": "feedback_menu",
+   "MouseWheel": "next_item_previous_item"
+  }
  },
  {
   "game": "Suicide Squad: Kill the Justice League",
@@ -15192,6 +16288,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "The Elder Scrolls V: Skyrim - Special Edition",
+  "perspective": "First Person",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "19457",
+  "default_key_mapping": null
+ },
+ {
   "game": "The Exit 8",
   "perspective": "First Person",
   "genre": "Puzzle, Simulator",
@@ -15385,7 +16495,41 @@
   ],
   "developer": "Afterthought Games",
   "igdb_id": "25838",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "LControl": "crouch",
+   "1": "equip_primary_weapon",
+   "2": "equip_secondary_weapon",
+   "3": "equip_handgun_weapon",
+   "4": "unequip_all",
+   "l": "toggle_under_barrel",
+   "Escape": "escape_menu",
+   "MouseLeft": "fire",
+   "MouseRight": "attack_secondary",
+   "u": "inventory",
+   "Space": "jump",
+   "Tab": "player_list",
+   "r": "reload",
+   "f": "special",
+   "LShift": "sprint",
+   "z": "trot",
+   "e": "interact",
+   "h": "resting",
+   "F10": "toggle_hud",
+   "j": "change_stance",
+   "Enter": "chat_enter",
+   "Backspace": "debug_hud",
+   "b": "build_nest",
+   "v": "toggle_combat_mode",
+   "n": "nightvision",
+   "LAlt": "turn_in_place",
+   "p": "toggle_switch_view",
+   "q": "scent",
+   "F9": "ignore_game_tip",
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right"
+  }
  },
  {
   "game": "The Land of Pain",
@@ -16012,6 +17156,20 @@
   }
  },
  {
+  "game": "The WereCleaner",
+  "perspective": "Isometric",
+  "genre": "Strategy, Indie, Arcade",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "288623",
+  "default_key_mapping": null
+ },
+ {
   "game": "The Witcher 3: Wild Hunt",
   "perspective": "Third Person",
   "genre": "Action RPG, Role-playing (RPG)",
@@ -16063,6 +17221,20 @@
    "1": "draw_steel_sword",
    "2": "draw_silver_sword"
   }
+ },
+ {
+  "game": "The Witcher 3: Wild Hunt - Complete Edition: 10th Anniversary Edition",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG)",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "372654",
+  "default_key_mapping": null
  },
  {
   "game": "The Witness",
@@ -16199,6 +17371,40 @@
   ],
   "developer": "OverBorder Studio",
   "igdb_id": "145028",
+  "default_key_mapping": {
+   "Space": "avoid",
+   "q": "healing",
+   "MouseRight": "heavy_attack",
+   "e": "interact",
+   "MouseLeft": "fire",
+   "MouseMiddle": "lock_on",
+   "LAlt": "slow_move",
+   "f": "special_attack",
+   "c": "switch_second_pw",
+   "LControl": "throw",
+   "Enter": "ui_accept",
+   "Escape": "ui_cancel",
+   "1": "pwskill1",
+   "2": "pwskill2",
+   "LShift": "sprint",
+   "s": "move_backward",
+   "w": "move_forward",
+   "a": "move_left",
+   "d": "move_right"
+  }
+ },
+ {
+  "game": "Tibia",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Co-op",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "9596",
   "default_key_mapping": null
  },
  {
@@ -16326,6 +17532,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Total War: Rome Remastered",
+  "perspective": "Third Person",
+  "genre": "Real Time Strategy (RTS), Strategy, Turn-based strategy (TBS)",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "145004",
+  "default_key_mapping": null
+ },
+ {
   "game": "Trading Card Shop Simulator",
   "perspective": "First Person",
   "genre": "Simulator, Strategy, Indie",
@@ -16403,6 +17623,34 @@
   "languages": [],
   "developer": null,
   "igdb_id": "121967",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Tropico 5",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Simulator, Strategy",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "3211",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Trove",
+  "perspective": "Third Person",
+  "genre": "Platform, Role-playing (RPG), Hack and slash/Beat 'em up, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "9728",
   "default_key_mapping": null
  },
  {
@@ -16542,6 +17790,34 @@
   ],
   "developer": "Ballistic Moon",
   "igdb_id": "284721",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Unturned",
+  "perspective": "First Person",
+  "genre": "Shooter, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "7878",
+  "default_key_mapping": null
+ },
+ {
+  "game": "V Rising",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "148228",
   "default_key_mapping": null
  },
  {
@@ -16785,42 +18061,6 @@
   "default_key_mapping": null
  },
  {
-  "game": "War Thunder",
-  "perspective": "Third Person",
-  "genre": "Vehicle Combat, Shooter, Simulator, Tactical",
-  "mode": "Multiplayer",
-  "process_name": null,
-  "process_source": "exact_no_exe",
-  "engine": "Dagor Engine",
-  "themes": [
-   "Action",
-   "Historical",
-   "Warfare"
-  ],
-  "languages": [
-   "Chinese (Simplified)",
-   "Chinese (Traditional)",
-   "Czech",
-   "English",
-   "French",
-   "German",
-   "Hungarian",
-   "Italian",
-   "Japanese",
-   "Korean",
-   "Polish",
-   "Portuguese (Brazil)",
-   "Portuguese (Portugal)",
-   "Russian",
-   "Spanish (Spain)",
-   "Turkish",
-   "Ukrainian"
-  ],
-  "developer": "Gaijin Entertainment",
-  "igdb_id": "2165",
-  "default_key_mapping": null
- },
- {
   "game": "Warframe",
   "perspective": "Third Person",
   "genre": "Shooter, Role-playing (RPG)",
@@ -16977,7 +18217,36 @@
   ],
   "developer": "Airship Syndicate",
   "igdb_id": "228532",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "a": "move_left",
+   "s": "move_backward",
+   "d": "move_right",
+   "Space": "jump",
+   "f": "interact",
+   "MouseLeft": "fire",
+   "e": "alt_attack",
+   "q": "weapon_ability",
+   "r": "reload",
+   "1": "ability_1",
+   "2": "ability_2",
+   "3": "ability_3",
+   "4": "ability_4",
+   "MouseRight": "aim",
+   "MouseMiddle": "toggle_lock_on",
+   "5": "consumable_1",
+   "6": "consumable_2",
+   "7": "consumable_3",
+   "Enter": "chat",
+   "m": "map",
+   "c": "open_character_loadout",
+   "l": "open_quests",
+   "j": "open_discoveries",
+   "o": "open_social_menu",
+   "i": "inventory",
+   "F1": "open_character_status",
+   "t": "toggle_edit_mode"
+  }
  },
  {
   "game": "We Escaped a Twisted Game",
@@ -17259,6 +18528,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "World of Warships",
+  "perspective": "First Person",
+  "genre": "Shooter, Real Time Strategy (RTS), Simulator, Tactical",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "5587",
+  "default_key_mapping": null
+ },
+ {
   "game": "World War Z",
   "perspective": "Third Person",
   "genre": "Shooter",
@@ -17301,6 +18584,28 @@
   ],
   "developer": "Saber Interactive",
   "igdb_id": "20910",
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "LShift": "sprint",
+   "Space": "jump",
+   "LControl": "crouch"
+  }
+ },
+ {
+  "game": "World War Z: Aftermath - Deluxe Edition",
+  "perspective": "",
+  "genre": "Shooter, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "169203",
   "default_key_mapping": null
  },
  {

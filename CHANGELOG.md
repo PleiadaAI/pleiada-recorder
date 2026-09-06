@@ -1,5 +1,35 @@
 # Changelog — Pleiada Recorder
 
+## V9.17 — 07/09/2026 — bono por metadata de controles
+
+### Compartí la pantalla de controles y cobrá un bono
+
+Al terminar una sesión válida, si el título grabado todavía no tiene su mapa de
+controles en nuestra base y la orden de destino ofrece el bono, el Recorder te
+propone compartir la pantalla de controles de teclado y mouse del título (con
+los controles por defecto). El bono es el 25 % del precio por hora de la orden,
+un monto fijo por aporte, y entra a pago cuando otra persona confirma los mismos
+controles, se comercialice o no el dataset. Sin orden, el aporte vale como
+ticket del sorteo mensual de la comunidad.
+
+- La oferta aparece solo después de grabar, nunca antes. Si el Recorder pudo
+  leer los controles del título por su cuenta, no se ofrece nada.
+- Tres pasos: qué necesitamos (lo mínimo, con el esquema), cómo lo compartís
+  (solo capturas de pantalla, hasta 6, por selector de archivos), y revisar,
+  con una casilla obligatoria que declara que son los controles por defecto.
+- Las capturas se analizan en el momento. Si no se llega a lo mínimo, se
+  explica qué faltó y se puede reintentar hasta tres veces por sesión. Un
+  aporte con error no queda registrado.
+- Si tocás "Subir Data Set" sin haber compartido los controles, un cuadro te
+  lo recuerda una vez.
+- El estado del aporte se ve en tu perfil web, debajo del dataset.
+
+## V9.16 — 02/09/2026 — franjas negras dentro de la imagen (no publicada)
+
+- La detección de franjas negras encuentra también las que quedan dentro de
+  la imagen del juego, y el muestreo de píxeles ya no abandona en el primer
+  fallo.
+
 ## V9.15 — 01/09/2026 — privacidad del audio · actualización obligatoria
 
 **Es una actualización obligatoria**: las versiones anteriores quedan bloqueadas para
