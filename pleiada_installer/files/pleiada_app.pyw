@@ -114,7 +114,10 @@ BORDER2 = "#1f1d3d"
 # OJO: no alcanza si además está visible el banner de actualización, que se packea
 # arriba del contenido. Lo que aguanta que Ajustes siga creciendo es hacerlo
 # scrollable — queda en backlog.
-WIN_W, WIN_H = 420, 730
+# v0.9.17: 730 -> 780. Con la tarjeta del bono, la pantalla de resultado y el
+# paso 1 del aporte quedaban cortados por abajo en la app real (la barra de
+# título propia se come ~44 px que el smoke test no tenía).
+WIN_W, WIN_H = 420, 780
 # PLE-161: en pantallas muy escaladas la ventana no entra entera y el panel de
 # tips se oculta para que el pie no quede afuera. Lo decide el bloque de DPI del
 # entry point; acá vale True porque a 100% siempre entra.
@@ -7482,10 +7485,13 @@ class PleiadaApp:
     # pantalla (sin portapapeles, sin texto, sin archivos de config), casilla
     # "por defecto" obligatoria, y si el análisis falla NO queda nada registrado.
 
-    BONO_MAX_IMAGENES  = 6
+    # 10 imágenes (Martín, 07-09): los inventarios largos ocupan varias pantallas.
+    # El mínimo de tamaño es bajo a propósito: un recorte de la lista de controles
+    # (Win+Shift+S) de 350×250 se lee perfecto; 1280×720 rechazaba justamente eso.
+    BONO_MAX_IMAGENES  = 10
     BONO_MAX_MB_IMAGEN = 10          # de entrada; se normaliza a <= 4,5 MB antes de subir
-    BONO_MAX_MB_TOTAL  = 40
-    BONO_MIN_W, BONO_MIN_H = 1280, 720
+    BONO_MAX_MB_TOTAL  = 60
+    BONO_MIN_W, BONO_MIN_H = 300, 150
     BONO_MAX_INTENTOS  = 3
     _BONO_UPLOAD_MAX   = int(4.5 * 1024 * 1024)
 
@@ -7770,8 +7776,9 @@ class PleiadaApp:
         thumbs.pack(fill="x")
         contador = tk.Label(frame, text="", fg=DIM, bg=BG, font=("Cascadia Code", 9), anchor="w")
         contador.pack(fill="x", pady=(4, 0))
-        tk.Label(frame, text=("Máximo 6 imágenes, 10 MB cada una y 40 MB en total. PNG, JPG o "
-                              "WebP, de al menos 1280 × 720. Si la captura sale negra en pantalla "
+        tk.Label(frame, text=("Máximo 10 imágenes, 10 MB cada una y 60 MB en total. PNG, JPG o "
+                              "WebP. Sirve la pantalla entera o recortes de la lista de controles, "
+                              "mientras las teclas se lean bien. Si la captura sale negra en pantalla "
                               "completa, usá Steam F12 o pasá a modo ventana un momento."),
                  fg=DIMMER, bg=BG, font=("Segoe UI", 8), anchor="w", justify="left",
                  wraplength=WIN_W - 60).pack(fill="x", pady=(8, 0))
@@ -7837,7 +7844,7 @@ class PleiadaApp:
             return f"{nombre}: no es una imagen PNG, JPG o WebP."
         w, h = im.size
         if w < self.BONO_MIN_W or h < self.BONO_MIN_H:
-            return f"{nombre}: es muy chica ({w}×{h}). Necesitamos al menos 1280 × 720 para leer las teclas."
+            return f"{nombre}: es muy chica ({w}×{h}). Un recorte tiene que mostrar la lista de controles entera y legible."
         datos = self._bono_normalizar(im)
         if not datos:
             return f"{nombre}: no se pudo procesar."

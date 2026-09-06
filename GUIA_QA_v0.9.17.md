@@ -56,11 +56,11 @@ Cómo funciona, en cuatro líneas:
 
 | Caso | Qué hacer | Resultado esperado |
 |---|---|---|
-| C1 | Elegir una captura válida de la pantalla de controles (PNG o JPG, al menos 1280 × 720). | Aparece la miniatura con una ✕, y el contador dice **1 de 6 imágenes · X de 40 MB**. El botón Revisar se habilita. |
-| C2 | Elegir la **misma** imagen otra vez. | Mensaje **"esa imagen ya está cargada"**, sigue en 1 de 6. |
+| C1 | Elegir una captura válida de la pantalla de controles (PNG o JPG). Sirven la pantalla entera o **recortes de la lista** hechos con Win+Shift+S. | Aparece la miniatura con una ✕, y el contador dice **1 de 10 imágenes · X de 60 MB**. El botón Revisar se habilita. |
+| C2 | Elegir la **misma** imagen otra vez. | Mensaje **"esa imagen ya está cargada"**, sigue en 1 de 10. |
 | C3 | Elegir un archivo que no sea imagen (un .txt, un .pdf). | Mensaje "no es una imagen PNG, JPG o WebP". |
-| C4 | Elegir una imagen chica (menos de 1280 × 720, por ejemplo un ícono). | Mensaje "es muy chica (…) Necesitamos al menos 1280 × 720". |
-| C5 | Cargar 6 imágenes y tratar de sumar una séptima. | Mensaje "Ya cargaste 6 imágenes, el máximo." |
+| C4 | Elegir una imagen diminuta (un ícono de 64 × 64). | Mensaje "es muy chica (…)". Un recorte normal de la lista (300 × 150 o más) **sí** se acepta. |
+| C5 | Cargar 10 imágenes y tratar de sumar una más. | Mensaje "Ya cargaste 10 imágenes, el máximo." |
 | C6 | Tocar la ✕ de una miniatura. | Desaparece y el contador baja. Con cero imágenes, Revisar se deshabilita. |
 | C7 | Una captura PNG pesada (4K, más de 5 MB). | Se acepta (hasta 10 MB de entrada). El Recorder la reduce antes de subir; no hace falta que hagan nada. |
 
@@ -80,7 +80,7 @@ Al tocar **Analizar metadata** aparece la pantalla **"Analizando tus capturas"**
 
 | Caso | Capturas | Resultado esperado |
 |---|---|---|
-| D1 | La pantalla de controles de teclado y mouse, **por defecto**, completa (todas las pestañas si hay más de una). | Pantalla **"Controles recibidos"**: "Leímos N controles de <título>", estado **Validación pendiente**, botón **Continuar con la subida del dataset**. N tiene que ser parecido a la cantidad de controles que muestra el título (anótenlo). |
+| D1 | La pantalla de controles de teclado y mouse, **por defecto**, completa (todas las pestañas si hay más de una; en listas largas, varios recortes hasta cubrir la lista entera). | Pantalla **"Controles recibidos"**: "Leímos N controles de <título>", estado **Validación pendiente**, botón **Continuar con la subida del dataset**. N tiene que ser parecido a la cantidad de controles que muestra el título (anótenlo). |
 | D2 | La pantalla de **sensibilidad del mouse** (la de sliders). | Pantalla **"No pudimos leer lo mínimo"** con el motivo "vimos la pantalla de sensibilidad". Dice **Intento 1 de 3**. Botones Subir sin metadata / Volver a intentar. |
 | D3 | La pantalla del **mando / gamepad**. | Mismo error, motivo "la pantalla del mando". |
 | D4 | Una captura de **otro título** (por ejemplo el escritorio o un juego distinto). | Error. El motivo puede ser "otro título" o el genérico de información mínima; cualquiera de los dos es correcto. |

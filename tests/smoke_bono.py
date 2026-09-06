@@ -44,12 +44,13 @@ SDIR.mkdir(exist_ok=True)
                                ["LShift"] * 8 + ["r"] * 5 + ["Space"] * 4), encoding="utf-8")
 
 # ── captura de prueba (1920x1080 con texto) ──────────────────────────────────
-img = Image.new("RGB", (1920, 1080), (24, 24, 40))
+# Un recorte chico, como los de Win+Shift+S: es lo que rechazaba el mínimo viejo.
+img = Image.new("RGB", (360, 260), (24, 24, 40))
 d = ImageDraw.Draw(img)
 for i, (a, k) in enumerate([("Avanzar", "W"), ("Retroceder", "S"), ("Izquierda", "A"),
                             ("Derecha", "D"), ("Disparar", "Botón izq."), ("Recargar", "R"),
                             ("Interactuar", "F"), ("Saltar", "Espacio")]):
-    d.text((200, 200 + i * 60), f"{a:<20} {k}", fill=(230, 230, 240))
+    d.text((20, 20 + i * 28), f"{a:<20} {k}", fill=(230, 230, 240))
 CAP = OUT / "captura_prueba.png"
 img.save(CAP)
 
@@ -78,7 +79,9 @@ pleiada_api.analyze_key_mapping = _analyze
 # ── esqueleto de la app ──────────────────────────────────────────────────────
 root = tk.Tk()
 root.title("Gameplay Recorder v0.9.17 (smoke)")
-root.geometry("420x730+60+60")
+# WIN_H menos los ~44 px de la barra de título propia de la app real, que este
+# esqueleto no dibuja: así la captura mide lo mismo que ve el usuario.
+root.geometry(f"420x{app_mod.WIN_H - 44}+60+60")
 root.configure(bg=app_mod.BG)
 self = object.__new__(App)
 self.root = root
@@ -223,7 +226,7 @@ def p7():
 
 
 def p8():
-    esperar(lambda t: "1 de 6" in t, "D: el contador no dice 1 de 6")
+    esperar(lambda t: "1 de 10" in t, "D: el contador no dice 1 de 10")
     shot("D_paso2_con_imagen")
     self._bono_paso3()
     root.after(300, p9)
