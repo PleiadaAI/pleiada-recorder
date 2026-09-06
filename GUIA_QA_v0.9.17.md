@@ -45,6 +45,7 @@ Cómo funciona, en cuatro líneas:
 | B1 | En el caso A1, tocar **Subir Data Set** sin haber compartido controles. | Se abre un cuadro **"¿Subir el dataset sin la metadata?"** con dos botones: **Compartir controles** (lleva al paso 1) y **Subir sin metadata** (sigue con la subida de siempre). |
 | B2 | En A2 y A3, tocar Subir Data Set. | **No** hay cuadro: va derecho a la subida. En A3 (modo libre) los botones son los de siempre para una sesión libre. |
 | B3 | Compartir controles, completar el aporte (ver C) y recién después tocar Subir Data Set. | No vuelve a preguntar. |
+| B4 | Después de un aporte aceptado, en la pantalla "Subir Data Set" mirar la orden de destino. | La orden queda **fija** en la que se eligió al grabar (sin opción de cambiarla) y aparece la leyenda "Orden fija: los controles que compartiste son para esta orden". Sin aporte, el selector de orden funciona como siempre. |
 
 ---
 
@@ -59,7 +60,7 @@ Cómo funciona, en cuatro líneas:
 | C1 | Elegir una captura válida de la pantalla de controles (PNG o JPG). Sirven la pantalla entera o **recortes de la lista** hechos con Win+Shift+S. | Aparece la miniatura con una ✕, y el contador dice **1 de 10 imágenes · X de 60 MB**. El botón Revisar se habilita. |
 | C2 | Elegir la **misma** imagen otra vez. | Mensaje **"esa imagen ya está cargada"**, sigue en 1 de 10. |
 | C3 | Elegir un archivo que no sea imagen (un .txt, un .pdf). | Mensaje "no es una imagen PNG, JPG o WebP". |
-| C4 | Elegir una imagen diminuta (un ícono de 64 × 64). | Mensaje "es muy chica (…)". Un recorte normal de la lista (300 × 150 o más) **sí** se acepta. |
+| C4 | Elegir una imagen diminuta (un ícono de 32 × 32). | Mensaje "es demasiado chica (…)". Cualquier recorte real de la lista **sí** se acepta. |
 | C5 | Cargar 10 imágenes y tratar de sumar una más. | Mensaje "Ya cargaste 10 imágenes, el máximo." |
 | C6 | Tocar la ✕ de una miniatura. | Desaparece y el contador baja. Con cero imágenes, Revisar se deshabilita. |
 | C7 | Una captura PNG pesada (4K, más de 5 MB). | Se acepta (hasta 10 MB de entrada). El Recorder la reduce antes de subir; no hace falta que hagan nada. |

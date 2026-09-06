@@ -7491,7 +7491,7 @@ class PleiadaApp:
     BONO_MAX_IMAGENES  = 10
     BONO_MAX_MB_IMAGEN = 10          # de entrada; se normaliza a <= 4,5 MB antes de subir
     BONO_MAX_MB_TOTAL  = 60
-    BONO_MIN_W, BONO_MIN_H = 300, 150
+    BONO_MIN_W, BONO_MIN_H = 50, 50    # Martín (07-09): solo frenar íconos y basura
     BONO_MAX_INTENTOS  = 3
     _BONO_UPLOAD_MAX   = int(4.5 * 1024 * 1024)
 
@@ -7844,7 +7844,7 @@ class PleiadaApp:
             return f"{nombre}: no es una imagen PNG, JPG o WebP."
         w, h = im.size
         if w < self.BONO_MIN_W or h < self.BONO_MIN_H:
-            return f"{nombre}: es muy chica ({w}×{h}). Un recorte tiene que mostrar la lista de controles entera y legible."
+            return f"{nombre}: es demasiado chica ({w}×{h}) para ser una captura de controles."
         datos = self._bono_normalizar(im)
         if not datos:
             return f"{nombre}: no se pudo procesar."
@@ -8231,6 +8231,20 @@ class PleiadaApp:
                     _local = next((e for e in (self.open_calls or [])
                                    if e.get("call_id") == c["call_id"]), None)
                     matches.append({**c, **_local} if _local else c)
+        # v0.9.17: si esta sesión ya lleva un aporte de metadata, la orden queda
+        # FIJA en la que se eligió al grabar. El bono es un % del precio por
+        # hora de ESA orden; cambiarla acá haría que el dataset y el aporte
+        # apunten a órdenes distintas.
+        _b = getattr(self, "_bono", None) or {}
+        orden_fija = bool(_b.get("aportado") and _b.get("call_id")
+                          and _b.get("sdir") == session_dir)
+        if orden_fija:
+            fijas = [m for m in matches if m.get("call_id") == _b["call_id"]]
+            if fijas:
+                matches = fijas
+            else:
+                orden_fija = False
+
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
 
@@ -8322,6 +8336,11 @@ class PleiadaApp:
                                activebackground=CARD, activeforeground=TEXT,
                                font=("Segoe UI", 10), justify="left",
                                wraplength=WIN_W - 110).pack(fill="x")
+        if orden_fija:
+            tk.Label(frame, text=("Orden fija: los controles que compartiste son para esta "
+                                  "orden, y el bono se calcula sobre su precio por hora."),
+                     fg=DIM, bg=BG, font=("Segoe UI", 9), anchor="w", justify="left",
+                     wraplength=WIN_W - 60).pack(fill="x", pady=(6, 0))
 
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
 
