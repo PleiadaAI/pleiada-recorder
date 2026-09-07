@@ -13,9 +13,15 @@ import session_uploader
 import pleiada_api
 import pleiada_sync_limits as sync_limits
 import obs_encoding
+import sync_markers        # v0.9.18: anclas medidas input<->video (T0 capture.sync_verified)
+import input_devices       # v0.9.18: calibración de mouse/teclado (T0 input.device_metadata)
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.19"
+VERSION = "v0.9.20"
+
+# El objeto de marcadores de la grabación en curso. Vive a nivel módulo porque
+# build_session_metadata() es una función suelta y necesita el resumen al cerrar.
+_SYNC = {"obj": None}
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -285,6 +291,9 @@ DEFAULT_SETTINGS = {
     "hotkey_stop":  {"vk": 0x79, "label": "F10"},
     "max_session_minutes": 60,    # v0.7.1: duración máx de sesión, clamp [1, 60] min
     "auto_restart":        False, # v0.7.1: reiniciar grabación tras auto-stop por tiempo
+    # v0.9.18: DPI del mouse declarado por el usuario (el SO no lo expone). None =
+    # no lo sabe. Va al metadata como `counts_per_inch` con source user_declared.
+    "mouse_dpi":           None,
 }
 
 def load_settings():
@@ -300,6 +309,11 @@ def load_settings():
         except Exception:
             out["max_session_minutes"] = 60
         out["auto_restart"] = bool(out.get("auto_restart", False))
+        try:
+            d = int(out.get("mouse_dpi") or 0)
+            out["mouse_dpi"] = d if 100 <= d <= 50000 else None
+        except Exception:
+            out["mouse_dpi"] = None
         return out
     except Exception:
         return json.loads(json.dumps(DEFAULT_SETTINGS))
@@ -3291,7 +3305,8 @@ def _build_integrity(session_dir):
     acá y con guiones bajos en S3 — para esos hay que indexar por las dos formas.
     """
     files = {}
-    names = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv", "video_timeline.csv"]
+    names = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv", "video_timeline.csv",
+             sync_markers.SYNC_FILE]   # v0.9.18: las anclas de sincronía también se certifican
     targets = ([session_dir / n for n in names] + sorted(session_dir.glob("*.mp4"))
                + sorted(session_dir.glob("*.dem")))   # incluir el demo POV (TF2/L4D2) en el hash
     for p in targets:
@@ -3616,6 +3631,10 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                     "declared. The offset is close to constant for a given machine and "
                     "title, so it can be measured once and corrected."
                 ),
+                # v0.9.18: anclas MEDIDAS. El post-proceso las convierte en el
+                # clock_sync del contrato (fit = marcadores, validation = sondas).
+                "sync_markers": (_SYNC["obj"].summary() if _SYNC.get("obj") is not None
+                                 else {"file": None, "notes": "not captured in this session"}),
             },
 
             "game": {
@@ -3653,6 +3672,10 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
             "input": {
                 "devices":           ["keyboard", "mouse"],
                 "gamepad_connected": False,       # Fase 3
+                # v0.9.18: calibración de dispositivos (T0 input.device_metadata):
+                # velocidad/aceleración del SO, layout, VID/PID, polling, DPI declarado.
+                "device_metadata":   input_devices.collect(
+                    session_dir, load_settings().get("mouse_dpi")),
                 "key_mapping":       key_map,
                 "binding_source":    binding_src,
                 # keys_observed se incluye siempre (teclas/botones realmente usados).
@@ -4531,6 +4554,25 @@ class PleiadaApp:
                  fg=DIM, bg=BG, font=("Segoe UI", 9), justify="left",
                  wraplength=WIN_W - 60, anchor="w").pack(fill="x", pady=(6, 0))
 
+        # — DPI del mouse (v0.9.18) — copy PROVISORIO, confirmar con Martín
+        dpi_row = tk.Frame(frame, bg=BG)
+        dpi_row.pack(fill="x", pady=(14, 0))
+        tk.Label(dpi_row, text="DPI de tu mouse (opcional)", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 10), anchor="w").pack(side="left")
+        self._dpi_var = tk.StringVar(value=str(self._settings.get("mouse_dpi") or ""))
+        dpi_entry = tk.Entry(dpi_row, textvariable=self._dpi_var, width=7, fg=ACCENT, bg=CARD,
+                             insertbackground=TEXT, relief="flat", justify="center",
+                             font=("Cascadia Code", 10), highlightthickness=1,
+                             highlightbackground=BORDER)
+        dpi_entry.pack(side="right", ipady=4)
+        dpi_entry.bind("<FocusOut>", lambda e: self._set_mouse_dpi())
+        dpi_entry.bind("<Return>", lambda e: self._set_mouse_dpi())
+        tk.Label(frame, text="Si lo sabés, ayuda a que tus datasets valgan más: permite "
+                             "reconstruir tus movimientos con exactitud. Lo encontrás en el "
+                             "software de tu mouse. Dejalo vacío si no lo sabés.",
+                 fg=DIM, bg=BG, font=("Segoe UI", 9), justify="left",
+                 wraplength=WIN_W - 60, anchor="w").pack(fill="x", pady=(6, 0))
+
         _mk_separator(frame, color=BORDER2, pady=(14, 12))
 
         # — Cuenta (sin título, v0.7.1) —
@@ -4571,6 +4613,22 @@ class PleiadaApp:
         self._settings["auto_restart"] = not self._settings.get("auto_restart", False)
         save_settings(self._settings)
         self._refresh_autorestart_ui()
+
+    def _set_mouse_dpi(self):
+        """v0.9.18: DPI declarado. Vacío o fuera de rango = None (no se sabe)."""
+        raw = (self._dpi_var.get() if hasattr(self, "_dpi_var") else "").strip()
+        try:
+            d = int(raw) if raw else None
+            if d is not None and not (100 <= d <= 50000):
+                d = None
+        except Exception:
+            d = None
+        self._settings["mouse_dpi"] = d
+        save_settings(self._settings)
+        try:
+            self._dpi_var.set(str(d or ""))
+        except Exception:
+            pass
 
     def _refresh_autorestart_ui(self):
         on = bool(self._settings.get("auto_restart", False))
@@ -6363,6 +6421,12 @@ class PleiadaApp:
             if tid:
                 self.root.after_cancel(tid)
                 setattr(self, attr, None)
+        # v0.9.18: sacar el marcador de sincronía de la escena (sin marcador final:
+        # no hay dataset que anclar). Best-effort, en un hilo para no trabar la UI.
+        _sm = _SYNC.get("obj")
+        if _sm is not None:
+            _SYNC["obj"] = None
+            threading.Thread(target=_sm.abort, daemon=True).start()
 
         sdir = self.session_dir
         self.session_dir = None
@@ -6461,6 +6525,16 @@ class PleiadaApp:
         self._show_syncing(sdir)
 
         def _worker():
+            # 0. (v0.9.18) Marcador visible de cierre, ANTES de parar AHK y OBS:
+            #    tiene que quedar dentro del video y dentro del log de input.
+            #    Bloquea ≤ 3 s; si OBS no contesta se sigue sin el marcador final.
+            _sm = _SYNC.get("obj")
+            if _sm is not None:
+                try:
+                    _sm.end_marker()
+                except Exception as e:
+                    _obs_dbg(f"sync_markers end: {e}")
+
             # 1. Detener AHK de forma ordenada.
             #    AHK escribe ANCHOR_END a todos los CSVs y cierra sus handles
             #    antes de salir. Si AHK no estaba corriendo, Python escribe
@@ -6763,6 +6837,17 @@ class PleiadaApp:
             ANCHOR_FILE.write_text(str(anchor_ts), encoding="utf-8")
         except Exception:
             pass
+
+        # c.1 (v0.9.18) Marcador visible de sincronía + sondas de timecode, en su
+        #     propio hilo. Con el mismo reloj que `anchor_ts`. Best-effort: si
+        #     OBS no contesta, la sesión sigue igual que antes (sin anclas medidas).
+        try:
+            _SYNC["obj"] = sync_markers.SyncMarkers(self.session_dir, obs_connect, obs_send,
+                                                    dbg=_obs_dbg)
+            _SYNC["obj"].start()
+        except Exception as e:
+            _obs_dbg(f"sync_markers start: {e}")
+            _SYNC["obj"] = None
 
         # c.bis Auto-record del demo POV (TF2/L4D2) por netcon — el miembro no toca la consola.
         self._demo_name = ""

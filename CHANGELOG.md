@@ -1,6 +1,39 @@
 # Changelog — Pleiada Recorder
 
-## Próxima versión (sin publicar) — 14/09/2026 — `session_metadata.json` en inglés
+## V9.20 — 14/09/2026 — anclas de sincronía medidas · calibración de dispositivos · metadata en inglés
+
+Tres cosas en un build: los dos gates del nivel T0 del contrato de AI Ranch que fallaban en
+los samples (`capture.sync_verified` e `input.device_metadata`) y el `session_metadata.json`
+entero en inglés.
+
+### Anclas de sincronía medidas (`sync_markers.py`)
+
+- Al arrancar y antes de parar, el Recorder enciende ~150 ms un cuadrado blanco de 32x32
+  px en la esquina superior izquierda de la escena de OBS y anota la hora de pared del
+  pedido y del ack (el mismo reloj que `ANCHOR_START`). En el post-proceso se buscan los
+  frames con la esquina blanca: eso da el mapeo input→video **medido**, no estimado.
+- Cada 60 s, una sonda invisible de `outputDuration` del encoder para validar drift.
+- Todo en `sync_markers.csv` (certificado en `integrity.files`) y resumido en
+  `timing.sync_markers` del metadata.
+- Medido en esta máquina (smoke sobre OBS real): error de −6 y −19 ms en los dos
+  marcadores, o sea un cuadro; las sondas corren ~220 ms detrás de la pared con ±9 ms de
+  jitter. `end_marker` bloquea 0,15 s.
+- El marcador queda en los primeros y últimos ~9 cuadros del video, que no son gameplay.
+  Si se cancela la grabación se saca sin marcador final.
+
+### Calibración de dispositivos (`input_devices.py`)
+
+- Nuevo bloque `input.device_metadata`: velocidad y aceleración del puntero del SO,
+  layout de teclado (KLID + locale), VID/PID y fabricante de mouse y teclado (USB y
+  Bluetooth), tasa de sondeo del mouse estimada del `mouse_delta_log`, y DPI del mouse
+  **si el usuario lo declaró** en Ajustes (campo nuevo, copy provisorio). El SO no expone el
+  DPI; queda marcado como `user_declared` o `unknown`.
+- No se guarda la ruta del dispositivo: en Bluetooth trae la dirección del aparato.
+
+El exporter de AI Ranch ya lee `sync_markers.csv` y `device_metadata` (v1.2, `t0_instrumented.py`).
+Lo que falta es una sesión real grabada con esta versión para verificarlo de punta a punta.
+
+### `session_metadata.json` en inglés (schema 1.3)
 
 - Todo lo que viaja con un dataset va en inglés, y el metadata de sesión tenía
   claves y valores en español desde v0.4.6 (`recording_mode: "libre"`), v0.8.10
@@ -53,6 +86,7 @@ de controles (V9.18 no se publicó por separado).
   un mensaje propio: solo se leen controles escritos como texto.
 - Una tecla poco habitual (esquivar en la barra espaciadora) ya no se toma como
   "no por defecto"; eso solo ocurre si la pantalla muestra que se modificaron.
+
 
 ## V9.17 — 07/09/2026 — bono por metadata de controles
 

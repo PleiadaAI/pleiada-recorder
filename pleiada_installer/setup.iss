@@ -73,6 +73,8 @@ Source: "files\session_uploader.py";      DestDir: "{app}"; Flags: ignoreversion
 Source: "files\pleiada_api.py";           DestDir: "{app}"; Flags: ignoreversion
 Source: "files\pleiada_sync_limits.py";   DestDir: "{app}"; Flags: ignoreversion
 Source: "files\obs_encoding.py";          DestDir: "{app}"; Flags: ignoreversion
+Source: "files\sync_markers.py";          DestDir: "{app}"; Flags: ignoreversion
+Source: "files\input_devices.py";         DestDir: "{app}"; Flags: ignoreversion
 Source: "files\input_logger.ahk";         DestDir: "{app}"; Flags: ignoreversion
 Source: "files\obs_control.py";           DestDir: "{app}"; Flags: ignoreversion
 Source: "files\pleiada_setup_wizard.pyw"; DestDir: "{app}"; Flags: ignoreversion
