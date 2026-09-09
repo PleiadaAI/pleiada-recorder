@@ -15,7 +15,7 @@ import pleiada_sync_limits as sync_limits
 import obs_encoding
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.17"
+VERSION = "v0.9.18"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -7499,7 +7499,39 @@ class PleiadaApp:
         self._bono = {"sdir": sdir, "oferta": None, "monto_usd": 0.0, "pct": 0,
                       "aportado": False, "intentos": 0, "imgs": [],
                       "game": "", "session_id": "", "call_id": "",
-                      "binding_source": "", "keys_top": {}, "aporte_id": ""}
+                      "binding_source": "", "keys_top": {}, "aporte_id": "",
+                      # v0.9.18 (PLE-178): el flujo también arranca desde "Mis
+                      # grabaciones". `volver` es la pantalla de origen y
+                      # `continuar` la subida que sigue; None = post-sesión.
+                      "volver": None, "continuar": None}
+
+    def _bono_cargar(self, sdir, call_id):
+        """Arma el estado del bono desde el metadata de la sesión. Devuelve
+        False si falta lo necesario (título, session_id o login)."""
+        self._bono_reset(sdir)
+        b = self._bono
+        try:
+            meta = json.loads((Path(sdir) / "session_metadata.json").read_text(encoding="utf-8"))
+        except Exception:
+            return False
+        b["game"] = ((meta.get("game") or {}).get("title") or "").strip()
+        b["session_id"] = meta.get("session_id") or ""
+        b["binding_source"] = ((meta.get("input") or {}).get("binding_source") or "")
+        b["call_id"] = call_id or ""
+        try:
+            keys, _, _ = _meta_observed_keys(Path(sdir))
+            b["keys_top"] = {k: int(n) for k, n in keys.most_common(15)}
+        except Exception:
+            b["keys_top"] = {}
+        return bool(b["game"] and b["session_id"] and self.auth_token)
+
+    def _bono_continuar(self):
+        """Sigue con la subida del dataset desde donde corresponda."""
+        b = getattr(self, "_bono", None) or {}
+        if b.get("continuar"):
+            b["continuar"]()
+        else:
+            self._start_upload_flow(self.session_dir, self._show_idle)
 
     def _bono_iniciar(self, sdir):
         """Lee lo que hace falta del metadata y pregunta al backend.
@@ -7514,23 +7546,9 @@ class PleiadaApp:
             if previo.get("oferta") and not previo.get("aportado") and slot is not None:
                 self._bono_render_oferta(slot)
             return
-        self._bono_reset(sdir)
+        if not self._bono_cargar(sdir, getattr(self, "selected_call", None) or ""):
+            return
         b = self._bono
-        try:
-            meta = json.loads((Path(sdir) / "session_metadata.json").read_text(encoding="utf-8"))
-        except Exception:
-            return
-        b["game"] = ((meta.get("game") or {}).get("title") or "").strip()
-        b["session_id"] = meta.get("session_id") or ""
-        b["binding_source"] = ((meta.get("input") or {}).get("binding_source") or "")
-        b["call_id"] = getattr(self, "selected_call", None) or ""
-        try:
-            keys, _, _ = _meta_observed_keys(Path(sdir))
-            b["keys_top"] = {k: int(n) for k, n in keys.most_common(15)}
-        except Exception:
-            b["keys_top"] = {}
-        if not b["game"] or not b["session_id"] or not self.auth_token:
-            return
 
         def _worker(token=self.auth_token, game=b["game"], call_id=b["call_id"],
                     src=b["binding_source"], sdir_ref=sdir):
@@ -7601,7 +7619,7 @@ class PleiadaApp:
         if b.get("oferta") == "bono" and not b.get("aportado"):
             self._bono_modal_sin_metadata()
             return
-        self._start_upload_flow(self.session_dir, self._show_idle)
+        self._bono_continuar()
 
     def _bono_modal_sin_metadata(self):
         b = self._bono
@@ -7627,7 +7645,7 @@ class PleiadaApp:
 
         def _sin():
             dlg.grab_release(); dlg.destroy()
-            self._start_upload_flow(self.session_dir, self._show_idle)
+            self._bono_continuar()
 
         tk.Button(inner, text="Compartir controles", fg="#fff", bg=ACCENT, relief="flat",
                   bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
@@ -7679,8 +7697,13 @@ class PleiadaApp:
         return b
 
     def _bono_volver_al_resultado(self):
-        """Vuelve a la pantalla de resultado de la sesión con el hueco del bono."""
-        self._show_result(True, self._last_sync_results, None)
+        """Vuelve a la pantalla de origen: la de resultado de la sesión (post-
+        sesión) o la oferta previa a la subida (Mis grabaciones, PLE-178)."""
+        b = getattr(self, "_bono", None) or {}
+        if b.get("volver"):
+            b["volver"]()
+        else:
+            self._show_result(True, self._last_sync_results, None)
 
     # — Paso 1 · Lo mínimo que necesitamos ————————————————————
 
@@ -8052,20 +8075,21 @@ class PleiadaApp:
                 self.root.after(0, lambda: self._bono_ok(out))
             else:
                 self.root.after(0, lambda: self._bono_error(
-                    out.get("codigo", ""), out.get("message", "")))
+                    out.get("codigo", ""), out.get("message", ""),
+                    detalle_piso=out.get("detalle", "")))
 
         import urllib.request as urllib_request
         threading.Thread(target=_worker, daemon=True).start()
 
-    def _bono_error(self, codigo, mensaje, tecnico=False):
-        """F2: no se leyó lo mínimo (o falló la subida). Nada quedó registrado."""
+    def _bono_error(self, codigo, mensaje, tecnico=False, detalle_piso=""):
+        """F2: no se leyó lo mínimo (o falló la subida). Nada quedó registrado.
+        `detalle_piso` (Lambda >= 2026-09-08.3): qué faltó exactamente."""
         b = self._bono
         if not tecnico:
             b["intentos"] += 1
         frame = self._ident_frame("No pudimos leer lo mínimo" if not tecnico
                                   else "No se pudo analizar", volver_a=self._bono_paso2)
-        btn = self._bono_botones(frame, "Subir sin metadata",
-                                 lambda: self._start_upload_flow(self.session_dir, self._show_idle),
+        btn = self._bono_botones(frame, "Subir sin metadata", self._bono_continuar,
                                  "Volver a intentar", self._bono_paso2)
         card_bg, card_brd = "#140606", "#7a2020"
         card = tk.Frame(frame, bg=card_bg, highlightthickness=1, highlightbackground=card_brd)
@@ -8082,7 +8106,9 @@ class PleiadaApp:
         base = ("No encontramos la información mínima: las cuatro teclas de movimiento, "
                 "el botón principal del mouse y al menos ocho controles.")
         detalle = mensaje if tecnico else (mensaje if mensaje and mensaje != base else "")
-        texto = mensaje if tecnico else (base + (" " + detalle if detalle and codigo != "piso" else ""))
+        if not tecnico and codigo == "piso":
+            detalle = (detalle_piso or "").strip()
+        texto = mensaje if tecnico else (base + (" " + detalle if detalle else ""))
         tk.Label(col, text=texto, fg="#f0c0c0", bg=card_bg, font=("Segoe UI", 10),
                  anchor="w", justify="left", wraplength=WIN_W - 130).pack(fill="x", pady=(3, 0))
         if not tecnico:
@@ -8114,8 +8140,7 @@ class PleiadaApp:
         tk.Button(frame, text="Continuar con la subida del dataset", fg="#fff", bg=ACCENT,
                   relief="flat", bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
                   activebackground="#9080e0",
-                  command=lambda: self._start_upload_flow(self.session_dir, self._show_idle)
-                  ).pack(fill="x", ipady=10)
+                  command=self._bono_continuar).pack(fill="x", ipady=10)
 
     def _bono_ok(self, out):
         """G: el aporte quedó registrado. Siempre "Validación pendiente" acá; si
@@ -8134,7 +8159,12 @@ class PleiadaApp:
         col = tk.Frame(row, bg=card_bg)
         col.pack(side="left", fill="x", expand=True)
         n = int(out.get("binds") or 0)
-        tk.Label(col, text=f"Leímos {n} controles de {b['game']}", fg=TEXT, bg=card_bg,
+        total = int(out.get("binds_total") or 0)
+        # PLE-179: el número contaba solo los controles de juego; los de menú se
+        # guardan aparte y el tester creía que se habían perdido.
+        leidos = (f"Leímos {total} controles de {b['game']}, {n} de juego" if total > n
+                  else f"Leímos {n} controles de {b['game']}")
+        tk.Label(col, text=leidos, fg=TEXT, bg=card_bg,
                  font=("Segoe UI", 11, "bold"), anchor="w", justify="left",
                  wraplength=WIN_W - 130).pack(fill="x")
         if b["oferta"] == "bono":
@@ -8163,8 +8193,7 @@ class PleiadaApp:
 
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
         if b["call_id"]:
-            texto, cmd = ("Continuar con la subida del dataset",
-                          lambda: self._start_upload_flow(self.session_dir, self._show_idle))
+            texto, cmd = "Continuar con la subida del dataset", self._bono_continuar
         else:
             texto, cmd = "Listo", self._show_idle
         tk.Button(frame, text=texto, fg="#fff", bg=ACCENT, relief="flat", bd=0,
@@ -8353,9 +8382,84 @@ class PleiadaApp:
             side="left", fill="x", expand=True, ipady=10, padx=(0, 6))
         tk.Button(btns, text="Subir", fg="#fff", bg=ACCENT, relief="flat", bd=0,
                   cursor="hand2", font=("Segoe UI", 11, "bold"), activebackground="#9080e0",
-                  command=lambda: self._upload_progress_view(
+                  command=lambda: self._bono_antes_de_subir_guardada(
                       session_dir, return_to, call_var.get())).pack(
             side="right", fill="x", expand=True, ipady=10, padx=(6, 0))
+
+    # ── Bono desde "Mis grabaciones" (v0.9.18, PLE-178) ─────────────────────────
+
+    def _bono_antes_de_subir_guardada(self, session_dir, return_to, call_id):
+        """Botón "Subir" de la confirmación. Post-sesión la oferta ya se hizo en
+        la pantalla de resultado; para una sesión guardada (Mis grabaciones) se
+        pregunta acá, con la orden ya elegida, y recién después se sube.
+        Sin oferta, sin red o sin login: sube directo, como antes."""
+        b = getattr(self, "_bono", None) or {}
+        if b.get("sdir") == session_dir and b.get("volver") and b.get("oferta") == "bono"                 and not b.get("aportado"):
+            # Volvió atrás desde la oferta de esta misma sesión: se muestra de nuevo.
+            b["continuar"] = lambda: self._upload_progress_view(session_dir, return_to, call_id)
+            self._bono_pantalla_oferta_guardada(session_dir, return_to)
+            return
+        if b.get("sdir") == session_dir and (b.get("aportado") or b.get("oferta") is not None
+                                             or b.get("volver")):
+            # Ya se ofreció (post-sesión o en esta misma pantalla): no se repite.
+            self._upload_progress_view(session_dir, return_to, call_id)
+            return
+        if not call_id or not self._bono_cargar(session_dir, call_id):
+            self._upload_progress_view(session_dir, return_to, call_id)
+            return
+        b = self._bono
+        b["continuar"] = lambda: self._upload_progress_view(session_dir, return_to, call_id)
+        b["volver"] = lambda: self._bono_pantalla_oferta_guardada(session_dir, return_to)
+
+        self._clear_content()
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        tk.Label(frame, text="Verificando el título…", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 12, "bold")).pack()
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+
+        def _worker(token=self.auth_token, game=b["game"], src=b["binding_source"]):
+            res = None
+            try:
+                res = pleiada_api.metadata_offer(token, game, call_id, src)
+            except Exception as e:
+                _obs_dbg(f"metadata_offer (guardada): {e}")
+
+            def _aplicar():
+                if getattr(self, "_bono", {}).get("sdir") != session_dir:
+                    return
+                if not res or res.get("oferta") != "bono":
+                    # Sin bono no hay pantalla extra: sorteo no aplica con orden y
+                    # el resto de los motivos (ya aportaste, confirmado) no se avisan.
+                    self._bono["oferta"] = None
+                    self._upload_progress_view(session_dir, return_to, call_id)
+                    return
+                self._bono["oferta"] = res.get("oferta")
+                self._bono["monto_usd"] = float(res.get("monto_usd") or 0)
+                self._bono["pct"] = res.get("pct") or 0
+                self._bono_pantalla_oferta_guardada(session_dir, return_to)
+            self.root.after(0, _aplicar)
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _bono_pantalla_oferta_guardada(self, session_dir, return_to):
+        """Tarjeta A antes de subir una sesión guardada. Mismo texto y mismo botón
+        que en la pantalla de resultado; abajo, subir sin metadata."""
+        b = self._bono
+        frame = self._ident_frame("Antes de subir el dataset",
+                                  volver_a=lambda: self._start_upload_flow(session_dir, return_to))
+        tk.Label(frame, text=(f"Dataset: {Path(session_dir).name}"), fg=DIM, bg=BG,
+                 font=("Segoe UI", 9), anchor="w", justify="left",
+                 wraplength=WIN_W - 60).pack(fill="x", pady=(0, 10))
+        slot = tk.Frame(frame, bg=BG)
+        slot.pack(fill="x")
+        self._bono_slot = slot
+        self._bono_render_oferta(slot)
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        tk.Button(frame, text="Subir sin metadata", fg=TEXT, bg=CARD, relief="flat", bd=0,
+                  cursor="hand2", font=("Segoe UI", 10), activebackground=CARD2,
+                  activeforeground=TEXT, highlightthickness=1, highlightbackground=BORDER,
+                  command=self._bono_continuar).pack(fill="x", ipady=8)
 
     def _upload_progress_view(self, session_dir, return_to, call_id=""):
         # v0.8.7 (bug QA): nunca dos subidas a la vez. Antes, navegar fuera de esta

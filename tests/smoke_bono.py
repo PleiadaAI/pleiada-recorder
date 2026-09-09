@@ -1,4 +1,4 @@
-"""Bono por metadata (v0.9.17): recorre las nueve pantallas con datos de
+"""Bono por metadata (v0.9.17, ampliado en v0.9.18): recorre las pantallas con datos de
 prueba y saca una captura de cada una. No habla con el backend: las llamadas
 se stubean. Sirve para ver los píxeles antes de entregar (regla: arrancar la
 app y mirar la captura, py_compile no ve los NameError ni los acentos rotos).
@@ -71,14 +71,15 @@ session_uploader._open = lambda req, timeout=0: _Ctx()
 
 def _analyze(*a, **k):
     time.sleep(1.5)
-    return {"estado": "ok", "binds": 24, "validado": False, "sorteo": False, "monto_usd": 0.75}
+    return {"estado": "ok", "binds": 17, "binds_total": 40, "validado": False, "sorteo": False,
+            "monto_usd": 0.75}
 
 
 pleiada_api.analyze_key_mapping = _analyze
 
 # ── esqueleto de la app ──────────────────────────────────────────────────────
 root = tk.Tk()
-root.title("Gameplay Recorder v0.9.17 (smoke)")
+root.title("Gameplay Recorder v0.9.18 (smoke)")
 # WIN_H menos los ~44 px de la barra de título propia de la app real, que este
 # esqueleto no dibuja: así la captura mide lo mismo que ve el usuario.
 root.geometry(f"420x{app_mod.WIN_H - 44}+60+60")
@@ -255,6 +256,53 @@ def p11():
 def p12():
     esperar(lambda t: "Intento 1 de 3" in t, "F2: no muestra el intento")
     shot("F2_error")
+    # v0.9.18 (PLE-176): el rechazo por piso trae el detalle de qué faltó.
+    self._bono_error("piso", "No encontramos la información mínima: las cuatro teclas de "
+                     "movimiento, el botón principal del mouse y al menos ocho controles.",
+                     detalle_piso="Falta el botón principal del mouse.")
+    root.after(300, p13)
+
+
+def p13():
+    esperar(lambda t: "Falta el botón principal del mouse." in t, "F2 piso: no muestra el detalle")
+    esperar(lambda t: "Intento 2 de 3" in t, "F2 piso: no cuenta el intento")
+    shot("F2_error_piso_detalle")
+    # v0.9.18 (PLE-178): la oferta desde "Mis grabaciones", con la orden ya elegida.
+    self._bono = None
+    self._bono_antes_de_subir_guardada(SDIR, lambda: fallos.append("H: return_to inesperado"),
+                                       "GA-2026-021")
+    root.after(700, p14)
+
+
+def p14():
+    esperar(lambda t: "Antes de subir el dataset" in t, "H: no aparece la pantalla previa")
+    esperar(lambda t: "25 % de la hora" in t, "H: falta la tarjeta del bono")
+    esperar(lambda t: t == "Subir sin metadata", "H: falta el botón de subir sin metadata")
+    shot("H_oferta_guardada")
+    self._bono_paso1()
+    root.after(300, p15)
+
+
+def p15():
+    esperar(lambda t: "dos personas" in t, "H→C: no llegó al paso 1")
+    self._bono_volver_al_resultado()
+    root.after(300, p16)
+
+
+def p16():
+    esperar(lambda t: "Antes de subir el dataset" in t, "C→H: Volver no regresó a la oferta")
+    shot("H_oferta_guardada_volver")
+    if not self._bono.get("continuar"):
+        fallos.append("H: falta el continuar de la subida")
+    # G con el total leído (PLE-179).
+    self._bono_ok({"binds": 17, "binds_total": 40})
+    root.after(300, p17)
+
+
+def p17():
+    esperar(lambda t: "Leímos 40 controles de Delta Force, 17 de juego" in t,
+            "G: no muestra el total leído")
+    shot("G_recibidos_total")
     root.after(100, fin)
 
 
