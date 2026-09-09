@@ -5,6 +5,24 @@ curso. Lo más urgente arriba. Cuando algo se implementa, se borra de acá.
 
 ---
 
+## 000. v0.9.18 — IMPLEMENTADA Y COMMITEADA en main, falta build + QA
+
+**Estado: código en `main` (08/09/2026), smoke `tests/smoke_bono.py` con 15 pantallas OK.
+Decisión de Martín: NO se buildea hasta que Hungry Frog termine el review completo de la
+v0.9.17.** Cuando se buildee: bumpear nada (VERSION ya dice v0.9.18), compilar con
+`ISCC /DAppVersion=0.9.18`, arrancar la app y mirar una captura, y pasar PLE-178 y PLE-179
+a "Ready for QA" en Jira (transición "To Review").
+
+- **PLE-178:** la oferta del bono también al subir desde Mis grabaciones, después de elegir
+  la orden. Pantalla nueva "Antes de subir el dataset" con la tarjeta A y "Subir sin metadata".
+- **PLE-179:** "Leímos 40 controles de X, 17 de juego" (copy OK de Martín 08/09). Necesita
+  la Lambda `2026-09-08.3` (`binds_total`), que está commiteada y SIN deployar.
+- **PLE-176:** el rechazo por piso muestra qué faltó. El texto lo arma la Lambda `.3`
+  (`_detalle_piso`): "Faltan las teclas de movimiento: A, D." / "Falta el botón principal del
+  mouse." / "Leímos N controles de juego, menos de los necesarios." **Copy pendiente de OK.**
+
+---
+
 ## 00. v0.9.16 — YA ESTÁ IMPLEMENTADA Y COMMITEADA, falta build + QA
 
 **Estado: código escrito, con tests, commiteado local. NO se buildeó ni se
