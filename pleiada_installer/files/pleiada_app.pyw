@@ -7490,6 +7490,7 @@ class PleiadaApp:
     # (Win+Shift+S) de 350×250 se lee perfecto; 1280×720 rechazaba justamente eso.
     BONO_MAX_IMAGENES  = 10
     BONO_MAX_MB_IMAGEN = 10          # de entrada; se normaliza a <= 4,5 MB antes de subir
+    BONO_MIN_NITIDEZ = 80            # v0.9.18: borrosas 68, legibles >= 110 (30 capturas de QA)
     BONO_MAX_MB_TOTAL  = 60
     BONO_MIN_W, BONO_MIN_H = 50, 50    # Martín (07-09): solo frenar íconos y basura
     BONO_MAX_INTENTOS  = 3
@@ -7868,6 +7869,10 @@ class PleiadaApp:
         w, h = im.size
         if w < self.BONO_MIN_W or h < self.BONO_MIN_H:
             return f"{nombre}: es demasiado chica ({w}×{h}) para ser una captura de controles."
+        # v0.9.18 (PLE-182): una captura borrosa no se manda. Medido sobre 30
+        # capturas reales de QA: las legibles dan >= 110, las borrosas 68.
+        if self._bono_nitidez(im) < self.BONO_MIN_NITIDEZ:
+            return f"{nombre}: la captura está borrosa y las teclas no se leen."
         datos = self._bono_normalizar(im)
         if not datos:
             return f"{nombre}: no se pudo procesar."
@@ -7889,6 +7894,22 @@ class PleiadaApp:
         b["imgs"].append({"nombre": base + ext, "bytes": datos, "sha256": digest,
                           "w": w, "h": h, "thumb": thumb})
         return None
+
+    @staticmethod
+    def _bono_nitidez(im):
+        """Varianza del laplaciano en escala de grises, con la imagen llevada a
+        1280 px de ancho solo si es más grande (nunca se agranda). Independiente
+        de la resolución y determinista: no depende del modelo de visión."""
+        try:
+            from PIL import Image, ImageFilter, ImageStat
+            g = im.convert("L")
+            if g.width > 1280:
+                g = g.resize((1280, max(1, int(g.height * 1280 / g.width))), Image.LANCZOS)
+            lap = g.filter(ImageFilter.Kernel((3, 3), [0, 1, 0, 1, -4, 1, 0, 1, 0],
+                                              scale=1, offset=128))
+            return ImageStat.Stat(lap).var[0]
+        except Exception:
+            return 10 ** 6            # ante la duda no se bloquea: decide el backend
 
     def _bono_normalizar(self, im):
         """Deja la imagen en PNG o JPEG de hasta 4,5 MB, sin perder legibilidad.
