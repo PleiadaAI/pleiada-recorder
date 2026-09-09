@@ -7727,7 +7727,8 @@ class PleiadaApp:
                  font=("Cascadia Code", 8, "bold"), anchor="w").pack(fill="x", padx=8, pady=(4, 2))
         filas = [("Avanzar", "W", True), ("Izquierda", "A", True), ("Retroceder", "S", True),
                  ("Derecha", "D", True), ("Disparar / acción principal", "Mouse izq.", True),
-                 ("Recargar", "R", False), ("Interactuar", "F", False), ("Saltar", "Espacio", False)]
+                 ("Recargar (ejemplo)", "R", False), ("Interactuar (ejemplo)", "F", False),
+                 ("Saltar (ejemplo)", "Espacio", False)]
         for accion, tecla, minimo in filas:
             r = tk.Frame(win, bg="#1b1b2f")
             r.pack(fill="x", padx=8)
