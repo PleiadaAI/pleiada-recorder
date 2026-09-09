@@ -23,7 +23,7 @@ Esta versión responde a los hallazgos de la ronda anterior sobre el bono por me
 
 ## Antes de empezar
 
-- Instalar `PleiadaRecorder_Setup_v0.9.18.exe` sobre la versión anterior. En el título de la ventana tiene que decir **v0.9.18**.
+- Instalar `PleiadaRecorder_Setup.exe` (build v0.9.18) sobre la versión anterior. En el título de la ventana tiene que decir **v0.9.18**.
 - Cerrar sesión y volver a entrar en el Recorder.
 - La orden de prueba con bono sigue siendo `GA-2026-021`; `GA-2026-019` sigue sin bono.
 - Elegir títulos cuya pantalla de controles muestre los botones del mouse **como texto** ("Botón izquierdo del mouse", "Left Mouse Button", "Mouse 1"). Los que los muestran como ícono sirven solo para el caso I.
