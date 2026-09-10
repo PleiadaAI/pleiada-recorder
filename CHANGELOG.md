@@ -1,5 +1,34 @@
 # Changelog — Pleiada Recorder
 
+## V9.19 — 10/09/2026 — bono por metadata: ajustes de QA · actualización obligatoria
+
+**Es una actualización obligatoria**: las versiones anteriores quedan bloqueadas para
+grabar hasta actualizarse. Junta las dos rondas de QA sobre el bono por metadata
+de controles (V9.18 no se publicó por separado).
+
+### Compartir controles, también desde Mis grabaciones
+
+- Al subir una sesión guardada desde Mis grabaciones, si el título necesita su
+  mapa de controles y la orden ofrece el bono, aparece la misma propuesta que al
+  terminar de grabar.
+- "Controles recibidos" dice cuántos controles se leyeron en total y cuántos son
+  de juego; los de menú se guardan pero no cuentan para el mínimo.
+- Cuando falta lo mínimo, el mensaje dice qué faltó.
+- Una captura borrosa se rechaza al cargarla, antes de enviar nada.
+- Las capturas con nombres largos y parecidos ya no se confunden entre sí, y dos
+  capturas con el mismo nombre de archivo no se pueden cargar juntas.
+- Los errores de nuestro lado explican que ese intento no cuenta.
+- En el paso 1, las filas de ejemplo dicen "(ejemplo)": no son requisito.
+
+### Del lado del servidor (ya activo)
+
+- Los controles se guardan con el nombre que les da cada título, traducido al
+  inglés; dos aportes coinciden cuando dicen la misma tecla con el mismo nombre.
+- Las pantallas que muestran los botones del mouse como íconos se rechazan con
+  un mensaje propio: solo se leen controles escritos como texto.
+- Una tecla poco habitual (esquivar en la barra espaciadora) ya no se toma como
+  "no por defecto"; eso solo ocurre si la pantalla muestra que se modificaron.
+
 ## V9.17 — 07/09/2026 — bono por metadata de controles
 
 ### Compartí la pantalla de controles y cobrá un bono
