@@ -85,7 +85,7 @@ pleiada_api.analyze_key_mapping = _analyze
 
 # ── esqueleto de la app ──────────────────────────────────────────────────────
 root = tk.Tk()
-root.title("Gameplay Recorder v0.9.18 (smoke)")
+root.title(f"Gameplay Recorder {app_mod.VERSION}")
 # WIN_H menos los ~44 px de la barra de título propia de la app real, que este
 # esqueleto no dibuja: así la captura mide lo mismo que ve el usuario.
 root.geometry(f"420x{app_mod.WIN_H - 44}+60+60")
