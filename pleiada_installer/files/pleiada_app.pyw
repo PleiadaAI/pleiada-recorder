@@ -15,7 +15,7 @@ import pleiada_sync_limits as sync_limits
 import obs_encoding
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.18"
+VERSION = "v0.9.19"
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -7880,6 +7880,9 @@ class PleiadaApp:
         digest = _hashlib.sha256(datos).hexdigest()
         if any(i["sha256"] == digest for i in b["imgs"]):
             return f"{nombre}: esa imagen ya está cargada."
+        if any(i["nombre"].lower() == nombre.lower() for i in b["imgs"]):
+            # v0.9.19 (PLE-184): mismo nombre desde otra carpeta pisaba la URL de subida.
+            return f"{nombre}: ya cargaste una imagen con ese nombre. Renombrala y volvé a elegirla."
         total = sum(len(i["bytes"]) for i in b["imgs"]) + len(datos)
         if total > self.BONO_MAX_MB_TOTAL * 1024 * 1024:
             return f"{nombre}: con esta imagen superás los {self.BONO_MAX_MB_TOTAL} MB en total."
@@ -8061,7 +8064,9 @@ class PleiadaApp:
                 b["aporte_id"] = res.get("aporte_id", "")
                 urls = res.get("urls") or {}
                 for i in b["imgs"]:
-                    url = urls.get(i["nombre"])
+                    # v0.9.19 (PLE-184): la URL va por hash (único); por nombre solo
+                    # con una Lambda vieja.
+                    url = urls.get(i["sha256"]) or urls.get(i["nombre"])
                     if not url:
                         raise pleiada_api.ApiError("No se pudo preparar la subida de una imagen.")
                     req = urllib_request.Request(url, data=i["bytes"], method="PUT")
@@ -8147,6 +8152,12 @@ class PleiadaApp:
                      fg=DIMMER, bg=BG, font=("Segoe UI", 9), anchor="w", justify="left",
                      wraplength=WIN_W - 60).pack(fill="x", pady=(8, 0))
         else:
+            # v0.9.19 (PLE-184): el error técnico también explica qué hacer y deja
+            # claro que no gasta un intento.
+            tk.Label(frame, text=("No es un problema de las capturas. Este intento no cuenta: "
+                                  "podés volver a intentar con las mismas imágenes."),
+                     fg=DIM, bg=BG, font=("Segoe UI", 10), anchor="w", justify="left",
+                     wraplength=WIN_W - 60).pack(fill="x", pady=(12, 0))
             agotado = False
         if agotado:
             btn.config(state="disabled", bg=CARD, fg=DIMMER)
@@ -8447,6 +8458,8 @@ class PleiadaApp:
                 res = pleiada_api.metadata_offer(token, game, call_id, src)
             except Exception as e:
                 _obs_dbg(f"metadata_offer (guardada): {e}")
+
+            _obs_dbg(f"metadata_offer (guardada) {game}: {res}")
 
             def _aplicar():
                 if getattr(self, "_bono", {}).get("sdir") != session_dir:
