@@ -7893,7 +7893,10 @@ class PleiadaApp:
             thumb = ImageTk.PhotoImage(th)
         except Exception:
             thumb = None
-        base = os.path.splitext(nombre)[0][:40] or "captura"
+        # v0.9.19 (PLE-184): el recorte a 40 caracteres igualaba los nombres de las
+        # capturas de Halo ("Halo The Master Chief Collection 09_09_2026 23_45_12")
+        # y las seis subían a la misma URL. El nombre lleva un trozo del hash: único.
+        base = (os.path.splitext(nombre)[0][:32] or "captura") + "_" + digest[:8]
         ext = ".png" if datos[:4] == b"\x89PNG" else ".jpg"
         b["imgs"].append({"nombre": base + ext, "bytes": datos, "sha256": digest,
                           "w": w, "h": h, "thumb": thumb})
