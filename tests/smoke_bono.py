@@ -57,8 +57,14 @@ img.save(CAP)
 # ── stubs del backend ────────────────────────────────────────────────────────
 OFERTA = {"oferta": "bono", "pct": 25, "monto_usd": 0.75}
 pleiada_api.metadata_offer = lambda *a, **k: dict(OFERTA)
-pleiada_api.submit_key_mapping = lambda *a, **k: {
-    "aporte_id": "x", "urls": {"captura_prueba.png": "https://example.invalid/put"}}
+def _submit(token, game, call_id, session_id, archivos, **k):
+    # v0.9.19: la Lambda devuelve la URL por nombre y por hash.
+    urls = {}
+    for a in archivos:
+        urls[a["nombre"]] = "https://example.invalid/put"
+        urls[a["sha256"]] = "https://example.invalid/put"
+    return {"aporte_id": "x", "urls": urls}
+pleiada_api.submit_key_mapping = _submit
 
 
 class _Ctx:
