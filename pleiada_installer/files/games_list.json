@@ -438,6 +438,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Alan Wake",
+  "perspective": "Third Person",
+  "genre": "Shooter, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "1062",
+  "default_key_mapping": null
+ },
+ {
   "game": "Alan Wake 2",
   "perspective": "Third Person",
   "genre": "Survival Horror, Shooter",
@@ -538,6 +552,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Ale & Tale Tavern",
+  "perspective": "First Person",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "276233",
+  "default_key_mapping": null
+ },
+ {
   "game": "Alien: Isolation",
   "perspective": "First Person",
   "genre": "Survival Horror",
@@ -589,6 +617,42 @@
   ],
   "developer": "Survios",
   "igdb_id": "342923",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Aliens: Fireteam Elite",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Horror",
+   "Science fiction",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "Czech",
+   "English",
+   "English (UK)",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "Cold Iron Studios",
+  "igdb_id": "144153",
   "default_key_mapping": null
  },
  {
@@ -681,6 +745,37 @@
   "default_key_mapping": null
  },
  {
+  "game": "Amnesia: A Machine for Pigs",
+  "perspective": "First Person",
+  "genre": "Puzzle",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "HPL Engine",
+  "themes": [
+   "Action",
+   "Horror",
+   "Stealth",
+   "Survival"
+  ],
+  "languages": [
+   "Czech",
+   "English",
+   "French",
+   "German",
+   "Hungarian",
+   "Italian",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "The Chinese Room",
+  "igdb_id": "1882",
+  "default_key_mapping": null
+ },
+ {
   "game": "Amnesia: Rebirth",
   "perspective": "First Person",
   "genre": "Survival Horror, Puzzle",
@@ -748,6 +843,58 @@
   ],
   "developer": "Frictional Games",
   "igdb_id": "228258",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Amnesia: The Dark Descent",
+  "perspective": "First Person",
+  "genre": "Puzzle, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "111",
+  "default_key_mapping": {
+   "MouseLeft": "interact",
+   "LShift": "sprint",
+   "Space": "jump",
+   "w": "move_forward",
+   "d": "move_right",
+   "a": "move_left",
+   "LControl": "crouch",
+   "f": "flashlight",
+   "s": "move_backward"
+  }
+ },
+ {
+  "game": "Among the Sleep: Enhanced Edition",
+  "perspective": "First Person",
+  "genre": "Puzzle",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unity 5",
+  "themes": [
+   "Action",
+   "Horror"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Dutch",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Krillbite Studio",
+  "igdb_id": "114411",
   "default_key_mapping": null
  },
  {
@@ -883,38 +1030,7 @@
   ],
   "developer": "Morefun Studio Group",
   "igdb_id": "298915",
-  "default_key_mapping": {
-   "z": "prone",
-   "q": "lean_left",
-   "e": "lean_right",
-   "m": "map",
-   "4": "melee",
-   "g": "grenade",
-   "Escape": "settings",
-   "i": "proximity_voice",
-   "Enter": "open_chat",
-   "j": "missions",
-   "w": "move_forward",
-   "s": "move_backward",
-   "a": "move_left",
-   "d": "move_right",
-   "c": "crouch",
-   "LShift": "sprint",
-   "Space": "jump",
-   "f": "interact",
-   "MouseMiddle": "free_look",
-   "MouseLeft": "fire",
-   "MouseRight": "aim",
-   "r": "reload",
-   "u": "inspect_weapon",
-   "LAlt": "hold_breath",
-   "x": "drop_bag",
-   "v": "quick_heal",
-   "t": "toggle_laser_light",
-   "5": "quick_item_1",
-   "6": "quick_item_2",
-   "n": "toggle_headgear"
-  }
+  "default_key_mapping": null
  },
  {
   "game": "ARK: Survival Ascended",
@@ -1394,7 +1510,26 @@
   ],
   "developer": "Mundfish",
   "igdb_id": "76747",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "Lshift": "dodge | vehicle:handbrake",
+   "w": "move_forward | vehicle:accelerate",
+   "5": "hotbar_5",
+   "Space": "jump",
+   "MouseLeft": "fire",
+   "r": "reload",
+   "3": "weapon_3",
+   "2": "weapon_2",
+   "d": "move_right",
+   "a": "move_left",
+   "s": "move_backward | vehicle:brake",
+   "1": "weapon_1",
+   "Tab": "inventory",
+   "MouseWheelUp": "switch_weapon",
+   "4": "weapon_4",
+   "MouseWheelDown": "switch_weapon",
+   "MouseRight": "aim",
+   "Lctrl": "crouch"
+  }
  },
  {
   "game": "Automobilista 2",
@@ -1695,10 +1830,24 @@
   "default_key_mapping": null
  },
  {
+  "game": "BattleBit Remastered",
+  "perspective": "First Person",
+  "genre": "Shooter, Simulator, Tactical, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "50531",
+  "default_key_mapping": null
+ },
+ {
   "game": "Battlefield 4",
   "perspective": "First Person",
   "genre": "FPS, Shooter, Simulator",
-  "mode": "Multiplayer",
+  "mode": "Singleplayer, Multiplayer",
   "process_name": null,
   "process_source": "igdb",
   "engine": "Frostbite",
@@ -1747,7 +1896,7 @@
   "game": "Battlefield 6",
   "perspective": "First Person",
   "genre": "FPS, Shooter",
-  "mode": "Multiplayer",
+  "mode": "Singleplayer, Multiplayer",
   "process_name": null,
   "process_source": "igdb",
   "engine": "Frostbite",
@@ -1772,23 +1921,23 @@
   "developer": "EA Digital Illusions CE",
   "igdb_id": "317407",
   "default_key_mapping": {
-   "1": "weapon_1",
-   "2": "weapon_2",
-   "w": "move_forward",
-   "s": "move_backward",
-   "a": "move_left",
-   "d": "move_right",
-   "c": "crouch",
-   "z": "prone",
    "LShift": "sprint",
-   "MouseLeft": "fire",
-   "MouseRight": "aim",
-   "r": "reload",
-   "g": "grenade",
    "y": "quick_customize",
    "Tab": "inventory",
    "F1": "vehicle_seat_1",
-   "F2": "vehicle_seat_2"
+   "F2": "vehicle_seat_2",
+   "c": "crouch",
+   "w": "move_forward",
+   "s": "move_backward",
+   "d": "move_right",
+   "a": "move_left",
+   "1": "weapon_1",
+   "2": "weapon_2",
+   "z": "prone",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "r": "reload",
+   "g": "grenade"
   }
  },
  {
@@ -1853,6 +2002,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Bendy and the Ink Machine",
+  "perspective": "First Person",
+  "genre": "Puzzle, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "28311",
+  "default_key_mapping": null
+ },
+ {
   "game": "Beyond Citadel",
   "perspective": "First Person",
   "genre": "Shooter",
@@ -1871,6 +2034,31 @@
   ],
   "developer": "doekuramori",
   "igdb_id": "322842",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Binary Domain",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": null,
+  "themes": [
+   "Action",
+   "Science fiction"
+  ],
+  "languages": [
+   "English",
+   "English (UK)",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Spanish (Spain)"
+  ],
+  "developer": "Ryu Ga Gotoku Studio",
+  "igdb_id": "6913",
   "default_key_mapping": null
  },
  {
@@ -2008,33 +2196,27 @@
   "igdb_id": "136879",
   "default_key_mapping": {
    "w": "move_forward",
-   "s": "move_backward",
    "a": "move_left",
+   "s": "move_backward",
    "d": "move_right",
-   "MouseLeft": "fire",
-   "MouseRight": "attack_heavy",
-   "MouseMiddle": "lock_on",
    "LShift": "sprint",
-   "LControl": "jump",
    "Space": "dodge",
+   "LControl": "jump",
+   "MouseLeft": "fire",
+   "MouseMiddle": "lock_on",
    "e": "interact",
-   "q": "use_consumable",
    "r": "use_gourd",
-   "z": "smash_stance",
-   "c": "thrust_stance",
-   "x": "pillar_stance",
-   "m": "map",
-   "p": "photo_mode",
+   "q": "use_consumable",
    "v": "staff_spin",
    "1": "spell_1",
    "2": "spell_2",
    "3": "spell_3",
    "4": "spell_4",
-   "f": "usar_espiritu",
-   "g": "accion_habilidad_contextual",
-   "MouseWheel": "cambiar_objetivo",
-   "Escape": "abrir_el_menu_pausa",
-   "o": "dodge"
+   "z": "smash_stance",
+   "x": "pillar_stance",
+   "c": "thrust_stance",
+   "p": "photo_mode",
+   "m": "map"
   }
  },
  {
@@ -2075,6 +2257,39 @@
    "F10": "screenshot",
    "p": "party_chat"
   }
+ },
+ {
+  "game": "Blair Witch",
+  "perspective": "First Person",
+  "genre": "Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Horror",
+   "Survival",
+   "Thriller"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "English",
+   "English (UK)",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "Bloober Team",
+  "igdb_id": "119298",
+  "default_key_mapping": null
  },
  {
   "game": "Blood High!",
@@ -2495,6 +2710,48 @@
   "default_key_mapping": null
  },
  {
+  "game": "Bright Memory: Infinite",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Portuguese (Brazil)",
+   "Russian"
+  ],
+  "developer": "FYQD-Studio",
+  "igdb_id": "113739",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Brotato",
+  "perspective": "Isometric",
+  "genre": "Fighting, Shooter, Role-playing (RPG), Indie, Arcade",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "199116",
+  "default_key_mapping": null
+ },
+ {
   "game": "Brothers: A Tale of Two Sons Remake",
   "perspective": "Third Person",
   "genre": "Adventure, Puzzle",
@@ -2657,7 +2914,16 @@
   ],
   "developer": "stillalive studios",
   "igdb_id": "240037",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "s": "walk_backward | vehicle:brake_vehicle_reverse",
+   "a": "walk_left",
+   "Escape": "open_pause_menu",
+   "Tab": "open_map_menu",
+   "MouseMiddle": "zoom_view_in_out",
+   "d": "walk_right",
+   "MouseLeft": "interact | camera:toggle_cabin_zoom",
+   "w": "walk_forward | vehicle:accelerate_vehicle"
+  }
  },
  {
   "game": "Call of Duty",
@@ -2797,7 +3063,25 @@
   "languages": [],
   "developer": null,
   "igdb_id": "9509",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "LControl": "toggle_prone",
+   "r": "reload_weapon | menu:reset_to_default",
+   "Unbound": "crouch | camera:look_up | camera:look_down | camera:turn_left | camera:turn_right | camera:mouse_look | camera:center_view | other:scoreboard_toggle",
+   "a": "move_left",
+   "s": "backpedal",
+   "MouseWheelDown": "previous_weapon",
+   "v": "melee_attack",
+   "w": "forward",
+   "g": "throw_primary",
+   "MouseWheelUp": "next_weapon",
+   "LShift": "sprint_hold_breath",
+   "d": "move_right",
+   "Space": "stand_jump",
+   "MouseLeft": "attack",
+   "x": "switch_weapon",
+   "q": "specialist_ability_weapon",
+   "c": "change_stance"
+  }
  },
  {
   "game": "Call of Duty: Modern Warfare",
@@ -2849,6 +3133,48 @@
    "t": "weapon_mount",
    "i": "weapon_inspect"
   }
+ },
+ {
+  "game": "Call of Duty: Modern Warfare 2",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "559",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Call of Duty: Modern Warfare 4",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "403310",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Call of Duty: Warzone",
+  "perspective": "First Person",
+  "genre": "Shooter, Tactical",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "217815",
+  "default_key_mapping": null
  },
  {
   "game": "Call of Juarez",
@@ -3110,6 +3436,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Cat Quest II",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "101869",
+  "default_key_mapping": null
+ },
+ {
   "game": "Chameleon",
   "perspective": "Isometric",
   "genre": "Puzzle, Card & Board Game",
@@ -3121,6 +3461,24 @@
   "languages": [],
   "developer": null,
   "igdb_id": "21452",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Chernobylite: Complete Edition",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action"
+  ],
+  "languages": [
+   "Japanese"
+  ],
+  "developer": "The Farm 51",
+  "igdb_id": "323701",
   "default_key_mapping": null
  },
  {
@@ -3352,6 +3710,20 @@
   ],
   "developer": "Valen",
   "igdb_id": "355554",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Combat Master",
+  "perspective": "First Person",
+  "genre": "Shooter, Tactical",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "248376",
   "default_key_mapping": null
  },
  {
@@ -3865,6 +4237,99 @@
   "default_key_mapping": null
  },
  {
+  "game": "Crysis 2 Remastered",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "CryEngine",
+  "themes": [
+   "Action",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "Czech",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)",
+   "Turkish"
+  ],
+  "developer": "Crytek",
+  "igdb_id": "165126",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Crysis 3 Remastered",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "CryEngine 5",
+  "themes": [
+   "Action",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "Czech",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)",
+   "Turkish"
+  ],
+  "developer": "Crytek",
+  "igdb_id": "165127",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Crysis Remastered",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "CryEngine 3",
+  "themes": [
+   "Action",
+   "Mystery",
+   "Sandbox",
+   "Warfare"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "Czech",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)",
+   "Turkish"
+  ],
+  "developer": "Crytek",
+  "igdb_id": "132164",
+  "default_key_mapping": null
+ },
+ {
   "game": "Cubic Odyssey",
   "perspective": "First Person",
   "genre": "Role-playing (RPG)",
@@ -3972,25 +4437,26 @@
   "igdb_id": "1877",
   "default_key_mapping": {
    "w": "move_forward",
-   "a": "move_left",
    "s": "move_backward",
+   "a": "move_left",
    "d": "move_right",
    "MouseLeft": "fire",
-   "Space": "jump",
-   "LShift": "sprint",
-   "c": "crouch",
-   "r": "reload",
-   "e": "cyberware_systems",
-   "x": "use_consumable",
-   "LAlt": "cycle_weapon",
-   "Tab": "scan",
-   "CapsLock": "scan_toggle",
-   "n": "photo_mode",
-   "m": "map",
-   "j": "journal",
-   "v": "llamar_vehiculo",
    "MouseRight": "aim",
-   "z": "open_notifications",
+   "LShift": "sprint",
+   "v": "llamar_vehiculo",
+   "e": "cyberware_systems",
+   "r": "reload",
+   "x": "use_consumable",
+   "h": "open_main_menu",
+   "f": "primary_interaction",
+   "m": "map",
+   "g": "toggle_walk",
+   "b": "holster_unholster_weapon",
+   "CapsLock": "scan_toggle",
+   "i": "inventory",
+   "y": "skip_dialogue",
+   "p": "open_character_tab",
+   "k": "open_crafting_tab",
    "F5": "quicksave",
    "F9": "quickload"
   }
@@ -4167,6 +4633,20 @@
   ],
   "developer": "QLOC",
   "igdb_id": "81085",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Darkwood",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Strategy, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "17032",
   "default_key_mapping": null
  },
  {
@@ -4371,6 +4851,113 @@
   "default_key_mapping": null
  },
  {
+  "game": "Dead Island: Definitive Edition",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": null,
+  "themes": [
+   "Action",
+   "Horror",
+   "Open world",
+   "Survival"
+  ],
+  "languages": [
+   "Czech",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Techland",
+  "igdb_id": "34951",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Dead Rising 4",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Forge",
+  "themes": [
+   "Action",
+   "Comedy",
+   "Horror",
+   "Open world",
+   "Sandbox",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Capcom Game Studio Vancouver, Inc.",
+  "igdb_id": "19521",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Dead Space",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": null,
+  "themes": [
+   "Action",
+   "Horror",
+   "Science fiction",
+   "Survival"
+  ],
+  "languages": [],
+  "developer": "IronMonkey Studios",
+  "igdb_id": "131931",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Dead Space 2",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Visceral Engine",
+  "themes": [
+   "Action",
+   "Horror",
+   "Science fiction",
+   "Survival"
+  ],
+  "languages": [
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Visceral Games",
+  "igdb_id": "38",
+  "default_key_mapping": null
+ },
+ {
   "game": "Deadlock",
   "perspective": "Third Person",
   "genre": "Shooter",
@@ -4518,6 +5105,39 @@
   ],
   "developer": "Kojima Productions",
   "igdb_id": "228530",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Deathloop",
+  "perspective": "First Person",
+  "genre": "Immersive Sim",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "exact_no_exe",
+  "engine": "Void Engine",
+  "themes": [
+   "Action",
+   "Science fiction",
+   "Stealth"
+  ],
+  "languages": [
+   "Arabic",
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "Arkane Studios",
+  "igdb_id": "113598",
   "default_key_mapping": null
  },
  {
@@ -4708,6 +5328,72 @@
   "default_key_mapping": null
  },
  {
+  "game": "Deus Ex: Human Revolution - Director's Cut",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Crystal Engine",
+  "themes": [
+   "Action",
+   "Science fiction",
+   "Stealth",
+   "Thriller"
+  ],
+  "languages": [
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Eidos Montréal",
+  "igdb_id": "9740",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Deus Ex: Mankind Divided",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Dawn Engine",
+  "themes": [
+   "Action",
+   "Science fiction",
+   "Stealth"
+  ],
+  "languages": [
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Eidos Montréal",
+  "igdb_id": "9498",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Diablo II",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Hack and slash/Beat 'em up",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "126",
+  "default_key_mapping": null
+ },
+ {
   "game": "Dinoblade",
   "perspective": "Third Person",
   "genre": "Role-playing (RPG)",
@@ -4753,6 +5439,65 @@
   "languages": [],
   "developer": null,
   "igdb_id": "164796",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Dishonored 2",
+  "perspective": "First Person",
+  "genre": "Immersive Sim",
+  "mode": "Singleplayer",
+  "process_name": "Dishonored2.exe",
+  "process_source": "exact(Dishonored 2)",
+  "engine": "Void Engine",
+  "themes": [
+   "Action",
+   "Stealth"
+  ],
+  "languages": [
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "Arkane Studios",
+  "igdb_id": "11118",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Dishonored: Death of the Outsider",
+  "perspective": "First Person",
+  "genre": "Immersive Sim",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "exact_no_exe",
+  "engine": "Void Engine",
+  "themes": [
+   "Action",
+   "Fantasy",
+   "Stealth"
+  ],
+  "languages": [
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "Arkane Studios",
+  "igdb_id": "37030",
   "default_key_mapping": null
  },
  {
@@ -4850,7 +5595,18 @@
   "languages": [],
   "developer": null,
   "igdb_id": "3152",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "Space": "do_action",
+   "d": "move_right",
+   "MouseLeft": "primary",
+   "MouseRight": "secondary",
+   "LAlt": "force_inspect_mod",
+   "f": "do_attack",
+   "LControl": "force_attack_mod",
+   "s": "move_down",
+   "a": "move_left",
+   "w": "move_up"
+  }
  },
  {
   "game": "Don't Starve Together",
@@ -5202,7 +5958,29 @@
   ],
   "developer": null,
   "igdb_id": "303490",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "a": "move_left",
+   "Up": "move_forward",
+   "Rshift": "sprint",
+   "Right": "move_right",
+   "e": "interact_pick_up",
+   "LControl": "crouch",
+   "m": "open_map",
+   "MouseRight": "secondary_tool_action",
+   "Space": "jump",
+   "u": "hide_interface",
+   "w": "move_forward",
+   "Tab": "water_scan",
+   "MouseMiddle": "switch_tools",
+   "s": "move_backward",
+   "l": "toggle_headlamp",
+   "MouseLeft": "primary_tool_action",
+   "LShift": "sprint",
+   "d": "move_right",
+   "Down": "move_backward",
+   "g": "drop_tool",
+   "Left": "move_left"
+  }
  },
  {
   "game": "Dread Delusion",
@@ -5459,16 +6237,15 @@
    "LShift": "sprint",
    "Space": "jump",
    "f": "interact",
-   "q": "survival_sense",
+   "v": "use_alt",
    "MouseLeft": "fire",
-   "MouseRight": "aim",
    "e": "kick",
+   "MouseRight": "aim",
    "r": "reload",
    "Tab": "weapon_menu",
    "Backspace": "drop_item",
    "m": "map",
    "LControl": "crouch",
-   "v": "use_alt",
    "4": "select_weapon_4",
    "Enter": "chat",
    "k": "vote_kick",
@@ -5525,7 +6302,6 @@
    "x": "walk",
    "LShift": "sprint",
    "MouseLeft": "fire",
-   "e": "interact",
    "f": "loot",
    "q": "survivor_sense",
    "CapsLock": "look_back",
@@ -5542,6 +6318,52 @@
    "k": "collectibles",
    "n": "brief_decline"
   }
+ },
+ {
+  "game": "Earth Defense Force 5",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": null,
+  "themes": [
+   "Action",
+   "Party",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "Japanese",
+   "Korean"
+  ],
+  "developer": "Sandlot",
+  "igdb_id": "27283",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Earth Defense Force 6",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": null,
+  "themes": [
+   "Action"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "Japanese",
+   "Korean"
+  ],
+  "developer": "Sandlot",
+  "igdb_id": "137427",
+  "default_key_mapping": null
  },
  {
   "game": "Eastshade",
@@ -5726,6 +6548,35 @@
   ],
   "developer": "FromSoftware",
   "igdb_id": "240009",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Elex",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG)",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Genome",
+  "themes": [
+   "Action",
+   "Fantasy",
+   "Open world",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Czech",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Piranha Bytes",
+  "igdb_id": "11567",
   "default_key_mapping": null
  },
  {
@@ -6060,11 +6911,7 @@
    "j": "headlight_flash",
    "Enter": "activate",
    "t": "trailer_attach",
-   "o": "beacon",
-   "u": "lift_axle",
-   "v": "diff_lock",
    "F2": "show_mirrors",
-   "F3": "show_hud",
    "LControl": "gear_down",
    "m": "map",
    "Escape": "menu",
@@ -6186,6 +7033,38 @@
   "default_key_mapping": null
  },
  {
+  "game": "Evil West",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Fantasy",
+   "Horror"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "Czech",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Flying Wild Hog",
+  "igdb_id": "141547",
+  "default_key_mapping": null
+ },
+ {
   "game": "Exiled Survivors",
   "perspective": "Isometric",
   "genre": "Shooter, Role-playing (RPG), Hack and slash/Beat 'em up",
@@ -6229,6 +7108,93 @@
   "developer": "Saber Interactive",
   "igdb_id": "262534",
   "default_key_mapping": null
+ },
+ {
+  "game": "F.E.A.R. 2: Project Origin",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "LithTech V5",
+  "themes": [
+   "Action",
+   "Horror"
+  ],
+  "languages": [
+   "Czech",
+   "English",
+   "French",
+   "German",
+   "Hungarian",
+   "Italian",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Monolith Productions",
+  "igdb_id": "520",
+  "default_key_mapping": null
+ },
+ {
+  "game": "F.E.A.R. 3",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Despair",
+  "themes": [
+   "Action",
+   "Horror",
+   "Science fiction"
+  ],
+  "languages": [
+   "English",
+   "English (UK)",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Day 1 Studios",
+  "igdb_id": "514",
+  "default_key_mapping": {
+   "Flechahaciaaba": "look_down",
+   "MouseMiddle": "melee",
+   "q": "take_cover",
+   "Left": "look_left",
+   "5": "previous_grenade",
+   "2": "frag_grenade",
+   "Flechahaciaarri": "look_up",
+   "c": "crouch",
+   "Right": "look_right",
+   "Barraespaciado": "jump | vehicle:mech_stomp",
+   "d": "strafe_right",
+   "1": "switch_weapon",
+   "MouseX1": "throw | vehicle:fire_secondary_weapon",
+   "s": "move_backward",
+   "r": "reload",
+   "4": "annihilator_grenade",
+   "LControl": "cancel_possession | vehicle:shields",
+   "Lmays": "sprint",
+   "MouseLeft": "fire | vehicle:fire_cannons",
+   "3": "equip_grenade",
+   "w": "move_forward",
+   "g": "throw | vehicle:fire_secondary_weapon",
+   "a": "strafe_left",
+   "LAlt": "melee",
+   "e": "use",
+   "MouseRight": "aim_zoom",
+   "MouseX2": "cancel_possession | vehicle:shields",
+   "f": "flashlight",
+   "6": "next_grenade"
+  }
  },
  {
   "game": "Fallout 4",
@@ -6379,6 +7345,20 @@
    "3": "quickswap_3",
    "4": "quickswap_4"
   }
+ },
+ {
+  "game": "Farlight 84",
+  "perspective": "First Person",
+  "genre": "Shooter, Tactical",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "142862",
+  "default_key_mapping": null
  },
  {
   "game": "Farming Simulator 25",
@@ -6616,6 +7596,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Fistful of Frags",
+  "perspective": "First Person",
+  "genre": "Shooter, Indie",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "8584",
+  "default_key_mapping": null
+ },
+ {
   "game": "Five Hearts Under One Roof",
   "perspective": "First Person",
   "genre": "Role-playing (RPG), Simulator, Visual Novel",
@@ -6646,6 +7640,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Five Nights at Freddy's: Into the Pit",
+  "perspective": "Side View",
+  "genre": "Puzzle, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "283679",
+  "default_key_mapping": null
+ },
+ {
   "game": "Five Nights at Freddy's: Secret of the Mimic",
   "perspective": "First Person",
   "genre": "Adventure",
@@ -6673,6 +7681,20 @@
   ],
   "developer": "Steel Wool Studios",
   "igdb_id": "312859",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Flotsam",
+  "perspective": "Isometric",
+  "genre": "Adventure, Indie, Visual Novel",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "135944",
   "default_key_mapping": null
  },
  {
@@ -6719,6 +7741,37 @@
   ],
   "developer": "Wabbaboy",
   "igdb_id": "310121",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Forever Skies",
+  "perspective": "First Person",
+  "genre": "Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Science fiction",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)",
+   "Ukrainian"
+  ],
+  "developer": "Far From Home",
+  "igdb_id": "187096",
   "default_key_mapping": null
  },
  {
@@ -6772,6 +7825,20 @@
   "languages": [],
   "developer": null,
   "igdb_id": "348330",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Furi",
+  "perspective": "Third Person",
+  "genre": "Shooter, Hack and slash/Beat 'em up, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "17026",
   "default_key_mapping": null
  },
  {
@@ -6909,6 +7976,34 @@
   "languages": [],
   "developer": null,
   "igdb_id": "222906",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Generation Zero",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Apex",
+  "themes": [
+   "Action",
+   "Open world"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "English",
+   "English (UK)",
+   "French",
+   "German",
+   "Japanese",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)",
+   "Swedish"
+  ],
+  "developer": "Systemic Reaction",
+  "igdb_id": "65445",
   "default_key_mapping": null
  },
  {
@@ -7207,6 +8302,34 @@
   "default_key_mapping": null
  },
  {
+  "game": "Grand Theft Auto V: Special Edition",
+  "perspective": "First Person",
+  "genre": "Shooter, Racing, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "45131",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Graveyard Keeper",
+  "perspective": "Isometric",
+  "genre": "Simulator, Strategy, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "27384",
+  "default_key_mapping": null
+ },
+ {
   "game": "Great God Grove",
   "perspective": "First Person",
   "genre": "Puzzle",
@@ -7340,6 +8463,36 @@
   "languages": [],
   "developer": null,
   "igdb_id": "196995",
+  "default_key_mapping": null
+ },
+ {
+  "game": "GTFO",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unity",
+  "themes": [
+   "Action",
+   "Horror"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "10 Chambers Collective",
+  "igdb_id": "36646",
   "default_key_mapping": null
  },
  {
@@ -7539,6 +8692,20 @@
   ],
   "developer": null,
   "igdb_id": "281073",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Happy Game",
+  "perspective": "Side View",
+  "genre": "Point-and-click, Puzzle, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "141681",
   "default_key_mapping": null
  },
  {
@@ -7768,7 +8935,16 @@
   ],
   "developer": "Arrowhead Game Studios",
   "igdb_id": "250616",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "d": "move_right | vehicle:turn_right",
+   "w": "move_forward | vehicle:accelerate",
+   "MouseLeft": "look_left | menu:move_left",
+   "MouseRight": "look_right | menu:move_right",
+   "a": "move_left | vehicle:turn_left",
+   "c": "crouch | vehicle:change_seat_next | menu:effects",
+   "s": "move_backward | vehicle:brake_reverse",
+   "Space": "climb | vehicle:handbrake"
+  }
  },
  {
   "game": "Hello Neighbor",
@@ -7852,6 +9028,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Hero Siege",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Hack and slash/Beat 'em up, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "11708",
+  "default_key_mapping": null
+ },
+ {
   "game": "Higher or Lower: Spotify Edition",
   "perspective": "Text",
   "genre": "Quiz/Trivia, Arcade",
@@ -7904,6 +9094,33 @@
    "b": "drag_body",
    "q": "melee"
   }
+ },
+ {
+  "game": "Hitman: Absolution",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Glacier 2",
+  "themes": [
+   "Action",
+   "Stealth"
+  ],
+  "languages": [
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)",
+   "Turkish"
+  ],
+  "developer": "IO Interactive",
+  "igdb_id": "530",
+  "default_key_mapping": null
  },
  {
   "game": "Hobo: Tough Life",
@@ -8329,6 +9546,37 @@
   "default_key_mapping": null
  },
  {
+  "game": "In Sound Mind",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unity",
+  "themes": [
+   "Action",
+   "Horror",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "We Create Stuff",
+  "igdb_id": "121084",
+  "default_key_mapping": null
+ },
+ {
   "game": "In The Black",
   "perspective": "",
   "genre": "",
@@ -8412,6 +9660,34 @@
   ],
   "developer": "Papergames",
   "igdb_id": "228349",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Inmost",
+  "perspective": "Side View",
+  "genre": "Platform, Puzzle, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "107187",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Inscryption",
+  "perspective": "First Person",
+  "genre": "Puzzle, Strategy, Adventure, Indie, Card & Board Game",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "139090",
   "default_key_mapping": null
  },
  {
@@ -8621,6 +9897,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Jurassic World Evolution 2",
+  "perspective": "Isometric",
+  "genre": "Simulator, Strategy",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "152064",
+  "default_key_mapping": null
+ },
+ {
   "game": "Just Cause 2",
   "perspective": "Third Person",
   "genre": "Action Adventure, Shooter, Racing",
@@ -8670,6 +9960,36 @@
    "4": "beacon",
    "g": "toggle_explosives"
   }
+ },
+ {
+  "game": "Just Cause 3",
+  "perspective": "Third Person",
+  "genre": "Action Adventure",
+  "mode": "Singleplayer",
+  "process_name": "justcause3.exe",
+  "process_source": "exact(Just Cause 3)",
+  "engine": "Avalanche engine",
+  "themes": [
+   "Action",
+   "Open world"
+  ],
+  "languages": [
+   "Arabic",
+   "English",
+   "English (UK)",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "Avalanche Studios",
+  "igdb_id": "8187",
+  "default_key_mapping": null
  },
  {
   "game": "Kamla",
@@ -9176,6 +10496,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Launcher",
+  "perspective": "",
+  "genre": "",
+  "mode": "",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "358923",
+  "default_key_mapping": null
+ },
+ {
   "game": "Laundering Simulator - Clean Cash and Laundry",
   "perspective": "",
   "genre": "",
@@ -9421,6 +10755,20 @@
   ],
   "developer": "Frame Break",
   "igdb_id": "163456",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Limbo",
+  "perspective": "Side View",
+  "genre": "Platform, Puzzle, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "1331",
   "default_key_mapping": null
  },
  {
@@ -9924,6 +11272,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Mark of the Ninja",
+  "perspective": "Side View",
+  "genre": "Platform, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "2129",
+  "default_key_mapping": null
+ },
+ {
   "game": "Martha is Dead",
   "perspective": "First Person",
   "genre": "Horror, Role-playing (RPG)",
@@ -9955,6 +11317,42 @@
   ],
   "developer": "LKA",
   "igdb_id": "90714",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Marvel Rivals",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 5",
+  "themes": [
+   "Action"
+  ],
+  "languages": [
+   "Arabic",
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "English (UK)",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)",
+   "Thai",
+   "Turkish",
+   "Vietnamese"
+  ],
+  "developer": "NetEase Games",
+  "igdb_id": "294041",
   "default_key_mapping": null
  },
  {
@@ -10093,6 +11491,34 @@
   ],
   "developer": "Insomniac Games",
   "igdb_id": "127044",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Mass Effect Legendary Edition",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 3",
+  "themes": [
+   "Action",
+   "Drama",
+   "Open world",
+   "Science fiction"
+  ],
+  "languages": [
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "BioWare",
+  "igdb_id": "140839",
   "default_key_mapping": null
  },
  {
@@ -10296,6 +11722,35 @@
   "default_key_mapping": null
  },
  {
+  "game": "Metal Gear Solid V: The Phantom Pain",
+  "perspective": "Third Person",
+  "genre": "Stealth",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "exact_no_exe",
+  "engine": "Fox Engine",
+  "themes": [
+   "Action",
+   "Fantasy",
+   "Historical",
+   "Open world",
+   "Stealth"
+  ],
+  "languages": [
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Kojima Productions",
+  "igdb_id": "1985",
+  "default_key_mapping": null
+ },
+ {
   "game": "Metal: Hellsinger",
   "perspective": "First Person",
   "genre": "Shooter, Music",
@@ -10324,6 +11779,20 @@
   ],
   "developer": "The Outsiders",
   "igdb_id": "134560",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Metro",
+  "perspective": "",
+  "genre": "",
+  "mode": "",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "253748",
   "default_key_mapping": null
  },
  {
@@ -10501,7 +11970,35 @@
   "languages": [],
   "developer": null,
   "igdb_id": "143292",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "a": "move_left",
+   "s": "move_backward",
+   "d": "move_right",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "LShift": "sprint",
+   "LControl": "crouch",
+   "Space": "jump",
+   "Tab": "inventory",
+   "Acute": "switch_weapon",
+   "z": "crouch",
+   "x": "walk",
+   "1": "weapon_1",
+   "2": "weapon_2",
+   "3": "weapon_3",
+   "r": "reload",
+   "c": "grenade",
+   "v": "melee",
+   "e": "interact",
+   "g": "use_item",
+   "i": "inventory",
+   "t": "use_item",
+   "f": "flashlight",
+   "l": "use_item",
+   "m": "journal",
+   "q": "use_item"
+  }
  },
  {
   "game": "Metro: Last Light",
@@ -10692,6 +12189,26 @@
   ],
   "developer": "AIHASTO",
   "igdb_id": "255777",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Mist Survival",
+  "perspective": "First Person",
+  "genre": "Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 5",
+  "themes": [
+   "Action",
+   "Open world",
+   "Survival"
+  ],
+  "languages": [
+   "English"
+  ],
+  "developer": "Rati Wattanakornprasit",
+  "igdb_id": "108349",
   "default_key_mapping": null
  },
  {
@@ -10892,6 +12409,20 @@
   ],
   "developer": "Taleworlds",
   "igdb_id": "9608",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Mouse",
+  "perspective": "Side View",
+  "genre": "Platform, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "367884",
   "default_key_mapping": null
  },
  {
@@ -11157,6 +12688,33 @@
   ],
   "developer": "CyberConnect2",
   "igdb_id": "239385",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Necromunda: Hired Gun",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Streum On Studio",
+  "igdb_id": "144725",
   "default_key_mapping": null
  },
  {
@@ -11473,6 +13031,42 @@
   "default_key_mapping": null
  },
  {
+  "game": "Once Human",
+  "perspective": "Third Person",
+  "genre": "Survival",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "exact_no_exe",
+  "engine": "NeoX engine [ by NetEase Games ]",
+  "themes": [
+   "4X (explore",
+   "expand",
+   "exploit",
+   "and exterminate)",
+   "Action",
+   "Open world",
+   "Sandbox",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Starry Studio",
+  "igdb_id": "204538",
+  "default_key_mapping": null
+ },
+ {
   "game": "One More Line",
   "perspective": "",
   "genre": "Music, Puzzle, Racing, Indie",
@@ -11568,6 +13162,36 @@
   "languages": [],
   "developer": null,
   "igdb_id": "395307",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Osiris: New Dawn",
+  "perspective": "First Person",
+  "genre": "Role-playing (RPG)",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unity",
+  "themes": [
+   "Action",
+   "Horror",
+   "Open world",
+   "Science fiction",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Fenix Fire Entertainment",
+  "igdb_id": "23732",
   "default_key_mapping": null
  },
  {
@@ -11921,6 +13545,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Painkiller Hell & Damnation",
+  "perspective": "First Person",
+  "genre": "FPS, Shooter",
+  "mode": "Singleplayer, Co-op",
+  "process_name": null,
+  "process_source": "revisar_manual",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": null,
+  "default_key_mapping": null
+ },
+ {
   "game": "Pal",
   "perspective": "",
   "genre": "Simulator, Indie",
@@ -12094,6 +13732,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Parcel",
+  "perspective": "Isometric",
+  "genre": "Puzzle, Strategy, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "17699",
+  "default_key_mapping": null
+ },
+ {
   "game": "Parcel Simulator",
   "perspective": "First Person",
   "genre": "Simulator",
@@ -12260,6 +13912,27 @@
   }
  },
  {
+  "game": "Penumbra: Overture",
+  "perspective": "First Person",
+  "genre": "Puzzle",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "HPL",
+  "themes": [
+   "Action",
+   "Horror",
+   "Stealth",
+   "Survival"
+  ],
+  "languages": [
+   "English"
+  ],
+  "developer": "Frictional Games",
+  "igdb_id": "8944",
+  "default_key_mapping": null
+ },
+ {
   "game": "Phantom Blade Zero",
   "perspective": "Third Person",
   "genre": "Action RPG, Role-playing (RPG), Hack and slash/Beat 'em up",
@@ -12374,6 +14047,20 @@
   ],
   "developer": "KOTAKE CREATE",
   "igdb_id": "295570",
+  "default_key_mapping": null
+ },
+ {
+  "game": "PleiadaPOC",
+  "perspective": "",
+  "genre": "",
+  "mode": "",
+  "process_name": null,
+  "process_source": "interno",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": "Gameplay Alliance",
+  "igdb_id": null,
   "default_key_mapping": null
  },
  {
@@ -12579,6 +14266,35 @@
   "default_key_mapping": null
  },
  {
+  "game": "Quantum Break",
+  "perspective": "Third Person",
+  "genre": "Action Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "exact_no_exe",
+  "engine": "Northlight Engine",
+  "themes": [
+   "Action",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "Remedy Entertainment",
+  "igdb_id": "3750",
+  "default_key_mapping": null
+ },
+ {
   "game": "Quarantine Zone: The Last Check",
   "perspective": "First Person",
   "genre": "Simulator",
@@ -12686,6 +14402,68 @@
   "languages": [],
   "developer": null,
   "igdb_id": "27082",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Rage",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "id Tech 5",
+  "themes": [
+   "Action",
+   "Open world",
+   "Science fiction"
+  ],
+  "languages": [
+   "Czech",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "id Software",
+  "igdb_id": "509",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Rage 2",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Apex",
+  "themes": [
+   "Action",
+   "Open world",
+   "Science fiction",
+   "Stealth",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "id Software",
+  "igdb_id": "101211",
   "default_key_mapping": null
  },
  {
@@ -12945,6 +14723,37 @@
   }
  },
  {
+  "game": "Remnant: From the Ashes",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Fantasy",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Gunfire Games",
+  "igdb_id": "105049",
+  "default_key_mapping": null
+ },
+ {
   "game": "Resident Evil 3",
   "perspective": "Third Person",
   "genre": "Shooter",
@@ -12970,6 +14779,134 @@
   "languages": [],
   "developer": null,
   "igdb_id": "20065",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Resident Evil 5",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "MT Framework",
+  "themes": [
+   "Action",
+   "Horror",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "Czech",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Capcom",
+  "igdb_id": "847",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Resident Evil 6",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "MT Framework",
+  "themes": [
+   "Action",
+   "Horror",
+   "Stealth",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Capcom",
+  "igdb_id": "1082",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Resident Evil Village",
+  "perspective": "First Person",
+  "genre": "Survival Horror",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "",
+  "engine": "RE Engine",
+  "themes": [
+   "Action",
+   "Horror",
+   "Stealth",
+   "Survival"
+  ],
+  "languages": [
+   "Arabic",
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)",
+   "Thai"
+  ],
+  "developer": "Capcom Development Division 1",
+  "igdb_id": "55163",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Resident Evil: Revelations 2",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "MT Framework",
+  "themes": [
+   "Action",
+   "Horror",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Capcom",
+  "igdb_id": "7725",
   "default_key_mapping": null
  },
  {
@@ -13018,6 +14955,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Rest Area Simulator",
+  "perspective": "First Person",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "373009",
+  "default_key_mapping": null
+ },
+ {
   "game": "ReStory: Chill Electronics Repairs",
   "perspective": "First Person",
   "genre": "Simulator, Indie",
@@ -13047,6 +14998,20 @@
   ],
   "developer": "Housemarque",
   "igdb_id": "134584",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Reverse: 1999",
+  "perspective": "",
+  "genre": "Role-playing (RPG), Strategy, Turn-based strategy (TBS)",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "188383",
   "default_key_mapping": null
  },
  {
@@ -13349,6 +15314,37 @@
   }
  },
  {
+  "game": "RoboCop: Rogue City",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 5",
+  "themes": [
+   "Action",
+   "Comedy",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Teyon",
+  "igdb_id": "154775",
+  "default_key_mapping": null
+ },
+ {
   "game": "Roboquest",
   "perspective": "First Person",
   "genre": "Roguelike Shooter, Shooter",
@@ -13605,6 +15601,34 @@
    "F1": "consola",
    "m": "fire_mode"
   }
+ },
+ {
+  "game": "Rustler",
+  "perspective": "Isometric",
+  "genre": "Shooter, Racing, Role-playing (RPG), Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "99302",
+  "default_key_mapping": null
+ },
+ {
+  "game": "S.N.A.P.",
+  "perspective": "First Person",
+  "genre": "Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "390475",
+  "default_key_mapping": null
  },
  {
   "game": "S.T.A.L.K.E.R. 2: Heart of Chornobyl",
@@ -13932,6 +15956,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Sally Face",
+  "perspective": "Side View",
+  "genre": "Point-and-click, Puzzle, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "26580",
+  "default_key_mapping": null
+ },
+ {
   "game": "Sandwich Simulator",
   "perspective": "First Person",
   "genre": "Simulator",
@@ -14129,6 +16167,50 @@
   }
  },
  {
+  "game": "Scorn",
+  "perspective": "First Person",
+  "genre": "Puzzle",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Horror"
+  ],
+  "languages": [
+   "Arabic",
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "Czech",
+   "Danish",
+   "Dutch",
+   "English",
+   "Finnish",
+   "French",
+   "German",
+   "Hungarian",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Norwegian",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)",
+   "Swedish",
+   "Thai",
+   "Turkish",
+   "Ukrainian",
+   "Vietnamese"
+  ],
+  "developer": "Ebb Software",
+  "igdb_id": "19817",
+  "default_key_mapping": null
+ },
+ {
   "game": "Search",
   "perspective": "",
   "genre": "Simulator, Indie",
@@ -14248,6 +16330,37 @@
   "default_key_mapping": null
  },
  {
+  "game": "Sengoku Dynasty",
+  "perspective": "Third Person",
+  "genre": "Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 5",
+  "themes": [
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)",
+   "Turkish",
+   "Ukrainian"
+  ],
+  "developer": "Superkami",
+  "igdb_id": "192664",
+  "default_key_mapping": null
+ },
+ {
   "game": "Sentry",
   "perspective": "First Person",
   "genre": "Shooter",
@@ -14289,6 +16402,67 @@
   "languages": [],
   "developer": null,
   "igdb_id": "269851",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Shadow Warrior 2",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Road Hog Engine",
+  "themes": [
+   "Action",
+   "Comedy",
+   "Horror",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "English",
+   "French",
+   "German",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "Flying Wild Hog",
+  "igdb_id": "11064",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Shadow Warrior 3: Definitive Edition",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Comedy",
+   "Fantasy"
+  ],
+  "languages": [],
+  "developer": "Flying Wild Hog",
+  "igdb_id": "237681",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Shower With Your Dad Simulator 2015: Do You Still Shower With Your Dad?",
+  "perspective": "Isometric",
+  "genre": "Puzzle, Simulator, Indie, Arcade",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "12204",
   "default_key_mapping": null
  },
  {
@@ -14372,7 +16546,17 @@
   ],
   "developer": "Bloober Team",
   "igdb_id": "222341",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "MouseRight": "aim",
+   "LShift": "sprint",
+   "MouseLeft": "melee",
+   "a": "move_left",
+   "d": "move_right",
+   "s": "move_backward",
+   "w": "move_forward",
+   "Space": "dodge",
+   "r": "reload"
+  }
  },
  {
   "game": "Simple Solitaire",
@@ -14386,6 +16570,22 @@
   "languages": [],
   "developer": null,
   "igdb_id": "264616",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Singularity",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": null,
+  "themes": [
+   "Science fiction"
+  ],
+  "languages": [],
+  "developer": "Zero Latency VR",
+  "igdb_id": "302486",
   "default_key_mapping": null
  },
  {
@@ -14430,6 +16630,71 @@
   ],
   "developer": "ThatGameCompany",
   "igdb_id": "65503",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Sleeping Dogs: Definitive Edition",
+  "perspective": "Third Person",
+  "genre": "Action Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "exact_no_exe",
+  "engine": "Havok",
+  "themes": [
+   "Action",
+   "Open world",
+   "Sandbox"
+  ],
+  "languages": [
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Polish",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "United Front Games",
+  "igdb_id": "20228",
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "f": "grab",
+   "r": "reload",
+   "Up": "phone",
+   "MouseRight": "aim",
+   "MouseLeft": "fire"
+  }
+ },
+ {
+  "game": "Slender: The Arrival",
+  "perspective": "First Person",
+  "genre": "Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unity",
+  "themes": [
+   "Action",
+   "Horror",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Blue Isle Studios",
+  "igdb_id": "2049",
   "default_key_mapping": null
  },
  {
@@ -14489,6 +16754,72 @@
   "default_key_mapping": null
  },
  {
+  "game": "Sniper Elite 4",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Asura",
+  "themes": [
+   "Action",
+   "Historical",
+   "Open world",
+   "Stealth",
+   "Warfare"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "English (UK)",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Rebellion Developments",
+  "igdb_id": "18366",
+  "default_key_mapping": {
+   "Space": "empty_lungs",
+   "c": "stance",
+   "MouseWheelUp": "zoom_in | menu:next_weapon",
+   "MouseRight": "scope",
+   "a": "walk_left",
+   "Altizq": "walk",
+   "s": "walk_backward",
+   "Teclasindefinir": "select_aim_when_firing",
+   "b": "binoculars",
+   "MouseMiddle": "change_camera",
+   "e": "pick_up_corpse",
+   "Ctrlizq": "aim_when_firing",
+   "LShift": "sprint",
+   "w": "walk_forward",
+   "MouseLeft": "fire",
+   "r": "interact",
+   "d": "walk_right"
+  }
+ },
+ {
+  "game": "Sniper Elite 4: Limited Edition",
+  "perspective": "",
+  "genre": "",
+  "mode": "",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "41643",
+  "default_key_mapping": null
+ },
+ {
   "game": "Sniper Elite 5",
   "perspective": "Third Person",
   "genre": "Tactical Shooter, Shooter, Simulator",
@@ -14520,6 +16851,70 @@
   ],
   "developer": "Rebellion Developments",
   "igdb_id": "116238",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Sniper Ghost Warrior Contracts",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "CryEngine 5",
+  "themes": [
+   "Action"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "Czech",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "CI Games",
+  "igdb_id": "107155",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Sniper Ghost Warrior Contracts 2",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "CryEngine",
+  "themes": [
+   "Action",
+   "Stealth",
+   "Warfare"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "Czech",
+   "English",
+   "English (UK)",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "CI Games",
+  "igdb_id": "138980",
   "default_key_mapping": null
  },
  {
@@ -14687,14 +17082,14 @@
    "a": "move_left",
    "LControl": "crouch",
    "m": "gps_tracker",
-   "MouseMiddle": "action_tertiary",
    "t": "walkie_talkie",
    "b": "book",
    "q": "rotate_left",
-   "MouseLeft": "fire",
-   "MouseRight": "attack_secondary",
    "z": "sleep",
    "x": "cancel_structure",
+   "MouseMiddle": "action_tertiary",
+   "MouseLeft": "fire",
+   "MouseRight": "attack_secondary",
    "Left": "move_backward"
   }
  },
@@ -14843,6 +17238,7 @@
    "e": "inclinarse_derecha",
    "f": "interact",
    "r": "reload",
+   "LShift": "sprint",
    "j": "chat_all",
    "k": "chat_team",
    "l": "chat_squad",
@@ -14851,9 +17247,24 @@
    "CapsLock": "command_menu",
    "m": "map",
    "MouseLeft": "fire",
+   "MouseRight": "aim",
    "y": "squad_list",
    "LAlt": "free_look"
   }
+ },
+ {
+  "game": "Squad Game",
+  "perspective": "",
+  "genre": "Simulator, Strategy, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "242956",
+  "default_key_mapping": null
  },
  {
   "game": "STALCRAFT: X",
@@ -14904,6 +17315,36 @@
   ],
   "developer": "Cloud Imperium Games Corporation",
   "igdb_id": "1595",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Starfield",
+  "perspective": "First Person",
+  "genre": "Action RPG",
+  "mode": "Singleplayer",
+  "process_name": "Starfield.exe",
+  "process_source": "exact(Starfield)",
+  "engine": "Creation Engine 2",
+  "themes": [
+   "Action",
+   "Open world",
+   "Sandbox",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Bethesda Game Studios",
+  "igdb_id": "96437",
   "default_key_mapping": null
  },
  {
@@ -15021,6 +17462,51 @@
   "developer": null,
   "igdb_id": "28649",
   "default_key_mapping": null
+ },
+ {
+  "game": "Stranded Deep",
+  "perspective": "First Person",
+  "genre": "Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unity",
+  "themes": [
+   "Action",
+   "Horror",
+   "Sandbox",
+   "Survival"
+  ],
+  "languages": [
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Beam Team Games",
+  "igdb_id": "8751",
+  "default_key_mapping": {
+   "Tab": "inventory_menu",
+   "y": "swap_item",
+   "a": "move_left | other:move_left_editor",
+   "MouseRight": "drag_item | menu:highlight_recipe_crafting_menu | other:cancel_placement | other:fire_making_action_2",
+   "c": "crafting_menu | other:clone_editor",
+   "MouseLeft": "use_item | other:confirm_placement | other:fire_making_action_1",
+   "e": "pick_up_item | other:rotate_object_right | vehicle:steer_right_vehicle | other:move_up_editor",
+   "Backquote": "free_hands",
+   "w": "move_forward | other:move_forward_editor",
+   "LShift": "sprint | other:sprint_editor",
+   "d": "move_right | other:move_right_editor",
+   "f": "watch | other:center_editor",
+   "Space": "jump | vehicle:ascend_vehicle",
+   "LControl": "crouch | vehicle:descend_vehicle",
+   "q": "drop_item | other:rotate_object_left | vehicle:steer_left_vehicle | other:move_down_editor",
+   "s": "move_backward | other:move_backward_editor"
+  }
  },
  {
   "game": "Stray",
@@ -15263,6 +17749,47 @@
   }
  },
  {
+  "game": "Subsistence",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Sandbox",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Czech",
+   "Danish",
+   "Dutch",
+   "English",
+   "French",
+   "German",
+   "Hungarian",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Norwegian",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)",
+   "Swedish",
+   "Thai",
+   "Turkish",
+   "Ukrainian",
+   "Vietnamese"
+  ],
+  "developer": null,
+  "igdb_id": "34071",
+  "default_key_mapping": null
+ },
+ {
   "game": "Suicide Squad: Kill the Justice League",
   "perspective": "Third Person",
   "genre": "Shooter",
@@ -15292,6 +17819,45 @@
   ],
   "developer": "Rocksteady Studios",
   "igdb_id": "136627",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Sunkenland",
+  "perspective": "First Person",
+  "genre": "Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unity",
+  "themes": [
+   "Action",
+   "Open world",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "English",
+   "French",
+   "German",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Vector3 Studio",
+  "igdb_id": "213475",
+  "default_key_mapping": null
+ },
+ {
+  "game": "SuperHot",
+  "perspective": "First Person",
+  "genre": "Shooter, Puzzle, Tactical, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "7205",
   "default_key_mapping": null
  },
  {
@@ -15486,6 +18052,49 @@
   "developer": "Supra Games UG",
   "igdb_id": "250601",
   "default_key_mapping": null
+ },
+ {
+  "game": "SurrounDead",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 5",
+  "themes": [
+   "Action",
+   "Open world",
+   "Survival"
+  ],
+  "languages": [
+   "English"
+  ],
+  "developer": null,
+  "igdb_id": "153225",
+  "default_key_mapping": {
+   "Space": "float_upwards_while_swimming_underwater | vehicle:vehicle_handbrake",
+   "q": "ads_switch_camera_left",
+   "Up": "move_forward | vehicle:vehicle_forward",
+   "Left": "move_left | vehicle:vehicle_left",
+   "LShift": "hold_breath_while_scoped | other:quick_search",
+   "v": "shove_stomp",
+   "e": "ads_switch_camera_right | other:loot_all_items_in_container",
+   "LControl": "crouch",
+   "c": "roll",
+   "w": "move_forward | vehicle:vehicle_forward",
+   "Right": "move_right | vehicle:vehicle_right",
+   "o": "distract_whistle",
+   "Equals": "auto_walk_sprint",
+   "MouseRight": "aim",
+   "a": "move_left | vehicle:vehicle_left",
+   "MouseMiddle": "scope_zoom | other:zoom_player_camera",
+   "g": "throwable",
+   "r": "reload | vehicle:vehicle_radio",
+   "MouseLeft": "primary_action | other:quick_drop_item | other:quick_equip_item",
+   "s": "move_backwards | vehicle:vehicle_backwards",
+   "d": "move_right | vehicle:vehicle_right",
+   "Down": "move_backwards | vehicle:vehicle_backwards"
+  }
  },
  {
   "game": "Sword Art Online Re: Hollow Fragment",
@@ -15964,6 +18573,34 @@
   "default_key_mapping": null
  },
  {
+  "game": "Terminator: Resistance",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Teyon",
+  "igdb_id": "122611",
+  "default_key_mapping": null
+ },
+ {
   "game": "Test Drive Unlimited Solar Crown",
   "perspective": "Third Person",
   "genre": "Racing, Simulator",
@@ -16018,6 +18655,62 @@
   "default_key_mapping": null
  },
  {
+  "game": "The Beast Inside",
+  "perspective": "First Person",
+  "genre": "Role-playing (RPG)",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Horror",
+   "Thriller"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "English",
+   "French",
+   "German",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)",
+   "Turkish"
+  ],
+  "developer": "Illusion Ray Studio",
+  "igdb_id": "88116",
+  "default_key_mapping": null
+ },
+ {
+  "game": "The Binding of Isaac: Rebirth",
+  "perspective": "Isometric",
+  "genre": "",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "309607",
+  "default_key_mapping": null
+ },
+ {
+  "game": "The Blood of Dawnwalker",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "282831",
+  "default_key_mapping": null
+ },
+ {
   "game": "The Bridge Curse: Road to Salvation",
   "perspective": "First Person",
   "genre": "Puzzle",
@@ -16046,6 +18739,20 @@
   ],
   "developer": "SOFTSTAR Entertainment",
   "igdb_id": "193312",
+  "default_key_mapping": null
+ },
+ {
+  "game": "The Bug Butcher",
+  "perspective": "Side View",
+  "genre": "Shooter, Indie, Arcade",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "15909",
   "default_key_mapping": null
  },
  {
@@ -16302,6 +19009,67 @@
   "default_key_mapping": null
  },
  {
+  "game": "The Evil Within",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "id Tech 5",
+  "themes": [
+   "Action",
+   "Horror",
+   "Stealth",
+   "Survival"
+  ],
+  "languages": [
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Polish",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "Tango Gameworks",
+  "igdb_id": "4786",
+  "default_key_mapping": null
+ },
+ {
+  "game": "The Evil Within 2",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "id Tech 5",
+  "themes": [
+   "Action",
+   "Horror",
+   "Stealth",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Tango Gameworks",
+  "igdb_id": "36813",
+  "default_key_mapping": null
+ },
+ {
   "game": "The Exit 8",
   "perspective": "First Person",
   "genre": "Puzzle, Simulator",
@@ -16474,6 +19242,40 @@
   ],
   "developer": "Expansive Worlds",
   "igdb_id": "26381",
+  "default_key_mapping": null
+ },
+ {
+  "game": "The Infected",
+  "perspective": "First Person",
+  "genre": "Fighting",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Open world",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Czech",
+   "English",
+   "Finnish",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)",
+   "Swedish",
+   "Turkish"
+  ],
+  "developer": "DigX Studios",
+  "igdb_id": "138726",
   "default_key_mapping": null
  },
  {
@@ -16797,6 +19599,80 @@
    "MouseRight": "block",
    "e": "interact"
   }
+ },
+ {
+  "game": "The Misadventures of P.B. Winterbottom",
+  "perspective": "Side View",
+  "genre": "Platform, Puzzle, Adventure, Indie, Arcade",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "13179",
+  "default_key_mapping": null
+ },
+ {
+  "game": "The Mortuary Assistant",
+  "perspective": "First Person",
+  "genre": "Puzzle",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unity",
+  "themes": [
+   "Horror",
+   "Mystery",
+   "Thriller"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Portuguese (Brazil)",
+   "Spanish (Mexico)",
+   "Turkish"
+  ],
+  "developer": "DarkStone Digital",
+  "igdb_id": "133131",
+  "default_key_mapping": null
+ },
+ {
+  "game": "The Outer Worlds",
+  "perspective": "First Person",
+  "genre": "Action RPG",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "exact_no_exe",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Open world",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Portuguese (Portugal)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": "Obsidian Entertainment",
+  "igdb_id": "113114",
+  "default_key_mapping": null
  },
  {
   "game": "The Outlast Trials",
@@ -17205,21 +20081,46 @@
   "developer": "CD Projekt RED",
   "igdb_id": "1942",
   "default_key_mapping": {
-   "w": "move_forward",
-   "a": "move_left",
-   "s": "move_backward",
-   "d": "move_right",
-   "LShift": "sprint",
-   "Space": "jump",
-   "q": "cast_sign",
-   "e": "interact",
-   "MouseLeft": "fast_attack",
-   "MouseRight": "parry_senses",
+   "w": "movimiento_adelante",
+   "a": "movimiento_izquierda",
+   "s": "movimiento_atras",
+   "d": "movimiento_derecha",
+   "Space": "saltar_rodar_emerger",
+   "LAlt": "dodge",
+   "c": "bucear",
+   "x": "llamar_o_detener_caballo",
+   "MouseLeft": "ataque_rapido",
+   "q": "usar_senal",
+   "Tab": "menu_de_acceso_rapido",
+   "1": "desenvainar_espada_de_acero",
+   "2": "desenvainar_espada_de_plata",
+   "3": "senal_aard",
+   "4": "senal_yrden",
+   "5": "senal_igni",
+   "6": "senal_quen",
+   "7": "senal_axii",
+   "f": "consumible_2",
+   "t": "consumible_3",
+   "z": "fijar_enemigo",
+   "F5": "quicksave",
    "i": "inventory",
    "m": "map",
-   "t": "meditate",
-   "1": "draw_steel_sword",
-   "2": "draw_silver_sword"
+   "j": "quests",
+   "k": "personaje",
+   "n": "meditacion",
+   "o": "artesania",
+   "Enter": "menu_del_juego",
+   "LControl": "alternar_caminar_correr",
+   "e": "interaccion_desmontar",
+   "r": "consumible_1",
+   "y": "consumible_4",
+   "u": "modo_foto",
+   "v": "cambiar_objetivo",
+   "l": "alquimia",
+   "b": "bestiario",
+   "g": "glosario",
+   "h": "baraja_de_gwynt",
+   "MouseMiddle": "usar_objeto_de_acceso_rapido"
   }
  },
  {
@@ -17462,6 +20363,34 @@
   ],
   "developer": "SixRiz",
   "igdb_id": "357260",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Torchlight II",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Hack and slash/Beat 'em up, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "1337",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Torchlight: Infinite",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Hack and slash/Beat 'em up, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "174897",
   "default_key_mapping": null
  },
  {
@@ -17818,7 +20747,30 @@
   "languages": [],
   "developer": null,
   "igdb_id": "148228",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "c": "spell_slot_2",
+   "w": "move_up",
+   "MouseX1": "auto_run",
+   "LShift": "vampire_power_modifier_key | other:fill_wallpaper",
+   "MouseLeft": "primary | other:place_structure",
+   "LControl": "action_wheel | other:edit_variation",
+   "e": "weapon_skill_2 | other:rotate_structure_right",
+   "s": "move_down",
+   "r": "spell_slot_1 | other:repair_structure",
+   "2": "vampire_power_2",
+   "3": "vampire_power_3",
+   "5": "vampire_power_5",
+   "6": "vampire_power_6 | menu:action_bar_6 | other:action_bar_6",
+   "d": "move_right",
+   "7": "vampire_power_7 | menu:action_bar_7 | other:action_bar_7",
+   "t": "ultimate",
+   "q": "weapon_skill_1 | other:rotate_structure_left",
+   "a": "move_left",
+   "4": "vampire_power_4",
+   "Space": "travel_skill | other:dismantle_structure | other:cancel_current_layout | other:deselect_current_layout",
+   "1": "vampire_power_1",
+   "8": "vampire_power_8 | menu:action_bar_8 | other:action_bar_8"
+  }
  },
  {
   "game": "Valheim",
@@ -17872,6 +20824,44 @@
    "m": "map",
    "t": "abrir_rueda_de_gestos"
   }
+ },
+ {
+  "game": "Vampire Survivors",
+  "perspective": "Isometric",
+  "genre": "Role-playing (RPG), Adventure, Indie, Arcade",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "186725",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Vanquish",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Platinum Engine",
+  "themes": [
+   "Action",
+   "Science fiction"
+  ],
+  "languages": [
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Spanish (Spain)"
+  ],
+  "developer": "PlatinumGames",
+  "igdb_id": "3218",
+  "default_key_mapping": null
  },
  {
   "game": "Verdun",
@@ -18033,6 +21023,67 @@
   "default_key_mapping": null
  },
  {
+  "game": "Voidtrain",
+  "perspective": "First Person",
+  "genre": "Role-playing (RPG)",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Open world",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "English",
+   "French",
+   "German",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)",
+   "Turkish"
+  ],
+  "developer": "HypeTrain Digital",
+  "igdb_id": "123925",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Volcanoids",
+  "perspective": "First Person",
+  "genre": "Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unity",
+  "themes": [
+   "Action",
+   "Survival"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "Czech",
+   "Dutch",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)"
+  ],
+  "developer": null,
+  "igdb_id": "109117",
+  "default_key_mapping": null
+ },
+ {
   "game": "Voodoo Fishin'",
   "perspective": "First Person",
   "genre": "Adventure",
@@ -18130,6 +21181,20 @@
   ],
   "developer": "Kuju Entertainment",
   "igdb_id": "9550",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Warzone",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "354851",
   "default_key_mapping": null
  },
  {
@@ -18402,6 +21467,39 @@
   "default_key_mapping": null
  },
  {
+  "game": "Witchfire",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "Unreal Engine 4",
+  "themes": [
+   "Action",
+   "Fantasy",
+   "Open world"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Spain)",
+   "Turkish",
+   "Ukrainian"
+  ],
+  "developer": "The Astronauts",
+  "igdb_id": "76880",
+  "default_key_mapping": null
+ },
+ {
   "game": "Wizardry: Proving Grounds of the Mad Overlord",
   "perspective": "First Person",
   "genre": "Role-playing (RPG)",
@@ -18490,6 +21588,204 @@
   "default_key_mapping": null
  },
  {
+  "game": "Wolfenstein II: The New Colossus",
+  "perspective": "First Person",
+  "genre": "FPS",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "exact_no_exe",
+  "engine": "id Tech 6",
+  "themes": [
+   "Action",
+   "Fantasy",
+   "Historical",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "MachineGames",
+  "igdb_id": "36952",
+  "default_key_mapping": {
+   "w": "move_forward",
+   "a": "move_left",
+   "s": "move_backward",
+   "d": "move_right",
+   "Space": "jump",
+   "LShift": "sprint",
+   "c": "crouch_slide",
+   "LAlt": "lean_cover",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "MouseMiddle": "melee",
+   "r": "reload",
+   "g": "throw_grenade",
+   "e": "use",
+   "1": "weapon_1",
+   "2": "weapon_2",
+   "3": "weapon_3",
+   "4": "weapon_4"
+  }
+ },
+ {
+  "game": "Wolfenstein: The New Order",
+  "perspective": "First Person",
+  "genre": "FPS",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "",
+  "engine": "id Tech 5",
+  "themes": [
+   "Action",
+   "Fantasy",
+   "Historical",
+   "Science fiction",
+   "Stealth",
+   "Warfare"
+  ],
+  "languages": [
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Polish",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "MachineGames",
+  "igdb_id": "2031",
+  "default_key_mapping": {
+   "r": "reload",
+   "j": "journal",
+   "MouseLeft": "fire",
+   "2": "grenade",
+   "1": "knife",
+   "g": "throw_grenade",
+   "q": "last_used_weapon",
+   "e": "use",
+   "Controlizquierda": "crouch",
+   "d": "strafe_right",
+   "MouseRight": "aim",
+   "Cursorarriba": "look_up",
+   "m": "automap",
+   "3": "handgun",
+   "x": "toggle_dual_wield_mode",
+   "LShift": "run",
+   "c": "toggle_right_mode",
+   "s": "move_backward",
+   "Space": "jump",
+   "7": "laser",
+   "MouseMiddle": "melee_throw_knife",
+   "4": "assault_rifle",
+   "w": "move_forward",
+   "z": "toggle_left_mode",
+   "a": "strafe_left",
+   "Cursorabajo": "look_down",
+   "Cursorderecha": "look_right",
+   "6": "shotgun",
+   "Altizq": "lean_cover_mode",
+   "Cursorizquierda": "look_left"
+  }
+ },
+ {
+  "game": "Wolfenstein: The Old Blood",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "igdb",
+  "engine": "id Tech 5",
+  "themes": [
+   "Action",
+   "Fantasy",
+   "Historical",
+   "Horror",
+   "Science fiction",
+   "Stealth"
+  ],
+  "languages": [
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Polish",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "MachineGames",
+  "igdb_id": "9192",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Wolfenstein: Youngblood",
+  "perspective": "First Person",
+  "genre": "FPS",
+  "mode": "Co-op",
+  "process_name": "Youngblood_x64vk.exe",
+  "process_source": "exact(Wolfenstein: Youngblood)",
+  "engine": "id Tech 6",
+  "themes": [
+   "Action",
+   "Science fiction"
+  ],
+  "languages": [
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "English",
+   "French",
+   "German",
+   "Italian",
+   "Japanese",
+   "Korean",
+   "Polish",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Spanish (Spain)"
+  ],
+  "developer": "MachineGames",
+  "igdb_id": "103301",
+  "default_key_mapping": {
+   "w": "move_forward",
+   "a": "move_left",
+   "s": "move_backward",
+   "d": "move_right",
+   "LShift": "sprint",
+   "Space": "jump",
+   "LCtrl": "crouch",
+   "LAlt": "lean_cover",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "MouseMiddle": "melee",
+   "r": "reload",
+   "v": "weapon_wheel",
+   "f": "throw_grenade",
+   "x": "dual_wield",
+   "c": "cloak",
+   "g": "flashlight",
+   "e": "use",
+   "t": "pep_signal",
+   "1": "weapon_1",
+   "2": "weapon_2",
+   "3": "weapon_3",
+   "4": "weapon_4"
+  }
+ },
+ {
   "game": "World of Tanks",
   "perspective": "Third Person",
   "genre": "Vehicle Combat, Shooter, Simulator, Arcade",
@@ -18525,6 +21821,20 @@
   ],
   "developer": "Wargaming.net",
   "igdb_id": "1184",
+  "default_key_mapping": null
+ },
+ {
+  "game": "World of Warcraft",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "123",
   "default_key_mapping": null
  },
  {
@@ -18733,6 +22043,20 @@
   ],
   "developer": "BAP HQ",
   "igdb_id": "363307",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Ylands",
+  "perspective": "Third Person",
+  "genre": "Simulator, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "36297",
   "default_key_mapping": null
  },
  {
