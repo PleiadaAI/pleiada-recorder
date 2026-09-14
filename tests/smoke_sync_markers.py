@@ -104,7 +104,17 @@ def main():
     errs = [pts[a] - t for (a, _), t in zip(segs, ons)]
     print("video−input por marcador (ms):", [round(e, 1) for e in errs])
     assert all(abs(e) <= 34 for e in errs), "más de 2 cuadros de error"
-    path.unlink(); shutil.rmtree(sdir, ignore_errors=True)
+    keep = sys.argv[1] if len(sys.argv) > 1 else None
+    if keep:
+        # --keep: dejar mp4 + csv como "sesión" mínima para probar el exporter
+        kd = Path(keep); kd.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(path), str(kd / path.name))
+        shutil.copy2(sdir / SM.SYNC_FILE, kd / SM.SYNC_FILE)
+        (kd / "anchor_ms.txt").write_text(str(t_anchor), encoding="utf-8")
+        print("guardado en", kd)
+    else:
+        path.unlink()
+    shutil.rmtree(sdir, ignore_errors=True)
     print("SMOKE OK")
 
 
