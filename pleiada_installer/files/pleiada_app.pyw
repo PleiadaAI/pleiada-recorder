@@ -3350,6 +3350,125 @@ def _unprotect_session_files(session_dir):
         pass
 
 
+# ─── session_metadata.json en inglés ─────────────────────────────────────────
+# Regla de la casa: todo lo que viaja con un dataset va en inglés. Hasta v0.9.19
+# el metadata salía con claves y valores en español (`encuadre`, `idle_fraccion`,
+# `eventos_input`, `rebind_evidence.verificable`, `"libre"`...) y así llegó a
+# los clientes. Se detectó el 14-09-2026 revisando un sample.
+#
+# La traducción se hace ACÁ, en la frontera, y no renombrando los dicts internos:
+# `sync_results`, la geometría del encuadre y la evidencia de rebind los leen la
+# UI y los tests con sus nombres de siempre. Lo que cambia es solo lo que se
+# escribe al archivo. Un test (tests/test_metadata_en.py) pisa el archivo
+# generado contra una lista de palabras en español para que no vuelva a pasar.
+
+_EN_RECORDING_MODE = {"libre": "free", "manual": "manual"}
+
+_EN_NO_INPUT_CAUSE = {"captura_bloqueada": "capture_blocked",
+                      "sin_teclado_ni_mouse": "no_keyboard_no_mouse"}
+
+_EN_INPUT_EVENTS = {"teclado": "keyboard", "mouse_crudo": "mouse_raw",
+                    "botones": "buttons", "mouse_posicion": "mouse_position"}
+
+_EN_EDGES = {"izquierda": "left", "derecha": "right", "arriba": "top", "abajo": "bottom"}
+
+_EN_BARS_SIDE = {"ninguna": "none", "costados": "sides", "arriba_abajo": "top_bottom",
+                 "costados_y_arriba_abajo": "sides_and_top_bottom"}
+
+_EN_FRAMING_KEYS = {
+    "fuente_ancho": "source_width", "fuente_alto": "source_height",
+    "lienzo_ancho": "canvas_width", "lienzo_alto": "canvas_height",
+    "dibujado_ancho": "drawn_width", "dibujado_alto": "drawn_height",
+    "dibujado_x": "drawn_x", "dibujado_y": "drawn_y",
+    "aspecto_fuente": "source_aspect", "aspecto_lienzo": "canvas_aspect",
+    "barras_fraccion": "bars_fraction", "barras_lado": "bars_side",
+    "barras_por_borde": "bars_per_edge",
+    "fuente_excede_lienzo": "source_exceeds_canvas",
+    "ocupa_cuadro_completo": "fills_full_frame",
+    "barras_pixeles": "bars_pixels",
+}
+
+_EN_BARS_PIXELS_KEYS = {"muestras": "samples", "muestras_todo_negro": "samples_all_black",
+                        "motivo": "reason", "por_borde": "per_edge", "fraccion": "fraction"}
+
+_EN_BARS_PIXELS_REASON = {
+    "no se pudo conectar a OBS": "could not connect to OBS",
+    "OBS no ofrece capturas en BMP": "OBS does not offer BMP screenshots",
+    "no hay captura de juego activa": "no active game capture",
+    "OBS no pudo renderizar la captura": "OBS could not render the screenshot",
+    "no se pudo leer la captura": "could not read the screenshot",
+    "no se llegó a tomar ninguna muestra útil": "no usable sample was taken",
+    "error al muestrear": "sampling error",
+}
+
+_EN_REBIND_KEYS = {
+    "verificable": "verifiable", "motivo": "reason", "archivo": "file",
+    "mtime_unix_ms": "mtime_unix_ms",
+    "config_modificada_durante_sesion": "config_modified_during_session",
+    "binds_modificados_durante_sesion": "binds_modified_during_session",
+    "motivo_sin_comparacion": "no_comparison_reason",
+    "binds_cambiados": "binds_changed", "binds_cambiados_total": "binds_changed_total",
+}
+
+_EN_REBIND_REASON = {
+    "sin archivo de configuración leído": "no configuration file was read",
+    "el archivo ya no está accesible": "the file is no longer accessible",
+    "no se pudo leer el mapping al arrancar": "could not read the key mapping at session start",
+    "no se pudo leer el mapping al cerrar": "could not read the key mapping at session end",
+}
+
+
+def _en_edges(d):
+    """{izquierda, derecha, arriba, abajo} -> {left, right, top, bottom}."""
+    if not isinstance(d, dict):
+        return d
+    return dict((_EN_EDGES.get(k, k), v) for k, v in d.items())
+
+
+def _en_framing(geo):
+    """`encuadre` (interno, español) -> `framing` (metadata, inglés)."""
+    if not isinstance(geo, dict):
+        return geo
+    out = {}
+    for k, v in geo.items():
+        nk = _EN_FRAMING_KEYS.get(k, k)
+        if k == "barras_lado":
+            v = _EN_BARS_SIDE.get(v, v)
+        elif k == "barras_por_borde":
+            v = _en_edges(v)
+        elif k == "barras_pixeles" and isinstance(v, dict):
+            px = {}
+            for pk, pv in v.items():
+                npk = _EN_BARS_PIXELS_KEYS.get(pk, pk)
+                if pk == "motivo":
+                    pv = _EN_BARS_PIXELS_REASON.get(pv, pv)
+                elif pk == "por_borde":
+                    pv = _en_edges(pv)
+                px[npk] = pv
+            v = px
+        out[nk] = v
+    return out
+
+
+def _en_rebind(ev):
+    """`rebind_evidence` interno (español) -> metadata (inglés)."""
+    if not isinstance(ev, dict):
+        return ev
+    out = {}
+    for k, v in ev.items():
+        if k in ("motivo", "motivo_sin_comparacion"):
+            v = _EN_REBIND_REASON.get(v, v)
+        out[_EN_REBIND_KEYS.get(k, k)] = v
+    return out
+
+
+def _en_input_events(conteo):
+    """{teclado, mouse_crudo, botones, mouse_posicion} -> inglés."""
+    if not isinstance(conteo, dict):
+        return conteo
+    return dict((_EN_INPUT_EVENTS.get(k, k), v) for k, v in conteo.items())
+
+
 def build_session_metadata(session_dir, selected_game, sync_results, exe_path="",
                            obs_window="", modo="manual"):
     """
@@ -3460,16 +3579,23 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
             # `anchor_precision_ms` de `timing`. Un lab que ya parsea 1.1 y los
             # lee se rompe, o peor: usa un default y sigue andando con un dato
             # inventado. Una remocion si cambia el contrato, por eso bumpea.
-            "schema_version":   "1.2",
+            # Bump 1.2 -> 1.3 (14-09-2026): se RENOMBRAN a ingles las claves y
+            # valores que estaban en espanol (`video.encuadre` -> `video.framing`,
+            # `sync.idle_fraccion` -> `sync.idle_fraction`, `sync.eventos_input`
+            # -> `sync.input_events`, `sync.sin_input_*` -> `sync.no_input_*`,
+            # `sync.bitrate_bajo` -> `sync.bitrate_low`, `input.rebind_evidence`
+            # entero, `recording_mode: "libre"` -> `"free"`). Un rename es una
+            # remocion mas un agregado: cambia el contrato, bumpea.
+            "schema_version":   "1.3",
             "session_id":       session_id,
             "source_id":        source_id,
             "recorder_version": VERSION,
-            # v0.9: "libre" = se grabo sin orden de destino porque ninguna
-            # orden abierta aceptaba el titulo. El dataset es identico; lo que
-            # cambia es que al cerrar no se ofrece subir. Queda en el metadata
+            # v0.9: "free" (antes "libre") = se grabo sin orden de destino porque
+            # ninguna orden abierta aceptaba el titulo. El dataset es identico; lo
+            # que cambia es que al cerrar no se ofrece subir. Queda en el metadata
             # para que la sesion se pueda reevaluar cuando abra una orden que si
             # lo acepte, sin depender de lo que recuerde la app.
-            "recording_mode":   modo,
+            "recording_mode":   _EN_RECORDING_MODE.get(modo, modo),
 
             "timing": {
                 "start_unix_ms":       start_ms,
@@ -3537,8 +3663,8 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 # Troveo prohíbe re-mapear teclas durante el gameplay. No lo
                 # impedimos; esto declara si hay evidencia de que pasó. Se lee
                 # JUNTO con possible_remaps, no en lugar de él.
-                "rebind_evidence": _meta_rebind_evidence(
-                    start_ms, end_ms, key_map, binding_src),
+                "rebind_evidence": _en_rebind(_meta_rebind_evidence(
+                    start_ms, end_ms, key_map, binding_src)),
                 "sampling_hz": {
                     "video_timeline": hz.get("video_timeline"),
                     "mouse_position": hz.get("mouse_log"),
@@ -3558,7 +3684,8 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 # El control de QA solo ve lo ultrawide; esto ve las barras
                 # DENTRO de un archivo 16:9, que es el caso que se nos escapaba.
                 # None si OBS no estaba disponible al cerrar la sesión.
-                "encuadre":       _meta_encuadre(),
+                # Hasta 1.2 se llamaba `encuadre` y venía en español.
+                "framing":        _en_framing(_meta_encuadre()),
             },
 
             "sync": {
@@ -3574,7 +3701,7 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 # Los dos brazos del gate AFK, para que sync_verify.py pueda
                 # comparar contra lo declarado sin recalcular.
                 "longest_idle_s": sync_results.get("longest_idle_s"),
-                "idle_fraccion":  sync_results.get("idle_fraccion"),
+                "idle_fraction":  sync_results.get("idle_fraccion"),
                 # Gate de video quieto: la imagen no cambió (negro / congelado).
                 # Se guardan también las medidas crudas para poder revisar
                 # server-side dónde quedó el corte sin recalcular.
@@ -3585,16 +3712,18 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 # jugador. El conteo crudo va entero para poder auditar
                 # server-side por qué se rechazó (o por qué pasó) sin releer
                 # los CSV.
-                "sin_input_rejected": sync_results.get("sin_input", False),
-                "sin_input_causa":    sync_results.get("sin_input_causa"),
-                "eventos_input":      sync_results.get("eventos_input"),
+                "no_input_rejected":  sync_results.get("sin_input", False),
+                "no_input_cause":     _EN_NO_INPUT_CAUSE.get(
+                    sync_results.get("sin_input_causa"),
+                    sync_results.get("sin_input_causa")),
+                "input_events":       _en_input_events(sync_results.get("eventos_input")),
                 # Bitrate: ADVERTENCIA, no rechazo. Es lo que el panel de QA
                 # necesita para filtrar el material grabado con la config vieja
                 # de 2500 kbps. El que importa guardar es el número; el booleano
                 # deja de servir en cuanto la grabación pase a calidad constante
                 # (ver is_bitrate_bajo en pleiada_sync_limits.py).
                 "bitrate_kbps":       sync_results.get("bitrate_kbps"),
-                "bitrate_bajo":       sync_results.get("bitrate_bajo", False),
+                "bitrate_low":        sync_results.get("bitrate_bajo", False),
             },
 
             # Actividad de input: separa juego activo de cutscenes/menús/AFK.

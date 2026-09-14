@@ -1,5 +1,30 @@
 # Changelog — Pleiada Recorder
 
+## Próxima versión (sin publicar) — 14/09/2026 — `session_metadata.json` en inglés
+
+- Todo lo que viaja con un dataset va en inglés, y el metadata de sesión tenía
+  claves y valores en español desde v0.4.6 (`recording_mode: "libre"`), v0.8.10
+  (`sync.idle_fraccion`), v0.9.0 (`sync.eventos_input`, `sync.sin_input_*`),
+  v0.9.13 (`sync.bitrate_bajo`) y v0.9.14 (`video.encuadre`,
+  `input.rebind_evidence`). Se renombran todos:
+
+  | Hasta 1.2 | Desde 1.3 |
+  |---|---|
+  | `recording_mode: "libre"` | `recording_mode: "free"` |
+  | `sync.idle_fraccion` | `sync.idle_fraction` |
+  | `sync.sin_input_rejected` / `sin_input_causa` (`captura_bloqueada`, `sin_teclado_ni_mouse`) | `sync.no_input_rejected` / `no_input_cause` (`capture_blocked`, `no_keyboard_no_mouse`) |
+  | `sync.eventos_input` {`teclado`, `mouse_crudo`, `botones`, `mouse_posicion`} | `sync.input_events` {`keyboard`, `mouse_raw`, `buttons`, `mouse_position`} |
+  | `sync.bitrate_bajo` | `sync.bitrate_low` |
+  | `video.encuadre` (bloque entero) | `video.framing` (`source_*`, `canvas_*`, `drawn_*`, `bars_fraction`, `bars_side`: `none`/`sides`/`top_bottom`/`sides_and_top_bottom`, `bars_per_edge`, `source_exceeds_canvas`, `fills_full_frame`, `bars_pixels` {`samples`, `samples_all_black`, `reason`, `per_edge`, `fraction`}) |
+  | `input.rebind_evidence` {`verificable`, `motivo`, `archivo`, `config_modificada_durante_sesion`, `binds_modificados_durante_sesion`, `motivo_sin_comparacion`, `binds_cambiados`, `binds_cambiados_total`} | {`verifiable`, `reason`, `file`, `config_modified_during_session`, `binds_modified_during_session`, `no_comparison_reason`, `binds_changed`, `binds_changed_total`} |
+
+- `schema_version` pasa de 1.2 a **1.3**: un rename cambia el contrato.
+- La traducción se hace en la frontera, al escribir el archivo; los dicts internos
+  y la UI no cambian. `tests/test_metadata_en.py` falla si vuelve a salir una
+  clave o un texto en español.
+- Lo ya grabado no se toca. Lectores nuestros actualizados para aceptar los dos
+  esquemas: `armar_lote.py` y `export_ai_ranch.py` (en Pleiada Tools).
+
 ## V9.19 — 10/09/2026 — bono por metadata: ajustes de QA · actualización obligatoria
 
 **Es una actualización obligatoria**: las versiones anteriores quedan bloqueadas para
