@@ -4565,7 +4565,7 @@ class PleiadaApp:
                  fg=DIM, bg=BG, font=("Segoe UI", 9), justify="left",
                  wraplength=WIN_W - 60, anchor="w").pack(fill="x", pady=(6, 0))
 
-        # — DPI del mouse (v0.9.18) — copy PROVISORIO, confirmar con Martín
+        # — DPI del mouse (v0.9.18) — copy confirmado por Martín el 16-09-2026
         dpi_row = tk.Frame(frame, bg=BG)
         dpi_row.pack(fill="x", pady=(14, 0))
         tk.Label(dpi_row, text="DPI de tu mouse (opcional)", fg=TEXT, bg=BG,
