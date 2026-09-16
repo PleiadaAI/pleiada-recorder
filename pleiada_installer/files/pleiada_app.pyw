@@ -17,7 +17,7 @@ import sync_markers        # v0.9.18: anclas medidas input<->video (T0 capture.s
 import input_devices       # v0.9.18: calibración de mouse/teclado (T0 input.device_metadata)
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.20"
+VERSION = "v0.9.21"
 
 # El objeto de marcadores de la grabación en curso. Vive a nivel módulo porque
 # build_session_metadata() es una función suelta y necesita el resumen al cerrar.
@@ -1384,7 +1384,17 @@ def obs_stop_recording(session_dir=None):
     stopped     = False
     session_start = (os.path.getmtime(str(session_dir))
                      if session_dir and session_dir.exists() else time.time() - 300)
+    # v0.9.21 (PLE-141): si OBS ya no está corriendo (lo mataron, se cayó), todas
+    # las esperas de abajo son en vano: 30 s de evento, 15 s de poll, 2 s de gracia.
+    # Sumadas al sync check daban más de un minuto de "verificando" con OBS
+    # muerto. Se va derecho a buscar el archivo que OBS haya dejado.
+    obs_vivo = obs_is_running()
+    if not obs_vivo:
+        _obs_dbg("obs_stop_recording: OBS no está corriendo, sin esperas")
+        stopped = True
     try:
+        if not obs_vivo:
+            raise RuntimeError("OBS no está corriendo")
         ws   = obs_connect()
         resp = obs_send(ws, "StopRecord")
         output_path = resp.get("d", {}).get("responseData", {}).get("outputPath", "")
@@ -1429,7 +1439,8 @@ def obs_stop_recording(session_dir=None):
             time.sleep(1)
 
     if not output_path or not os.path.isfile(output_path):
-        time.sleep(2)
+        if obs_vivo:
+            time.sleep(2)
         vdir = Path.home() / "Videos"
         candidates = list(vdir.glob("*.mp4")) + list(vdir.glob("**/*.mp4"))
         recent = [f for f in candidates if f.stat().st_mtime >= session_start]
@@ -6039,6 +6050,14 @@ class PleiadaApp:
                     "warn", "OBS no está corriendo o no responde al WebSocket."))
                 return
 
+            # v0.9.21 (PLE-190): OBS contesta. Si quedó una fuente "Pleiada Sync
+            # Marker" de una grabación que murió con OBS, se borra acá, sin
+            # esperar a la próxima grabación. Como mucho una vez por minuto.
+            _ahora = time.time()
+            if _ahora - getattr(self, "_marker_cleanup_ts", 0) > 60:
+                self._marker_cleanup_ts = _ahora
+                sync_markers.remove_leftovers(obs_connect, obs_send, dbg=_obs_dbg)
+
             # Check 1 — OBS ya grabando
             if is_recording:
                 self.root.after(0, lambda: self._set_obs_status(
@@ -6557,13 +6576,16 @@ class PleiadaApp:
                         pass
 
             # 2. Detener OBS y mover video
-            obs_stop_recording(sdir)
+            video_movido = obs_stop_recording(sdir)
 
-            # 4. Esperar a que el video aparezca en sdir
-            for _ in range(40):
-                if list(sdir.glob("*.mp4")):
-                    break
-                time.sleep(0.5)
+            # 4. Esperar a que el video aparezca en sdir. Si obs_stop_recording no
+            #    encontró ningún archivo (OBS muerto sin dejar MP4), no hay nada que
+            #    esperar: eran 20 s más de "verificando" (PLE-141).
+            if video_movido:
+                for _ in range(40):
+                    if list(sdir.glob("*.mp4")):
+                        break
+                    time.sleep(0.5)
 
             # 4b. Copiar el demo POV (TF2/L4D2) a la carpeta de sesión → el miembro sube UNA sola
             #     carpeta. Best-effort: si no se encuentra el .dem, no rompe nada (queda en el juego).

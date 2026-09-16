@@ -112,8 +112,21 @@ def raw_input_devices():
     return out
 
 
+_POLL_MIN_SAMPLES = 200
+
+
+def _sin_estimacion(reason, samples=0):
+    """v0.9.21 (PLE-188): antes devolvía None en silencio y QA lo leyó como un dato
+    que faltaba. Ahora dice por qué no se pudo estimar."""
+    return {"interval_mode_ms": None, "estimated_hz": None, "share_of_mode": None,
+            "samples": samples, "reason": reason}
+
+
 def mouse_polling_estimate(session_dir):
-    """Moda del intervalo entre MOVE del Raw Input → Hz aproximados. None si no hay datos."""
+    """Moda del intervalo entre MOVE del Raw Input → Hz aproximados.
+    Siempre devuelve un dict; `estimated_hz` es None con `reason` cuando no se pudo."""
+    if not session_dir:
+        return _sin_estimacion("no session directory")
     try:
         p = Path(session_dir) / "mouse_delta_log.csv"
         ts = []
@@ -121,9 +134,14 @@ def mouse_polling_estimate(session_dir):
             for r in csv.reader(f):
                 if len(r) >= 2 and r[1] == "MOVE" and r[0].isdigit():
                     ts.append(int(r[0]))
+        if not ts:
+            return _sin_estimacion("no raw mouse movement in this session")
+        if len(ts) < _POLL_MIN_SAMPLES:
+            return _sin_estimacion(f"too few raw mouse samples (need {_POLL_MIN_SAMPLES})",
+                                   len(ts))
         d = Counter(b - a for a, b in zip(ts, ts[1:]) if 0 < b - a <= 50)
-        if len(ts) < 200 or not d:
-            return None
+        if not d:
+            return _sin_estimacion("no consecutive samples within 50 ms", len(ts))
         mode_ms, cnt = d.most_common(1)[0]
         return {"interval_mode_ms": mode_ms,
                 "estimated_hz": round(1000.0 / mode_ms) if mode_ms else None,
@@ -131,8 +149,8 @@ def mouse_polling_estimate(session_dir):
                 "samples": len(ts),
                 "notes": "Mode of the interval between consecutive WM_INPUT MOVE events; "
                          "1 ms timestamp resolution, so 125 Hz reads as 8 ms and 1000 Hz as 1 ms."}
-    except Exception:
-        return None
+    except Exception as e:
+        return _sin_estimacion(f"could not read mouse_delta_log.csv ({type(e).__name__})")
 
 
 def collect(session_dir=None, mouse_dpi_declared=None):
@@ -156,7 +174,7 @@ def collect(session_dir=None, mouse_dpi_declared=None):
             **os_mouse_settings(),
             "counts_per_inch": dpi,
             "counts_per_inch_source": "user_declared" if dpi else "unknown",
-            "polling": mouse_polling_estimate(session_dir) if session_dir else None,
+            "polling": mouse_polling_estimate(session_dir),
             "devices": [_pub(d) for d in mice],
         },
         "keyboard": {

@@ -898,6 +898,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Among Us",
+  "perspective": "Isometric",
+  "genre": "Strategy, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "111469",
+  "default_key_mapping": null
+ },
+ {
   "game": "Angel Engine",
   "perspective": "First Person",
   "genre": "Puzzle, Simulator",
@@ -1170,6 +1184,20 @@
   }
  },
  {
+  "game": "Ark: Survival Evolved - Limited Collector's Edition",
+  "perspective": "First Person",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "136152",
+  "default_key_mapping": null
+ },
+ {
   "game": "Arknights: Endfield",
   "perspective": "Third Person",
   "genre": "Role-playing (RPG), Strategy, Adventure",
@@ -1417,6 +1445,20 @@
   "languages": [],
   "developer": null,
   "igdb_id": "23314",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Asphalt Legends Unite: Supercharged Edition",
+  "perspective": "",
+  "genre": "",
+  "mode": "",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "363017",
   "default_key_mapping": null
  },
  {
@@ -1873,12 +1915,15 @@
   "developer": "EA Digital Illusions CE",
   "igdb_id": "1979",
   "default_key_mapping": {
-   "1": "weapon_1",
-   "2": "weapon_2",
+   "3": "select_gadget_1",
+   "4": "select_gadget_2",
+   "5": "select_grenade",
+   "6": "select_knife",
    "w": "move_forward",
    "s": "move_backward",
    "a": "move_left",
    "d": "move_right",
+   "Space": "jump",
    "LShift": "sprint",
    "LControl": "crouch",
    "z": "prone",
@@ -1886,10 +1931,20 @@
    "MouseRight": "aim",
    "r": "reload",
    "f": "melee",
-   "g": "grenade",
-   "v": "fire_mode",
+   "t": "toggle_weapon_light",
+   "e": "interact",
+   "Tab": "scoreboard",
+   "Escape": "menu",
+   "n": "minimap_zoom",
+   "m": "full_map",
    "q": "ping",
-   "c": "crouch"
+   "c": "crouch",
+   "F1": "vehicle_seat_1",
+   "F2": "vehicle_seat_2",
+   "F3": "vehicle_seat_3",
+   "F4": "vehicle_seat_4",
+   "F5": "vehicle_seat_5",
+   "F6": "vehicle_seat_6"
   }
  },
  {
@@ -2160,6 +2215,8 @@
    "LControl": "crouch",
    "MouseLeft": "fire",
    "MouseRight": "attack_secondary",
+   "Up": "move_forward",
+   "Down": "move_backward",
    "Enter": "fire"
   }
  },
@@ -3112,26 +3169,26 @@
   "developer": "Infinity Ward",
   "igdb_id": "119177",
   "default_key_mapping": {
+   "r": "reload",
+   "b": "fire_mode",
+   "e": "lethal_equipment",
+   "g": "armor_plate",
+   "q": "tactical_equipment",
+   "x": "field_upgrade",
+   "i": "weapon_inspect",
+   "t": "weapon_mount",
    "w": "move_forward",
    "a": "move_left",
    "s": "move_backward",
    "d": "move_right",
-   "e": "lethal_equipment",
    "Space": "jump",
    "LControl": "crouch",
    "LShift": "sprint",
-   "q": "tactical_equipment",
-   "x": "field_upgrade",
-   "r": "reload",
-   "b": "fire_mode",
    "v": "melee",
    "MouseLeft": "fire",
    "MouseRight": "aim",
    "h": "auto_move_forward",
-   "f": "interact",
-   "g": "armor_plate",
-   "t": "weapon_mount",
-   "i": "weapon_inspect"
+   "f": "interact"
   }
  },
  {
@@ -3405,7 +3462,22 @@
   ],
   "developer": null,
   "igdb_id": "346816",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "g": "interaction_g_drop_item_and_cancel_building",
+   "MouseRight": "right_click_remove_items",
+   "q": "interaction_q_pick_up_building",
+   "b": "open_tablet",
+   "LShift": "run",
+   "Space": "jump",
+   "d": "move_right",
+   "r": "interact_r_open_album",
+   "c": "interactive_c_change_building_color",
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "MouseLeft": "left_click",
+   "f": "interact_f_greet_open_pack"
+  }
  },
  {
   "game": "Cash Cleaner Simulator",
@@ -3992,8 +4064,10 @@
    "d": "move_right",
    "MouseLeft": "fire",
    "Space": "jump",
+   "LControl": "crouch",
    "e": "interact",
-   "r": "reload"
+   "r": "reload",
+   "MouseRight": "attack_secondary"
   }
  },
  {
@@ -4209,6 +4283,20 @@
   ],
   "developer": "Consumer Softproducts",
   "igdb_id": "142076",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Cry of Fear",
+  "perspective": "First Person",
+  "genre": "Shooter, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "3084",
   "default_key_mapping": null
  },
  {
@@ -6516,7 +6604,27 @@
   ],
   "developer": "FromSoftware",
   "igdb_id": "325591",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "s": "move_backward",
+   "LAlt": "charged_sprint",
+   "g": "use_item",
+   "1": "use_flask | menu:switch_pin_previous | menu:toggle_marker_previous",
+   "MouseRight": "guard_left_hand_weapon",
+   "2": "switch_item | menu:switch_pin_next | menu:toggle_marker_next",
+   "3": "reverse_item_order | menu:change_level_up",
+   "e": "character_skill",
+   "h": "use_item_immediately",
+   "Space": "jump",
+   "MouseMiddle": "two_hand_left_hand_weapon_cancel | menu:show_position | camera:reset_camera_lock_on_remove_target",
+   "r": "ultimate_art",
+   "w": "move_forward",
+   "d": "move_right",
+   "a": "move_left",
+   "MouseLeft": "attack_right_hand_and_two_handed_weapon",
+   "f": "event_action_examine_open_etc",
+   "q": "skill",
+   "c": "movement_control"
+  }
  },
  {
   "game": "Elden Ring: Shadow of the Erdtree",
@@ -6818,6 +6926,20 @@
   "languages": [],
   "developer": null,
   "igdb_id": "105188",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Error",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG)",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "112907",
   "default_key_mapping": null
  },
  {
@@ -7979,6 +8101,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Gears of War: Reloaded",
+  "perspective": "Third Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "342721",
+  "default_key_mapping": null
+ },
+ {
   "game": "Generation Zero",
   "perspective": "First Person",
   "genre": "Shooter",
@@ -8449,7 +8585,20 @@
   ],
   "developer": "Creepy Jar",
   "igdb_id": "101461",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "g": "throw_stone",
+   "q": "dismount | other:drop_place | other:exit_stop_crafting",
+   "d": "right",
+   "MouseLeft": "attack",
+   "LControl": "crouch",
+   "r": "block | other:read",
+   "s": "backward",
+   "LShift": "sprint",
+   "w": "forward",
+   "Space": "jump",
+   "MouseRight": "aim | other:expand_menu_world | other:expand_menu_inventory",
+   "a": "left"
+  }
  },
  {
   "game": "Greyhill Incident",
@@ -11269,6 +11418,20 @@
   ],
   "developer": "William Chyr Studio",
   "igdb_id": "13621",
+  "default_key_mapping": null
+ },
+ {
+  "game": "MapleStory N",
+  "perspective": "Side View",
+  "genre": "Platform, Role-playing (RPG), Adventure",
+  "mode": "MMO",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "343326",
   "default_key_mapping": null
  },
  {
@@ -14751,6 +14914,20 @@
   ],
   "developer": "Gunfire Games",
   "igdb_id": "105049",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Remnants",
+  "perspective": "",
+  "genre": "Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "168318",
   "default_key_mapping": null
  },
  {
@@ -21563,7 +21740,47 @@
   ],
   "developer": "Team NINJA",
   "igdb_id": "204628",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "MouseLeft": "normal_attack",
+   "Tab": "dodge_deflect",
+   "f": "dodge_deflect",
+   "Space": "jump",
+   "e": "check",
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "LShift": "sprint",
+   "i": "move_camera_up",
+   "k": "move_camera_down",
+   "j": "move_camera_left",
+   "l": "move_camera_right",
+   "MouseMiddle": "lock_on",
+   "Escape": "show_character_menu",
+   "q": "use_item",
+   "m": "make_offering_at_the_burial_flag",
+   "t": "deflect_with_counterattack",
+   "1": "spell_1",
+   "2": "spell_2",
+   "3": "spell_3",
+   "4": "spell_4",
+   "5": "switch_spells",
+   "c": "martial_arts_1",
+   "v": "martial_arts_2",
+   "z": "summon_divine_beast",
+   "x": "divine_beast_resonance",
+   "y": "encourage_companion_1",
+   "MouseRight": "guard",
+   "LAlt": "walk_slow_speed",
+   "LControl": "aim_with_ranged_weapon",
+   "p": "start_photo_mode",
+   "n": "accept_co_op_play_request",
+   "Enter": "shoot_ranged_weapon_2",
+   "u": "normal_attack",
+   "o": "dodge_deflect",
+   "8": "encourage_companion_1",
+   "9": "encourage_companion_2"
+  }
  },
  {
   "game": "Wolf Mate",

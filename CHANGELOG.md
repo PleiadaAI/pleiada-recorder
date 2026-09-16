@@ -1,5 +1,30 @@
 # Changelog — Pleiada Recorder
 
+## V9.21 — 16/09/2026 — ronda de QA de la v0.9.20 (PLE-141, 188, 189, 190)
+
+### Marcador de sincronía (PLE-189, PLE-190)
+
+- La fuente "Pleiada Sync Marker" existe en OBS **solo mientras dura cada flash** (150 ms al
+  arrancar y 150 ms al detener). Antes se creaba oculta al arrancar y se borraba al detener,
+  y se veía en la lista de Fuentes con el ojo apagado durante toda la grabación.
+- Si OBS murió a mitad de una grabación y la fuente quedó guardada en la escena, la app la
+  borra en cuanto OBS vuelve a contestar (chequeo de OBS de la pantalla principal, como
+  mucho una vez por minuto), sin esperar a la próxima grabación.
+
+### Detener con OBS muerto (PLE-141)
+
+- Si OBS ya no está corriendo al detener, se saltean las esperas pensadas para un OBS vivo
+  (30 s del evento de cierre, 15 s de poll, 2 s de gracia, 20 s por el MP4): se busca el
+  archivo que haya quedado y se pasa a la verificación. De más de un minuto a unos segundos.
+
+### Metadata de dispositivos (PLE-188)
+
+- `input.device_metadata.mouse.polling` ya no es `null` en silencio: siempre es un bloque, y
+  cuando no se puede estimar dice por qué en `reason` ("no raw mouse movement in this
+  session", "too few raw mouse samples (need 200)", …).
+- El layout de teclado ya estaba: son `keyboard.klid` y `keyboard.locale`. La guía v0.9.20
+  decía `keyboard.layout`, que no existe; corregido en la guía v0.9.21.
+
 ## V9.20 — 14/09/2026 — anclas de sincronía medidas · calibración de dispositivos · metadata en inglés
 
 Tres cosas en un build: los dos gates del nivel T0 del contrato de AI Ranch que fallaban en

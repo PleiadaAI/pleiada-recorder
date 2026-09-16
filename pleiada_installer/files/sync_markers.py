@@ -55,6 +55,48 @@ def _now_ms():
     return int(time.time() * 1000)
 
 
+def _remove_if_present(req):
+    """Borra la fuente del marcador si existe en OBS (en cualquier escena).
+    `req(tipo, datos)` devuelve responseData o lanza. Devuelve True si borró."""
+    r = req("GetInputList", {"inputKind": "color_source_v3"})
+    names = [i.get("inputName") for i in (r.get("inputs") or [])]
+    if MARKER_INPUT not in names:
+        return False
+    req("RemoveInput", {"inputName": MARKER_INPUT})
+    return True
+
+
+def remove_leftovers(connect_fn, send_fn, dbg=None):
+    """v0.9.21 (PLE-190): si OBS murió a mitad de una grabación, la fuente quedó
+    guardada en la escena y al reabrir OBS aparece VISIBLE en Fuentes. Se llama
+    desde la app cada vez que OBS vuelve a contestar. Nunca lanza."""
+    ws = None
+    try:
+        ws = connect_fn()
+
+        def _req(t, d=None):
+            dd = send_fn(ws, t, d).get("d", {})
+            if not dd.get("requestStatus", {}).get("result", False):
+                raise RuntimeError(f"{t}: {dd.get('requestStatus')}")
+            return dd.get("responseData", {}) or {}
+
+        if _remove_if_present(_req):
+            if dbg:
+                dbg("sync_markers: fuente huérfana borrada de OBS")
+            return True
+        return False
+    except Exception as e:
+        if dbg:
+            dbg(f"sync_markers cleanup: {e}")
+        return False
+    finally:
+        try:
+            if ws:
+                ws.close()
+        except Exception:
+            pass
+
+
 class SyncMarkers:
     """Un objeto por grabación. `start()` arranca el hilo; `end_marker()` lo cierra
     con el marcador final, ANTES de StopRecord."""
@@ -101,12 +143,14 @@ class SyncMarkers:
         cur = self._req("GetCurrentProgramScene")
         self.scene = cur.get("currentProgramSceneName") or cur.get("sceneName")
         # resto de una corrida anterior (crash): se pisa
-        for i in self._req("GetSceneItemList", {"sceneName": self.scene}).get("sceneItems", []):
-            if i.get("sourceName") == MARKER_INPUT:
-                try:
-                    self._req("RemoveInput", {"inputName": MARKER_INPUT})
-                except Exception:
-                    pass
+        _remove_if_present(lambda t, d=None: self._req(t, d))
+
+    # v0.9.21 (PLE-189/190): la fuente existe SOLO mientras dura el flash. Hasta la
+    # v0.9.20 se creaba oculta al arrancar y se borraba al detener, así que en la
+    # lista de Fuentes de OBS se veía "Pleiada Sync Marker" con el ojo apagado
+    # durante toda la grabación, y si OBS moría a mitad de sesión quedaba guardada
+    # en la escena hasta la próxima grabación.
+    def _create(self):
         r = self._req("CreateInput", {
             "sceneName": self.scene, "inputName": MARKER_INPUT, "inputKind": "color_source_v3",
             "inputSettings": {"color": 0xFFFFFFFF, "width": MARKER_PX, "height": MARKER_PX},
@@ -115,10 +159,19 @@ class SyncMarkers:
         self._req("SetSceneItemTransform", {"sceneName": self.scene, "sceneItemId": self.item_id,
                                             "sceneItemTransform": {"positionX": 0, "positionY": 0}})
 
+    def _remove(self):
+        if self.ws is None or self.item_id is None:
+            return
+        try:
+            self._req("RemoveInput", {"inputName": MARKER_INPUT})
+        except Exception as e:
+            self._dbg(f"sync_markers remove: {e}")
+        finally:
+            self.item_id = None
+
     def _teardown(self):
         try:
-            if self.ws and self.item_id is not None:
-                self._req("RemoveInput", {"inputName": MARKER_INPUT})
+            self._remove()
         except Exception as e:
             self._dbg(f"sync_markers teardown: {e}")
         finally:
@@ -131,8 +184,11 @@ class SyncMarkers:
             self.item_id = None
 
     def _flash(self, label):
-        """ON, MARKER_MS, OFF. Devuelve True si se pudo."""
+        """Crear, ON, MARKER_MS, OFF, borrar. Devuelve True si se pudo.
+        La hora de MARKER_ON es la del pedido de encendido, no la de creación: la
+        fuente ya existe (oculta) cuando se toma `t0`, igual que antes."""
         try:
+            self._create()
             t0 = _now_ms()
             self._req("SetSceneItemEnabled", {"sceneName": self.scene, "sceneItemId": self.item_id,
                                               "sceneItemEnabled": True})
@@ -147,6 +203,8 @@ class SyncMarkers:
         except Exception as e:
             self._dbg(f"sync_markers flash {label}: {e}")
             return False
+        finally:
+            self._remove()
 
     def _probe(self):
         t0 = _now_ms()
@@ -185,7 +243,9 @@ class SyncMarkers:
         self._stop.set()
         got = self._lock.acquire(timeout=timeout_s)
         try:
-            if self.ws is not None and self.item_id is not None:
+            # v0.9.21: la fuente ya no vive entre flashes, así que la condición es
+            # "hay conexión y escena", no "hay item" (con item_id el final no salía).
+            if self.ws is not None and self.scene:
                 try:
                     self._probe()
                 except Exception:
