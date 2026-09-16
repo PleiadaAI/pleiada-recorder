@@ -55,14 +55,47 @@ def _now_ms():
     return int(time.time() * 1000)
 
 
-def _remove_if_present(req):
-    """Borra la fuente del marcador si existe en OBS (en cualquier escena).
-    `req(tipo, datos)` devuelve responseData o lanza. Devuelve True si borró."""
+def _persist_scene(req, scene):
+    """Obliga a OBS a GUARDAR la colección de escenas en disco.
+
+    Medido el 16-09-2026 contra OBS 32 (PLE-190): OBS escribe el JSON de la
+    colección al crear la fuente y al encenderla, pero NO al borrarla con
+    `RemoveInput`. Si después OBS muere, al reabrir carga el JSON viejo y el
+    marcador vuelve a aparecer, visible. De los pedidos probados, mover un ítem
+    de la escena a su MISMA posición (`SetSceneItemIndex`) dispara el guardado
+    y no cambia nada; si la escena quedó vacía, renombrarla ida y vuelta también.
+    """
+    # RemoveInput es asincrónico del lado de OBS: el ítem de la escena se va unos
+    # ms después de la respuesta. Si se guarda antes, el JSON queda con un ítem
+    # sin fuente (medido: OBS lo descarta al cargar, pero mejor no dejarlo).
+    items = []
+    for _ in range(10):
+        items = req("GetSceneItemList", {"sceneName": scene}).get("sceneItems") or []
+        if not any(i.get("sourceName") == MARKER_INPUT for i in items):
+            break
+        time.sleep(0.05)
+    if items:
+        it = items[0]
+        req("SetSceneItemIndex", {"sceneName": scene, "sceneItemId": it["sceneItemId"],
+                                  "sceneItemIndex": it.get("sceneItemIndex", 0)})
+    else:
+        req("SetSceneName", {"sceneName": scene, "newSceneName": scene + " "})
+        req("SetSceneName", {"sceneName": scene + " ", "newSceneName": scene})
+
+
+def _remove_if_present(req, scene=None):
+    """Borra la fuente del marcador si existe en OBS (en cualquier escena) y
+    fuerza el guardado. `req(tipo, datos)` devuelve responseData o lanza.
+    Devuelve True si borró."""
     r = req("GetInputList", {"inputKind": "color_source_v3"})
     names = [i.get("inputName") for i in (r.get("inputs") or [])]
     if MARKER_INPUT not in names:
         return False
     req("RemoveInput", {"inputName": MARKER_INPUT})
+    if not scene:
+        cur = req("GetCurrentProgramScene")
+        scene = cur.get("currentProgramSceneName") or cur.get("sceneName")
+    _persist_scene(req, scene)
     return True
 
 
@@ -143,7 +176,7 @@ class SyncMarkers:
         cur = self._req("GetCurrentProgramScene")
         self.scene = cur.get("currentProgramSceneName") or cur.get("sceneName")
         # resto de una corrida anterior (crash): se pisa
-        _remove_if_present(lambda t, d=None: self._req(t, d))
+        _remove_if_present(lambda t, d=None: self._req(t, d), self.scene)
 
     # v0.9.21 (PLE-189/190): la fuente existe SOLO mientras dura el flash. Hasta la
     # v0.9.20 se creaba oculta al arrancar y se borraba al detener, así que en la
@@ -164,6 +197,9 @@ class SyncMarkers:
             return
         try:
             self._req("RemoveInput", {"inputName": MARKER_INPUT})
+            # PLE-190: sin esto OBS no escribe el JSON y el marcador "resucita"
+            # al reabrir OBS después de un crash.
+            _persist_scene(lambda t, d=None: self._req(t, d), self.scene)
         except Exception as e:
             self._dbg(f"sync_markers remove: {e}")
         finally:

@@ -1,5 +1,24 @@
 # Changelog — Pleiada Recorder
 
+## V9.22 — 16/09/2026 — PLE-190 de verdad: OBS no guardaba el borrado del marcador
+
+QA reprodujo PLE-190 sobre la v0.9.21. Reproducido acá contra OBS 32 real: OBS escribe la
+colección de escenas en disco al **crear** la fuente del marcador y al **encenderla**, pero
+**no** al borrarla con `RemoveInput`. Si OBS muere después, al reabrir carga ese JSON y el
+marcador reaparece, visible. Ninguna limpieza por WebSocket lo arreglaba de forma duradera
+por el mismo motivo.
+
+- Después de cada borrado de la fuente (los dos flashes, la limpieza de restos al arrancar
+  una grabación y la limpieza al detectar OBS) se **fuerza el guardado**: mover un ítem de
+  la escena a su misma posición (`SetSceneItemIndex`) hace que OBS escriba el JSON sin
+  cambiar nada. Se espera a que el ítem del marcador desaparezca de la escena antes de
+  guardar (el borrado es asincrónico del lado de OBS).
+- La limpieza de restos al reabrir OBS ahora corre en el poll de detección de la pantalla
+  principal (cada 2,5 s, como mucho una vez por minuto). En la v0.9.21 corría solo al
+  elegir un título, así que en el flujo de QA nadie limpiaba.
+- Verificado con el guion de reproducción: tras matar OBS y reabrirlo, el marcador ya no
+  está en Fuentes ni en el archivo de la colección.
+
 ## V9.21 — 16/09/2026 — ronda de QA de la v0.9.20 (PLE-141, 188, 189, 190)
 
 ### Marcador de sincronía (PLE-189, PLE-190)

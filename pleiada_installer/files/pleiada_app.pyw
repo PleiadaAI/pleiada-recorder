@@ -17,7 +17,7 @@ import sync_markers        # v0.9.18: anclas medidas input<->video (T0 capture.s
 import input_devices       # v0.9.18: calibración de mouse/teclado (T0 input.device_metadata)
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.21"
+VERSION = "v0.9.22"
 
 # El objeto de marcadores de la grabación en curso. Vive a nivel módulo porque
 # build_session_metadata() es una función suelta y necesita el resumen al cerrar.
@@ -5134,6 +5134,16 @@ class PleiadaApp:
                 _ui(self._render_det_esperando,
                     "OBS no está corriendo o no responde. Abrilo y volvé a esta pantalla.")
                 return
+            # v0.9.22 (PLE-190): OBS contesta. Si quedó una fuente "Pleiada Sync
+            # Marker" de una grabación que murió con OBS, se borra acá, en el
+            # poll de detección que corre cada 2,5 s en la pantalla principal
+            # (como mucho una vez por minuto). En la v0.9.21 esto vivía solo en
+            # _check_obs_game, que corre al elegir un título: QA reabría OBS y
+            # nadie limpiaba.
+            _ahora = time.time()
+            if _ahora - getattr(self, "_marker_cleanup_ts", 0) > 60:
+                self._marker_cleanup_ts = _ahora
+                sync_markers.remove_leftovers(obs_connect, obs_send, dbg=_obs_dbg)
             if is_rec:
                 _ui(self._render_det_bloqueado, "OBS ya está grabando",
                     "Detené la grabación desde OBS antes de empezar una sesión.")

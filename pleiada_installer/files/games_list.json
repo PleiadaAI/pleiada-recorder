@@ -6743,6 +6743,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Elite Dangerous: Odyssey - Deluxe Edition",
+  "perspective": "",
+  "genre": "",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "227190",
+  "default_key_mapping": null
+ },
+ {
   "game": "Emergency",
   "perspective": "",
   "genre": "",
@@ -14214,17 +14228,25 @@
  },
  {
   "game": "PleiadaPOC",
-  "perspective": "",
-  "genre": "",
-  "mode": "",
+  "perspective": "First Person",
+  "genre": "Puzzle",
+  "mode": "Multiplayer",
   "process_name": null,
   "process_source": "interno",
-  "engine": null,
+  "engine": "Unity",
   "themes": [],
   "languages": [],
   "developer": "Gameplay Alliance",
   "igdb_id": null,
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "a": "move_left",
+   "s": "move_backward",
+   "d": "move_right",
+   "Space": "jump",
+   "LShift": "sprint",
+   "MouseLeft": "interact"
+  }
  },
  {
   "game": "Police Simulator: Patrol Officers",

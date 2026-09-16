@@ -78,6 +78,12 @@ class FakeOBS:
             self.log.append(("SetSceneItemEnabled", None, d["sceneItemEnabled"]))
         elif t == "SetSceneItemTransform":
             pass
+        elif t == "GetSceneItemList":
+            ok["responseData"] = {"sceneItems": [{"sceneItemId": 9, "sourceName": "Captura de juego",
+                                                  "sceneItemIndex": 0}]}
+        elif t == "SetSceneItemIndex":
+            # PLE-190: es lo que fuerza a OBS a guardar la escena en disco
+            self.log.append(("PERSIST", None, None))
         elif t == "GetRecordStatus":
             ok["responseData"] = {"outputActive": True, "outputDuration": 1234}
         else:
@@ -101,8 +107,8 @@ check("entre flashes la fuente NO está en la escena", SM.MARKER_INPUT not in ob
 sm.end_marker()
 sec = [(t, e) for t, _, e in obs.log]
 esperado = [("CreateInput", False), ("SetSceneItemEnabled", True), ("SetSceneItemEnabled", False),
-            ("RemoveInput", None)] * 2
-check("secuencia crear→ON→OFF→borrar, dos veces", sec == esperado, repr(sec))
+            ("RemoveInput", None), ("PERSIST", None)] * 2
+check("secuencia crear→ON→OFF→borrar→guardar, dos veces", sec == esperado, repr(sec))
 check("después de detener no queda la fuente", SM.MARKER_INPUT not in obs.inputs)
 check("websocket cerrado", obs.closed >= 1)
 csv_txt = (tmp / SM.SYNC_FILE).read_text(encoding="utf-8")
@@ -112,8 +118,9 @@ check("summary cuenta 2 marcadores", sm.summary()["markers"] == 2 and sm.summary
 
 # ── 2. resto de un crash anterior ─────────────────────────────────────────────
 obs = FakeOBS(leftover=True)
-check("remove_leftovers borra la fuente huérfana",
-      SM.remove_leftovers(obs.connect, obs.send) is True and SM.MARKER_INPUT not in obs.inputs)
+check("remove_leftovers borra la fuente huérfana y fuerza el guardado",
+      SM.remove_leftovers(obs.connect, obs.send) is True and SM.MARKER_INPUT not in obs.inputs
+      and [t for t, _, _ in obs.log] == ["RemoveInput", "PERSIST"], repr(obs.log))
 check("remove_leftovers sin fuente no hace nada",
       SM.remove_leftovers(obs.connect, obs.send) is False
       and not any(t == "RemoveInput" for t, _, _ in obs.log[1:]))
@@ -123,8 +130,8 @@ check("remove_leftovers con OBS muerto no lanza", SM.remove_leftovers(obs.connec
 # _setup también limpia el resto antes del primer flash
 obs = FakeOBS(leftover=True)
 sm, tmp = correr(obs)
-check("_setup borra el resto antes del primer flash",
-      obs.log and obs.log[0] == ("RemoveInput", SM.MARKER_INPUT, None), repr(obs.log[:2]))
+check("_setup borra el resto (y guarda) antes del primer flash",
+      obs.log[:2] == [("RemoveInput", SM.MARKER_INPUT, None), ("PERSIST", None, None)], repr(obs.log[:3]))
 sm.end_marker()
 
 # ── 3. cancelar: sin marcador final, sin fuente ───────────────────────────────
