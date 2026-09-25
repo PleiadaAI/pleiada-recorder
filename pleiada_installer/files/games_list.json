@@ -870,6 +870,20 @@
   }
  },
  {
+  "game": "Among the Sleep",
+  "perspective": "First Person",
+  "genre": "Puzzle, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "7642",
+  "default_key_mapping": null
+ },
+ {
   "game": "Among the Sleep: Enhanced Edition",
   "perspective": "First Person",
   "genre": "Puzzle",
@@ -938,6 +952,20 @@
   ],
   "developer": null,
   "igdb_id": "387370",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Aniimo",
+  "perspective": "Third Person",
+  "genre": "Puzzle, Role-playing (RPG), Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "348202",
   "default_key_mapping": null
  },
  {
@@ -1996,6 +2024,20 @@
   }
  },
  {
+  "game": "Beast of Reincarnation",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "348180",
+  "default_key_mapping": null
+ },
+ {
   "game": "Beauty Store Simulator",
   "perspective": "",
   "genre": "Simulator",
@@ -2160,6 +2202,20 @@
   "languages": [],
   "developer": null,
   "igdb_id": "139914",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Black Gold",
+  "perspective": "First Person",
+  "genre": "Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "156052",
   "default_key_mapping": null
  },
  {
@@ -2565,6 +2621,20 @@
   "languages": [],
   "developer": null,
   "igdb_id": "413917",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Bongo Cat",
+  "perspective": "Side View",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "334486",
   "default_key_mapping": null
  },
  {
@@ -2983,6 +3053,20 @@
   }
  },
  {
+  "game": "Buster Block",
+  "perspective": "",
+  "genre": "Puzzle",
+  "mode": "",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "47552",
+  "default_key_mapping": null
+ },
+ {
   "game": "Call of Duty",
   "perspective": "First Person",
   "genre": "Shooter",
@@ -3121,23 +3205,34 @@
   "developer": null,
   "igdb_id": "9509",
   "default_key_mapping": {
-   "LControl": "toggle_prone",
-   "r": "reload_weapon | menu:reset_to_default",
-   "Unbound": "crouch | camera:look_up | camera:look_down | camera:turn_left | camera:turn_right | camera:mouse_look | camera:center_view | other:scoreboard_toggle",
-   "a": "move_left",
-   "s": "backpedal",
-   "MouseWheelDown": "previous_weapon",
-   "v": "melee_attack",
-   "w": "forward",
-   "g": "throw_primary",
-   "MouseWheelUp": "next_weapon",
-   "LShift": "sprint_hold_breath",
-   "d": "move_right",
    "Space": "stand_jump",
+   "d": "move_right",
+   "s": "move_backward",
+   "c": "change_stance",
+   "w": "move_forward",
+   "LControl": "toggle_prone",
+   "a": "move_left",
+   "LShift": "sprint_hold_breath",
+   "MouseMiddle": "throw_primary",
+   "e": "throw_secondary",
+   "g": "throw_primary",
+   "MouseRight": "aim_down_sights",
    "MouseLeft": "attack",
-   "x": "switch_weapon",
    "q": "specialist_ability_weapon",
-   "c": "change_stance"
+   "v": "melee_attack",
+   "x": "switch_weapon",
+   "r": "reload_weapon",
+   "f": "use",
+   "1": "special_action_1",
+   "b": "voice_chat",
+   "2": "special_action_2",
+   "y": "team_chat",
+   "3": "special_action_3",
+   "F10": "screenshot",
+   "4": "special_action_4",
+   "Tab": "scoreboard",
+   "t": "chat",
+   "p": "party_chat"
   }
  },
  {
@@ -3217,6 +3312,20 @@
   "languages": [],
   "developer": null,
   "igdb_id": "403310",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Call of Duty: Modern Warfare III",
+  "perspective": "First Person",
+  "genre": "Shooter",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "260780",
   "default_key_mapping": null
  },
  {
@@ -3437,6 +3546,20 @@
   ],
   "developer": "Red Axe Games",
   "igdb_id": "233027",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Caravan SandWitch",
+  "perspective": "Third Person",
+  "genre": "Platform, Puzzle, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "145029",
   "default_key_mapping": null
  },
  {
@@ -3764,6 +3887,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Coal Mining Simulator",
+  "perspective": "",
+  "genre": "Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "123805",
+  "default_key_mapping": null
+ },
+ {
   "game": "Colony 37",
   "perspective": "First Person",
   "genre": "Adventure",
@@ -3857,6 +3994,20 @@
   "languages": [],
   "developer": null,
   "igdb_id": "137619",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Construction Crew",
+  "perspective": "First Person",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "391899",
   "default_key_mapping": null
  },
  {
@@ -4382,7 +4533,31 @@
   ],
   "developer": "Crytek",
   "igdb_id": "165127",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "r": "reload",
+   "3": "activate_predator_bow",
+   "c": "crouch | vehicle:change_seat",
+   "h": "customize_nanosuit",
+   "a": "move_left | vehicle:turn_left",
+   "LShift": "sprint",
+   "MouseMiddle": "nanosuit_menu",
+   "e": "toggle_cloak",
+   "1": "switch_weapon | vehicle:toggle_lights | vehicle:turn_on_lights",
+   "2": "change_fire_mode",
+   "Space": "jump | vehicle:handbrake",
+   "v": "melee",
+   "q": "toggle_armor",
+   "b": "toggle_visor",
+   "MouseRight": "zoom | vehicle:fire_secondary_weapon_combat_vehicle",
+   "w": "move_forward | vehicle:accelerate",
+   "d": "move_right | vehicle:turn_right",
+   "MouseLeft": "fire | vehicle:fire_primary_weapon_combat_vehicle",
+   "g": "select_grenades",
+   "n": "activate_nanovision",
+   "s": "move_backward | vehicle:reverse",
+   "f": "interact",
+   "x": "customize_weapon"
+  }
  },
  {
   "game": "Crysis Remastered",
@@ -4415,7 +4590,40 @@
   ],
   "developer": "Crytek",
   "igdb_id": "132164",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "b": "binoculars",
+   "g": "throw_grenade",
+   "MouseRight": "weapon_zoom",
+   "j": "drop_weapon",
+   "f": "interact_exit",
+   "t": "lean_left",
+   "n": "night_vision",
+   "w": "forward | vehicle:accelerate_forward",
+   "m": "open_close_map",
+   "4": "select_utilities",
+   "1": "select_short_range_weapon | vehicle:driver_seat",
+   "e": "cloak_mode | vehicle:lean_right",
+   "a": "left | vehicle:turn_left",
+   "h": "lean_right | vehicle:horn",
+   "s": "backward | vehicle:brake_backward",
+   "MouseMiddle": "next_weapon | vehicle:zoom_in | vehicle:zoom_out",
+   "d": "right | vehicle:turn_right",
+   "y": "select_grenades",
+   "Tab": "objectives",
+   "Bespaciadora": "stand_up_jump | vehicle:move_up | vehicle:brakes",
+   "LShift": "sprint | vehicle:afterburner | vehicle:turbo",
+   "2": "select_assault_weapon | vehicle:gunner_seat",
+   "MouseLeft": "fire",
+   "v": "melee",
+   "6": "switch_weapon",
+   "z": "prone",
+   "5": "fire_mode",
+   "q": "armor_mode | vehicle:lean_left",
+   "x": "attachments_menu",
+   "r": "use_reload",
+   "3": "select_explosives",
+   "c": "crouch"
+  }
  },
  {
   "game": "Cubic Odyssey",
@@ -4939,6 +5147,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Dead Frontier 2",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "87776",
+  "default_key_mapping": null
+ },
+ {
   "game": "Dead Island: Definitive Edition",
   "perspective": "First Person",
   "genre": "Shooter",
@@ -5043,7 +5265,24 @@
   ],
   "developer": "Visceral Games",
   "igdb_id": "38",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "LShift": "sprint",
+   "w": "move_forward",
+   "r": "reload | other:enter_vent",
+   "s": "move_backward",
+   "MouseMiddle": "secondary_fire | other:launch_secondary_attack",
+   "a": "strafe_left",
+   "RShift": "sprint",
+   "3": "left_weapon_slot",
+   "MouseLeft": "fire",
+   "d": "strafe_right",
+   "MouseRight": "aim_mode",
+   "e": "activate | other:grab",
+   "Return": "activate",
+   "Bloqmays": "aim_mode_toggle",
+   "Tab": "rig",
+   "Space": "secondary_fire | other:jump_boost"
+  }
  },
  {
   "game": "Deadlock",
@@ -5062,7 +5301,32 @@
   ],
   "developer": "Digital Tribe",
   "igdb_id": "31699",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "c": "item_3",
+   "3": "ability_3",
+   "LShift": "dash",
+   "f": "melee_parry_throw_held_item",
+   "Alt4": "upgrade_ability_4",
+   "d": "move_right_strafe",
+   "a": "move_left_strafe",
+   "z": "item_1",
+   "Alt1": "upgrade_ability_1",
+   "r": "reload",
+   "1": "ability_1",
+   "s": "move_backward",
+   "w": "move_forward",
+   "q": "melee",
+   "v": "item_4",
+   "4": "ability_4",
+   "LControl": "crouch_slide",
+   "Alt3": "upgrade_ability_3",
+   "Alt2": "upgrade_ability_2",
+   "x": "item_2",
+   "Space": "cancel_ability",
+   "2": "ability_2",
+   "MouseLeft": "fire",
+   "MouseMiddle": "alternate_cast"
+  }
  },
  {
   "game": "Deadzone: Rogue",
@@ -5343,6 +5607,20 @@
    "j": "deploy_bipod",
    "k": "rangefinder"
   }
+ },
+ {
+  "game": "Demolish & Build 3: Excavator Playground",
+  "perspective": "",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "211557",
+  "default_key_mapping": null
  },
  {
   "game": "Denizen",
@@ -6560,15 +6838,26 @@
   "developer": "FromSoftware",
   "igdb_id": "119133",
   "default_key_mapping": {
+   "x": "movement_control",
    "w": "move_forward",
-   "a": "move_left",
    "s": "move_backward",
+   "a": "move_left",
    "d": "move_right",
-   "f": "jump",
-   "g": "map",
-   "Escape": "menu",
-   "MouseLeft": "attack",
-   "MouseRight": "guard"
+   "LShift": "backstep_dodge_roll_dash",
+   "Space": "jump",
+   "c": "crouch_stand_up",
+   "q": "reset_camera_lock_on_remove_target",
+   "Up": "switch_sorcery_incantation",
+   "Down": "switch_item",
+   "Right": "switch_right_hand_armament",
+   "Left": "switch_left_hand_armament",
+   "f": "skill",
+   "r": "use_item",
+   "e": "event_action",
+   "m": "map",
+   "MouseLeft": "attack_rh_and_two_handed",
+   "MouseRight": "guard_lh_armament",
+   "MouseMiddle": "reset_camera_lock_on_remove_target"
   }
  },
  {
@@ -8020,6 +8309,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Garage: Tidy Up!",
+  "perspective": "First Person",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "414762",
+  "default_key_mapping": null
+ },
+ {
   "game": "Garten of Banban 7",
   "perspective": "First Person",
   "genre": "Puzzle, Arcade",
@@ -8258,6 +8561,20 @@
   "languages": [],
   "developer": null,
   "igdb_id": "204360",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Gold Mining Simulator 2",
+  "perspective": "First Person",
+  "genre": "Simulator, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "345408",
   "default_key_mapping": null
  },
  {
@@ -9099,14 +9416,32 @@
   "developer": "Arrowhead Game Studios",
   "igdb_id": "250616",
   "default_key_mapping": {
-   "d": "move_right | vehicle:turn_right",
-   "w": "move_forward | vehicle:accelerate",
-   "MouseLeft": "look_left | menu:move_left",
-   "MouseRight": "look_right | menu:move_right",
-   "a": "move_left | vehicle:turn_left",
-   "c": "crouch | vehicle:change_seat_next | menu:effects",
-   "s": "move_backward | vehicle:brake_reverse",
-   "Space": "climb | vehicle:handbrake"
+   "a": "move_left",
+   "Space": "climb",
+   "d": "move_right",
+   "LShift": "sprint",
+   "LAlt": "dive",
+   "w": "move_forward",
+   "s": "move_backward",
+   "c": "crouch",
+   "z": "go_prone",
+   "MouseLeft": "fire",
+   "MouseRight": "aim",
+   "r": "reload",
+   "f": "melee",
+   "g": "quick_grenade",
+   "v": "quick_stim",
+   "1": "primary_weapon",
+   "2": "secondary_weapon",
+   "3": "support_weapon",
+   "4": "grenade",
+   "LControl": "stratagem_menu",
+   "e": "interact",
+   "q": "mark_ping",
+   "Tab": "map",
+   "x": "drop_wheel",
+   "b": "emote",
+   "CapsLock": "voice_chat"
   }
  },
  {
@@ -10060,6 +10395,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Junkyard Builder",
+  "perspective": "First Person",
+  "genre": "Simulator, Strategy, Adventure, Indie, Arcade",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "154905",
+  "default_key_mapping": null
+ },
+ {
   "game": "Jurassic World Evolution 2",
   "perspective": "Isometric",
   "genre": "Simulator, Strategy",
@@ -10772,18 +11121,21 @@
   "developer": "Turtle Rock Studios",
   "igdb_id": "124",
   "default_key_mapping": {
-   "A": "move_left",
-   "D": "move_right",
-   "E": "interact",
-   "S": "move_backward",
-   "W": "move_forward",
-   "SPACE": "jump",
-   "SHIFT": "sprint",
-   "CTRL": "crouch",
-   "MOUSE1": "attack_primary",
-   "MOUSE2": "attack_secondary",
-   "MOUSE3": "aim",
-   "MOUSE4": "reload"
+   "a": "move_left",
+   "d": "move_right",
+   "e": "interact",
+   "r": "reload",
+   "s": "move_backward",
+   "w": "move_forward",
+   "Space": "jump",
+   "LControl": "crouch",
+   "MouseLeft": "fire",
+   "MouseMiddle": "aim",
+   "Tab": "scoreboard",
+   "f": "flashlight",
+   "q": "last_weapon",
+   "c": "voice",
+   "t": "spray"
   }
  },
  {
@@ -11089,6 +11441,20 @@
   ],
   "developer": "Supermassive Games",
   "igdb_id": "262529",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Little Nightmares: Enhanced Edition",
+  "perspective": "Third Person",
+  "genre": "Platform, Puzzle, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "350903",
   "default_key_mapping": null
  },
  {
@@ -11870,6 +12236,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Metal Gear Solid 4: Guns of the Patriots",
+  "perspective": "Third Person",
+  "genre": "Shooter, Tactical, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "380",
+  "default_key_mapping": null
+ },
+ {
   "game": "Metal Gear Solid Delta: Snake Eater",
   "perspective": "Third Person",
   "genre": "Stealth, Shooter, Tactical",
@@ -12432,6 +12812,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Moria",
+  "perspective": "First Person",
+  "genre": "Role-playing (RPG)",
+  "mode": "MMO",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "77304",
+  "default_key_mapping": null
+ },
+ {
   "game": "Mortal Kombat 1",
   "perspective": "Third Person",
   "genre": "Fighting",
@@ -12745,6 +13139,20 @@
   ],
   "developer": "Embers",
   "igdb_id": "303304",
+  "default_key_mapping": null
+ },
+ {
+  "game": "My Corp Cargo Simulator",
+  "perspective": "",
+  "genre": "Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "290744",
   "default_key_mapping": null
  },
  {
@@ -13112,6 +13520,20 @@
   }
  },
  {
+  "game": "No More Room in Hell",
+  "perspective": "First Person",
+  "genre": "Shooter, Indie",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "15407",
+  "default_key_mapping": null
+ },
+ {
   "game": "Nomad Drive",
   "perspective": "",
   "genre": "Simulator, Adventure, Indie",
@@ -13290,6 +13712,20 @@
   ],
   "developer": "ILCA",
   "igdb_id": "194837",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Operator Training：Heavy Equipment",
+  "perspective": "",
+  "genre": "Simulation",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": null,
   "default_key_mapping": null
  },
  {
@@ -13559,7 +13995,26 @@
   ],
   "developer": "Red Barrels",
   "igdb_id": "14390",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "s": "move_backward",
+   "MouseMiddle": "zoom_camera_in",
+   "r": "reload_battery",
+   "Tab": "inventory",
+   "w": "move_forward",
+   "c": "crawl",
+   "e": "lean_right",
+   "a": "strafe_left",
+   "h": "use_bandages",
+   "MouseLeft": "use",
+   "q": "lean_left",
+   "Space": "jump",
+   "d": "strafe_right",
+   "MouseRight": "toggle_camcorder",
+   "v": "enable_disable_microphone",
+   "f": "toggle_night_vision",
+   "Ctrlizq": "crouch",
+   "LShift": "run"
+  }
  },
  {
   "game": "Overwatch",
@@ -13942,7 +14397,21 @@
   ],
   "developer": "Dansan Digital",
   "igdb_id": "251927",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "Space": "jump",
+   "e": "pick_up",
+   "MouseRight": "drop | other:focus",
+   "r": "rotate",
+   "MouseMiddle": "zoom",
+   "a": "move_left",
+   "t": "open_tablet",
+   "LControl": "crouch",
+   "w": "move_forward",
+   "d": "move_right",
+   "q": "open_store_package",
+   "MouseLeft": "interact | other:move_drag",
+   "s": "move_backward"
+  }
  },
  {
   "game": "Path of Exile",
@@ -14227,12 +14696,12 @@
   "default_key_mapping": null
  },
  {
-  "game": "PleiadaPOC",
+  "game": "Playground",
   "perspective": "First Person",
   "genre": "Puzzle",
   "mode": "Multiplayer",
   "process_name": null,
-  "process_source": "interno",
+  "process_source": "deteccion_automatica",
   "engine": "Unity",
   "themes": [],
   "languages": [],
@@ -14243,10 +14712,30 @@
    "a": "move_left",
    "s": "move_backward",
    "d": "move_right",
+   "Up": "move_forward",
+   "Down": "move_backward",
+   "Left": "move_left",
+   "Right": "move_right",
    "Space": "jump",
    "LShift": "sprint",
-   "MouseLeft": "interact"
+   "Escape": "pause",
+   "MouseLeft": "interact",
+   "MouseRight": "rotate_held_object"
   }
+ },
+ {
+  "game": "Police Simulator",
+  "perspective": "",
+  "genre": "Simulator",
+  "mode": "",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "54285",
+  "default_key_mapping": null
  },
  {
   "game": "Police Simulator: Patrol Officers",
@@ -14768,12 +15257,56 @@
   "developer": "VOID Interactive",
   "igdb_id": "28489",
   "default_key_mapping": {
-   "MouseY": "look_down",
-   "S": "move_backward",
-   "W": "move_forward",
-   "A": "move_left",
-   "D": "move_right",
-   "MouseX": "look_right"
+   "Backspace": "buy_menu",
+   "j": "chat",
+   "LControl": "crouch",
+   "l": "cycle_voice_channel",
+   "m": "deploy_menu",
+   "3": "draw_grenade",
+   "5": "draw_long_tactical",
+   "6": "draw_misc",
+   "1": "draw_primary",
+   "2": "draw_secondary",
+   "4": "draw_tactical_device",
+   "c": "drop_chem",
+   "Escape": "escape_menu",
+   "MouseLeft": "fire",
+   "x": "fire_select",
+   "LAlt": "free_lean",
+   "LShift": "walk",
+   "F2": "instant_surrender_target",
+   "z": "issue_default_command",
+   "Space": "jump",
+   "b": "melee",
+   "MouseMiddle": "open_swat_command",
+   "Tab": "open_tablet",
+   "h": "permanent_marker",
+   "v": "push_to_talk",
+   "g": "quick_throw",
+   "y": "ready_up",
+   "r": "reload_mag_check",
+   "e": "lean_right",
+   "p": "replay_pause",
+   "q": "lean_left",
+   "MouseRight": "secondary_use",
+   "F6": "select_element_blue",
+   "F5": "select_element_gold",
+   "F7": "select_element_red",
+   "8": "swat_input_key_eight",
+   "9": "swat_input_key_nine",
+   "7": "swat_input_key_seven",
+   "i": "switch_ammo_type",
+   "k": "team_chat",
+   "t": "team_view",
+   "o": "toggle_canted_sight",
+   "F3": "toggle_hud",
+   "f": "interact",
+   "n": "use_nvg",
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "CapsLock": "free_look"
   }
  },
  {
@@ -14899,12 +15432,31 @@
   "igdb_id": "228535",
   "default_key_mapping": {
    "w": "move_forward",
-   "s": "move_backward",
    "a": "move_left",
+   "s": "move_backward",
    "d": "move_right",
-   "Space": "dodge",
+   "LShift": "sprint",
+   "Space": "dodge_vault",
    "LAlt": "crouch",
-   "LShift": "sprint"
+   "MouseLeft": "shoot_or_melee",
+   "MouseRight": "aim",
+   "r": "reload",
+   "x": "switch_weapon",
+   "f": "weapon_mod",
+   "z": "scope",
+   "q": "ability_1",
+   "c": "ability_2",
+   "1": "relic",
+   "2": "item_slot_1",
+   "3": "item_slot_2",
+   "4": "item_slot_3",
+   "5": "item_slot_4",
+   "e": "interact",
+   "g": "ping",
+   "l": "flashlight",
+   "Tab": "menu",
+   "i": "inventory",
+   "m": "map"
   }
  },
  {
@@ -14978,7 +15530,35 @@
   "languages": [],
   "developer": null,
   "igdb_id": "20065",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "a": "move_left",
+   "s": "move_backward",
+   "d": "move_right",
+   "LShift": "run",
+   "e": "crouch_stand_evade",
+   "q": "quick_turn",
+   "MouseRight": "aim_weapon",
+   "MouseLeft": "attack",
+   "Space": "ready_knife_parry",
+   "f": "examine_pick_up_or_melee",
+   "r": "reload",
+   "g": "attach_remove_mines",
+   "LAlt": "scope_zoom",
+   "LControl": "command_ashley",
+   "1": "weapon_inner_1",
+   "2": "weapon_inner_2",
+   "3": "weapon_inner_3",
+   "4": "weapon_inner_4",
+   "5": "weapon_outer_1",
+   "6": "weapon_outer_2",
+   "7": "weapon_outer_3",
+   "8": "weapon_outer_4",
+   "MouseMiddle": "switch_weapon_inner_outer",
+   "Tab": "attache_case",
+   "v": "map",
+   "p": "pause_menu"
+  }
  },
  {
   "game": "Resident Evil 5",
@@ -15179,6 +15759,20 @@
   "languages": [],
   "developer": null,
   "igdb_id": "380960",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Retro Rewind: Video Store Simulator",
+  "perspective": "First Person",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "346334",
   "default_key_mapping": null
  },
  {
@@ -15541,7 +16135,28 @@
   ],
   "developer": "Teyon",
   "igdb_id": "154775",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "x": "change_fire_mode",
+   "Maysizda": "sprint",
+   "r": "reload",
+   "MouseRight": "aim",
+   "s": "move_back",
+   "Pestaa": "intranet",
+   "MouseLeft": "fire",
+   "w": "move_forward",
+   "e": "interact",
+   "a": "move_left",
+   "m": "map",
+   "h": "heal",
+   "v": "night_vision_mode",
+   "MouseMiddle": "melee_attack",
+   "q": "next_weapon",
+   "l": "inventory",
+   "f": "melee_attack",
+   "j": "journal",
+   "k": "skills",
+   "d": "move_right"
+  }
  },
  {
   "game": "Roboquest",
@@ -16366,6 +16981,20 @@
   }
  },
  {
+  "game": "Schedule Store Simulator",
+  "perspective": "First Person",
+  "genre": "Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "406767",
+  "default_key_mapping": null
+ },
+ {
   "game": "Scorn",
   "perspective": "First Person",
   "genre": "Puzzle",
@@ -16407,6 +17036,20 @@
   ],
   "developer": "Ebb Software",
   "igdb_id": "19817",
+  "default_key_mapping": null
+ },
+ {
+  "game": "SCP: Secret Laboratory",
+  "perspective": "First Person",
+  "genre": "Shooter, Role-playing (RPG), Strategy, Indie",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "70385",
   "default_key_mapping": null
  },
  {
@@ -16604,6 +17247,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Shadow of the Tomb Raider: Ultimate Edition",
+  "perspective": "",
+  "genre": "",
+  "mode": "",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "99123",
+  "default_key_mapping": null
+ },
+ {
   "game": "Shadow Warrior 2",
   "perspective": "First Person",
   "genre": "Shooter",
@@ -16648,6 +17305,34 @@
   "languages": [],
   "developer": "Flying Wild Hog",
   "igdb_id": "237681",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Shop Titans",
+  "perspective": "Third Person",
+  "genre": "Role-playing (RPG), Simulator, Adventure",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "119969",
+  "default_key_mapping": null
+ },
+ {
+  "game": "ShoppingMall: Manager Simulator",
+  "perspective": "First Person",
+  "genre": "Indie, Simulation",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": null,
   "default_key_mapping": null
  },
  {
@@ -17233,7 +17918,22 @@
   ],
   "developer": "Frictional Games",
   "igdb_id": "9727",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "a": "left",
+   "r": "rotate",
+   "s": "backward",
+   "f": "flashlight",
+   "Space": "jump",
+   "Controlizq": "crouch",
+   "w": "forward",
+   "e": "lean_right",
+   "RShift": "run",
+   "Tab": "inventory",
+   "q": "lean_left",
+   "MouseRight": "throw",
+   "MouseLeft": "interact",
+   "d": "right"
+  }
  },
  {
   "game": "Sons of the Forest",
@@ -18149,6 +18849,20 @@
   "languages": [],
   "developer": null,
   "igdb_id": "274920",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Supermarket Together",
+  "perspective": "First Person",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "311540",
   "default_key_mapping": null
  },
  {
@@ -19266,7 +19980,29 @@
   ],
   "developer": "Tango Gameworks",
   "igdb_id": "36813",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "r": "reload",
+   "d": "strafe_right",
+   "Space": "take_cover",
+   "e": "contextual_actions",
+   "1": "quick_access_1",
+   "Ctrlizq": "stealth",
+   "s": "move_backward",
+   "5": "item_assignment_5",
+   "7": "item_assignment_7",
+   "MouseLeft": "fire_throw",
+   "a": "strafe_left",
+   "MouseRight": "aim",
+   "Tab": "communicator_menu",
+   "3": "quick_access_3",
+   "w": "move_forward",
+   "4": "quick_access_4",
+   "f": "stealth_attack",
+   "8": "item_assignment_8",
+   "v": "use_flashlight",
+   "2": "quick_access_2",
+   "6": "item_assignment_6"
+  }
  },
  {
   "game": "The Exit 8",
@@ -19441,7 +20177,39 @@
   ],
   "developer": "Expansive Worlds",
   "igdb_id": "26381",
-  "default_key_mapping": null
+  "default_key_mapping": {
+   "w": "move_forward",
+   "s": "move_backward",
+   "a": "move_left",
+   "d": "move_right",
+   "LShift": "run",
+   "CapsLock": "toggle_run",
+   "g": "auto_walk",
+   "Space": "jump_stand_up",
+   "LControl": "crouch",
+   "z": "prone",
+   "MouseLeft": "fire_use_item",
+   "MouseRight": "aim",
+   "MouseMiddle": "toggle_sight",
+   "r": "reload",
+   "f": "use_ability",
+   "h": "holster_weapon_item",
+   "l": "headlamp",
+   "e": "interact",
+   "p": "camera",
+   "Tab": "hunter_notebook_huntermate",
+   "1": "weapon_item_slot_1",
+   "2": "weapon_item_slot_2",
+   "3": "weapon_item_slot_3",
+   "4": "weapon_item_slot_4",
+   "5": "weapon_item_slot_5",
+   "6": "weapon_item_slot_6",
+   "7": "weapon_item_slot_7",
+   "8": "weapon_item_slot_8",
+   "9": "weapon_item_slot_9",
+   "0": "weapon_item_slot_10",
+   "t": "open_chat"
+  }
  },
  {
   "game": "The Infected",
@@ -20674,6 +21442,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Tracks: The Train Set Game",
+  "perspective": "",
+  "genre": "Racing, Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "39748",
+  "default_key_mapping": null
+ },
+ {
   "game": "Trading Card Shop Simulator",
   "perspective": "First Person",
   "genre": "Simulator, Strategy, Indie",
@@ -20685,6 +21467,34 @@
   "languages": [],
   "developer": null,
   "igdb_id": "322504",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Train Crew",
+  "perspective": "",
+  "genre": "Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "182347",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Train Driver 2",
+  "perspective": "First Person",
+  "genre": "Simulator",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "176687",
   "default_key_mapping": null
  },
  {
@@ -22060,6 +22870,20 @@
   ],
   "developer": "Wargaming.net",
   "igdb_id": "1184",
+  "default_key_mapping": null
+ },
+ {
+  "game": "World of Tanks: Blitz",
+  "perspective": "Third Person",
+  "genre": "Shooter, Role-playing (RPG), Simulator, Strategy, Tactical",
+  "mode": "Multiplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "7393",
   "default_key_mapping": null
  },
  {

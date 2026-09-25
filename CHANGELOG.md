@@ -1,5 +1,42 @@
 # Changelog — Pleiada Recorder
 
+## V9.23 — 25/09/2026 — vuelve el audio del juego (por proceso) + exe del título sin wmic
+
+### Audio del juego por captura de proceso
+
+Desde la v0.9.15 el Recorder muteaba TODAS las fuentes de audio antes de grabar (privacidad:
+por el audio de escritorio entraba el chat de voz de Discord y similares). Efecto: ningún
+dataset grabado desde el 01-09-2026 tiene audio, y el MP4 llevaba una pista AAC en silencio
+(2,3 kbps) sin declararlo. Decisión de Martín del 25-09-2026: **capturar siempre el audio del
+título y decidir qué sale de casa por entrega** (las masivas van sin audio; los samples, con
+audio y después de escucharlos). Sin política por título ni detector de voz.
+
+- Al iniciar la grabación, `_obs_setup_game_audio()` crea o actualiza una fuente **"Audio del
+  juego"** (`wasapi_process_output_capture`, la "Captura de audio de aplicación" de OBS 28+)
+  apuntada al mismo `window` que `game_capture`, con prioridad por ejecutable. Queda desmuteada,
+  volumen 1,0, sin monitoreo. **"Audio del escritorio" y "Mic/Aux" siguen muteados.**
+- Nuevo bloque `audio` en `session_metadata.json`: `capture` (`application` | `none` + `reason`),
+  `target_process`, `target_window`, `desktop_capture`, `microphone`, y el **bitrate medido de la
+  pista de audio del MP4** (`bitrate_kbps`, `duration_s`, `codec`, `silent_suspected`). Se mide
+  leyendo las cajas del contenedor (`_meta_audio_info`, fMP4 y clásico), sin ffmpeg. Verificado:
+  MP4 mudos de la .22 → 2,3 kbps; MP4 con audio → 158 kbps.
+- Verificado contra OBS 32 real: la fuente se crea en la escena activa, se reutiliza en la
+  segunda grabación (no se duplica) y `game_capture` no se toca.
+
+### Exe del título sin wmic (PLE-216)
+
+`wmic` no existe en Windows 11 24H2/25H2: el 76 % de las sesiones subidas desde el 18-09 venían
+de esas máquinas. Al fallar, el plan B tomaba cualquier ventana con el nombre del título: el
+25-09 una ventana de Slack con un canal homónimo resolvió a `slack.exe` en dos PCs, y con eso
+salían mal `process_detected`, `game_version`, `engine`, el key mapping por config y `window_mode`.
+
+- `_meta_pids_by_exe()` (snapshot nativo `CreateToolhelp32Snapshot`) reemplaza a wmic en
+  `_meta_exe_path()` y `_meta_window_mode()`.
+- El plan B por título exige que la ventana pertenezca al **mismo exe que reporta OBS** y excluye
+  chats y launchers (Slack, Discord, Steam, Teams, WhatsApp, Telegram, Spotify, Epic, Battle.net, GOG).
+- `environment.gpus` se lee del **registro** (clase Display); wmic queda como último recurso.
+  Antes: `null` en 110 de 111 sesiones de Windows 11 24H2/25H2.
+
 ## V9.22 — 16/09/2026 — PLE-190 de verdad: OBS no guardaba el borrado del marcador
 
 QA reprodujo PLE-190 sobre la v0.9.21. Reproducido acá contra OBS 32 real: OBS escribe la

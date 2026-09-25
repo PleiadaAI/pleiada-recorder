@@ -17,11 +17,13 @@ import sync_markers        # v0.9.18: anclas medidas input<->video (T0 capture.s
 import input_devices       # v0.9.18: calibración de mouse/teclado (T0 input.device_metadata)
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.22"
+VERSION = "v0.9.23"
 
 # El objeto de marcadores de la grabación en curso. Vive a nivel módulo porque
 # build_session_metadata() es una función suelta y necesita el resumen al cerrar.
 _SYNC = {"obj": None}
+# v0.9.23: qué se hizo con el audio al arrancar la grabación (lo lee build_session_metadata).
+_AUDIO = {"info": None}
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 _frozen    = getattr(sys, "frozen", False)
@@ -1050,6 +1052,65 @@ def obs_check_status():
     ws.close()
     return is_recording, win_title, win_match, wrong_source
 
+OBS_GAME_AUDIO_SOURCE = "Audio del juego"   # nombre visible en OBS (la UI de OBS está en español)
+
+def _obs_setup_game_audio(ws, inputs=None):
+    """Crea o actualiza la fuente de captura de audio POR PROCESO apuntada al exe
+    que está capturando `game_capture`, y la deja activa. Retorna un dict que va
+    tal cual al metadata (`audio`), en inglés.
+
+    OBS: `wasapi_process_output_capture` acepta el mismo `window` que game_capture
+    ("Título:Clase:exe") y `priority` 2 = matchear por ejecutable, que es lo único
+    estable cuando el juego cambia el título de la ventana (mapa, nivel, versión).
+    La fuente queda en la escena entre sesiones; en la próxima grabación se le
+    reescribe el `window`. Nunca se toca "Audio del escritorio" ni "Mic/Aux".
+    """
+    if inputs is None:
+        inputs = (obs_send(ws, "GetInputList").get("d", {}).get("responseData", {})
+                  .get("inputs", []))
+    gc = next((i for i in inputs if i.get("inputKind") == "game_capture"), None)
+    window = ""
+    if gc:
+        st = obs_send(ws, "GetInputSettings", {"inputName": gc["inputName"]})
+        window = (st.get("d", {}).get("responseData", {}).get("inputSettings", {})
+                  .get("window", "") or "")
+    exe = next((_obs_unescape(p.strip()) for p in window.split(":")
+                if p.strip().lower().endswith(".exe")), "")
+    if not window or not exe:
+        _obs_dbg("audio del juego: game_capture sin window — no se crea la fuente")
+        return {"capture": "none", "reason": "game_capture window unknown"}
+
+    settings = {"window": window, "priority": 2}
+    existing = next((i for i in inputs
+                     if i.get("inputKind") == "wasapi_process_output_capture"), None)
+    try:
+        if existing:
+            name = existing["inputName"]
+            obs_send(ws, "SetInputSettings", {"inputName": name,
+                                              "inputSettings": settings, "overlay": True})
+        else:
+            name = OBS_GAME_AUDIO_SOURCE
+            scene = (obs_send(ws, "GetCurrentProgramScene").get("d", {})
+                     .get("responseData", {}).get("currentProgramSceneName", "Escena"))
+            r = obs_send(ws, "CreateInput", {
+                "sceneName": scene, "inputName": name,
+                "inputKind": "wasapi_process_output_capture",
+                "inputSettings": settings, "sceneItemEnabled": True})
+            ok = r.get("d", {}).get("requestStatus", {}).get("result", False)
+            if not ok:
+                comment = r.get("d", {}).get("requestStatus", {}).get("comment", "")
+                _obs_dbg(f"audio del juego: CreateInput falló: {comment}")
+                return {"capture": "none", "reason": f"CreateInput failed: {comment or 'unknown'}"}
+        obs_send(ws, "SetInputMute", {"inputName": name, "inputMuted": False})
+        obs_send(ws, "SetInputVolume", {"inputName": name, "inputVolumeMul": 1.0})
+        obs_send(ws, "SetInputAudioMonitorType", {"inputName": name,
+                                                  "monitorType": "OBS_MONITORING_TYPE_NONE"})
+        _obs_dbg(f"audio del juego: '{name}' -> {window}")
+        return {"capture": "application", "target_process": exe, "target_window": window}
+    except Exception as e:
+        _obs_dbg(f"audio del juego: error {e}")
+        return {"capture": "none", "reason": f"{type(e).__name__}: {e}"}
+
 def _obs_do_start():
     """Asume OBS ya está corriendo. Conecta, configura audio, envía StartRecord.
     Retorna True si la grabación arrancó, False si falló.
@@ -1058,19 +1119,16 @@ def _obs_do_start():
     try:
         ws = obs_connect()   # puede lanzar OBSAuthError — se deja propagar
 
-        # Mutear TODO el audio: escritorio y micrófono.
-        #
-        # El audio de escritorio se grababa a propósito (era la mejor señal para
-        # detectar disparo, muerte y fin de ronda, y para separar cinemática de
-        # gameplay). Se apaga por DECISIÓN de Martín del 30/08/2026, y el motivo es
-        # de privacidad, no técnico: por ahí entra chat de voz de terceros que nunca
-        # consintieron aparecer en un dataset. En las entregas, `voice_chat` pasa a
-        # declararse `not_captured` y el stream de audio `not_applicable` — o sea
-        # "decidimos no capturarlo", no "no pudimos".
-        #
-        # Lo que esto cuesta, para que quede escrito: las anotaciones de eventos y
-        # la separación cinemática/gameplay pasan a depender solo de input y video,
-        # con menos precisión.
+        # Audio, v0.9.23. Escritorio y micrófono siguen MUTEADOS (decisión del
+        # 30/08/2026: por el escritorio entra chat de voz de terceros — Discord,
+        # TeamSpeak — que nunca consintió aparecer en un dataset). Lo que cambia
+        # es que el audio DEL JUEGO vuelve, con una fuente de captura por proceso
+        # (`wasapi_process_output_capture`, "Captura de audio de aplicación" de
+        # OBS 28+) apuntada al mismo exe que captura `game_capture`. Entra la
+        # música y los efectos del título; no entra nada que reproduzca otro
+        # programa. Decisión de Martín del 25-09-2026: capturar siempre y decidir
+        # qué sale de casa en cada entrega (las masivas van sin audio; los samples,
+        # con audio y después de escucharlos). Sin política por título ni detector.
         try:
             resp   = obs_send(ws, "GetInputList")
             inputs = resp.get("d", {}).get("responseData", {}).get("inputs", [])
@@ -1079,8 +1137,10 @@ def _obs_do_start():
                 name = inp.get("inputName", "")
                 if kind in ("wasapi_output_capture", "wasapi_input_capture"):
                     obs_send(ws, "SetInputMute", {"inputName": name, "inputMuted": True})
+            _AUDIO["info"] = _obs_setup_game_audio(ws, inputs)
         except Exception as e:
             _obs_dbg(f"audio setup error: {e}")
+            _AUDIO["info"] = {"capture": "none", "reason": f"audio setup error: {type(e).__name__}"}
 
         # Forzar formato de grabación crash-safe (fragmented MP4).
         # Un MP4 clásico escribe el índice (moov) recién al finalizar: si OBS
@@ -2450,6 +2510,154 @@ def _meta_video_info(session_dir):
         _obs_dbg(f"_meta_video_info: {e}")
         return {}
 
+def _meta_audio_info(session_dir):
+    """Bitrate real de la pista de AUDIO del MP4, leyendo las cajas del contenedor
+    (sin ffmpeg, que no está en la máquina del miembro). Sirve para saber si el
+    audio se capturó de verdad: AAC-LC 48 kHz estéreo en silencio digital pesa
+    ~2-3 kbps; audio real, 100-160 kbps. Soporta fMP4 (moof/trun, lo que escribe
+    OBS) y MP4 clásico (stsz/stts). Retorna {} si no puede."""
+    try:
+        mp4s = list(session_dir.glob("*.mp4"))
+        if not mp4s:
+            return {}
+        import struct
+        path = str(mp4s[0])
+        size = os.path.getsize(path)
+        audio_tracks = {}      # track_id -> timescale
+        trex = {}              # track_id -> (default_duration, default_size)
+        bytes_tot = {}; dur_tot = {}
+        codec = None
+
+        def boxes(f, start, end):
+            pos = start
+            while pos + 8 <= end:
+                f.seek(pos)
+                hdr = f.read(8)
+                if len(hdr) < 8:
+                    return
+                sz, typ = struct.unpack(">I4s", hdr)
+                hsz = 8
+                if sz == 1:
+                    sz = struct.unpack(">Q", f.read(8))[0]; hsz = 16
+                elif sz == 0:
+                    sz = end - pos
+                if sz < hsz:
+                    return
+                yield pos, sz, typ.decode("latin1"), hsz
+                pos += sz
+
+        with open(path, "rb") as f:
+            # 1) moov: qué track es audio, timescale, trex, y stsz/stts si es clásico
+            for pos, sz, typ, hsz in boxes(f, 0, size):
+                if typ != "moov":
+                    continue
+                for p2, s2, t2, h2 in boxes(f, pos + hsz, pos + sz):
+                    if t2 == "mvex":
+                        for p3, s3, t3, h3 in boxes(f, p2 + h2, p2 + s2):
+                            if t3 == "trex":
+                                f.seek(p3 + h3 + 4)
+                                tid, _, dd, ds, _ = struct.unpack(">IIIII", f.read(20))
+                                trex[tid] = (dd, ds)
+                    if t2 != "trak":
+                        continue
+                    tid = None; handler = None; tscale = None; sizes_sum = None; dur_sum = None
+                    for p3, s3, t3, h3 in boxes(f, p2 + h2, p2 + s2):
+                        if t3 == "tkhd":
+                            f.seek(p3 + h3); ver = f.read(1)[0]
+                            f.seek(p3 + h3 + (4 + 8 + 8 if ver == 1 else 4 + 4 + 4))
+                            tid = struct.unpack(">I", f.read(4))[0]
+                        if t3 == "mdia":
+                            for p4, s4, t4, h4 in boxes(f, p3 + h3, p3 + s3):
+                                if t4 == "mdhd":
+                                    f.seek(p4 + h4); ver = f.read(1)[0]
+                                    f.seek(p4 + h4 + (4 + 8 + 8 if ver == 1 else 4 + 4 + 4))
+                                    tscale = struct.unpack(">I", f.read(4))[0]
+                                if t4 == "hdlr":
+                                    f.seek(p4 + h4 + 8); handler = f.read(4).decode("latin1")
+                                if t4 == "minf":
+                                    for p5, s5, t5, h5 in boxes(f, p4 + h4, p4 + s4):
+                                        if t5 != "stbl":
+                                            continue
+                                        for p6, s6, t6, h6 in boxes(f, p5 + h5, p5 + s5):
+                                            if t6 == "stsd":
+                                                f.seek(p6 + h6 + 8 + 4)
+                                                codec_here = f.read(4).decode("latin1")
+                                                if handler == "soun":
+                                                    codec = codec_here
+                                            if t6 == "stsz":
+                                                f.seek(p6 + h6 + 4)
+                                                ssz, cnt = struct.unpack(">II", f.read(8))
+                                                sizes_sum = ssz * cnt if ssz else sum(
+                                                    struct.unpack(">%dI" % cnt, f.read(4 * cnt)))
+                                            if t6 == "stts":
+                                                f.seek(p6 + h6 + 4)
+                                                n = struct.unpack(">I", f.read(4))[0]
+                                                ent = struct.unpack(">%dI" % (2 * n), f.read(8 * n))
+                                                dur_sum = sum(ent[i] * ent[i + 1] for i in range(0, 2 * n, 2))
+                    if handler == "soun" and tid is not None:
+                        audio_tracks[tid] = tscale or 0
+                        if sizes_sum:
+                            bytes_tot[tid] = bytes_tot.get(tid, 0) + sizes_sum
+                        if dur_sum:
+                            dur_tot[tid] = dur_tot.get(tid, 0) + dur_sum
+            if not audio_tracks:
+                return {"track": False}
+            # 2) moof/traf/trun (fMP4)
+            for pos, sz, typ, hsz in boxes(f, 0, size):
+                if typ != "moof":
+                    continue
+                for p2, s2, t2, h2 in boxes(f, pos + hsz, pos + sz):
+                    if t2 != "traf":
+                        continue
+                    tid = None; d_dur = None; d_size = None
+                    for p3, s3, t3, h3 in boxes(f, p2 + h2, p2 + s2):
+                        if t3 == "tfhd":
+                            f.seek(p3 + h3)
+                            flags = struct.unpack(">I", f.read(4))[0] & 0xFFFFFF
+                            tid = struct.unpack(">I", f.read(4))[0]
+                            if flags & 0x1: f.read(8)
+                            if flags & 0x2: f.read(4)
+                            if flags & 0x8: d_dur = struct.unpack(">I", f.read(4))[0]
+                            if flags & 0x10: d_size = struct.unpack(">I", f.read(4))[0]
+                            if tid in trex:
+                                d_dur = d_dur if d_dur is not None else trex[tid][0]
+                                d_size = d_size if d_size is not None else trex[tid][1]
+                        if t3 == "trun" and tid in audio_tracks:
+                            f.seek(p3 + h3)
+                            flags = struct.unpack(">I", f.read(4))[0] & 0xFFFFFF
+                            n = struct.unpack(">I", f.read(4))[0]
+                            if flags & 0x1: f.read(4)
+                            if flags & 0x4: f.read(4)
+                            per = ((4 if flags & 0x100 else 0) + (4 if flags & 0x200 else 0)
+                                   + (4 if flags & 0x400 else 0) + (4 if flags & 0x800 else 0))
+                            data = f.read(per * n)
+                            off = 0; b = 0; d = 0
+                            for _ in range(n):
+                                if flags & 0x100:
+                                    d += struct.unpack_from(">I", data, off)[0]; off += 4
+                                else:
+                                    d += d_dur or 0
+                                if flags & 0x200:
+                                    b += struct.unpack_from(">I", data, off)[0]; off += 4
+                                else:
+                                    b += d_size or 0
+                                if flags & 0x400: off += 4
+                                if flags & 0x800: off += 4
+                            bytes_tot[tid] = bytes_tot.get(tid, 0) + b
+                            dur_tot[tid] = dur_tot.get(tid, 0) + d
+        tid = next(iter(audio_tracks))
+        ts_ = audio_tracks[tid] or 0
+        dur_s = (dur_tot.get(tid, 0) / ts_) if ts_ else 0
+        kbps = round(bytes_tot.get(tid, 0) * 8 / dur_s / 1000, 1) if dur_s > 0 else None
+        return {"track": True, "codec": codec, "duration_s": round(dur_s, 2) if dur_s else None,
+                "bitrate_kbps": kbps,
+                # Umbral: el AAC de OBS en silencio digital mide 2,3 kbps; cualquier
+                # audio real supera 20 kbps. Es una sospecha, no un veredicto.
+                "silent_suspected": (kbps is not None and kbps < 8.0)}
+    except Exception as e:
+        _obs_dbg(f"_meta_audio_info: {e}")
+        return {}
+
 def _meta_hardware():
     """CPU, RAM, GPUs, resolución y refresh rate del monitor principal."""
     hw = {}
@@ -2472,21 +2680,53 @@ def _meta_hardware():
         hw["ram_gb"] = round(ms.ullTotalPhys / (1024 ** 3), 1)
     except Exception:
         hw["ram_gb"] = None
-    # GPUs via wmic (Windows 10/11, deprecado en 24H2 pero aún funcional)
+    # GPUs. v0.9.23: del registro (clase Display), que existe en todo Windows;
+    # wmic queda como último recurso porque no está en Windows 11 24H2/25H2 y
+    # dejaba `gpus: null` en 110 de 111 sesiones de esas máquinas (medido 25-09-2026).
+    hw["gpus"] = None
     try:
-        r = subprocess.run(
-            ["wmic", "path", "win32_VideoController", "get", "name,DriverVersion", "/format:csv"],
-            capture_output=True, text=True, timeout=8,
-            creationflags=subprocess.CREATE_NO_WINDOW
-        )
+        import winreg as _wr_gpu
         gpus = []
-        for line in r.stdout.strip().splitlines():
-            parts = [p.strip() for p in line.split(",")]
-            if len(parts) >= 3 and parts[2] and parts[2] != "Name":
-                gpus.append({"name": parts[2], "driver": parts[1]})
+        base = r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"
+        with _wr_gpu.OpenKey(_wr_gpu.HKEY_LOCAL_MACHINE, base) as k:
+            i = 0
+            while True:
+                try:
+                    sub = _wr_gpu.EnumKey(k, i)
+                except OSError:
+                    break
+                i += 1
+                if not sub.isdigit():
+                    continue
+                try:
+                    with _wr_gpu.OpenKey(k, sub) as sk:
+                        name = _wr_gpu.QueryValueEx(sk, "DriverDesc")[0]
+                        try:
+                            drv = _wr_gpu.QueryValueEx(sk, "DriverVersion")[0]
+                        except OSError:
+                            drv = None
+                        if name and not any(g["name"] == name for g in gpus):
+                            gpus.append({"name": name, "driver": drv})
+                except OSError:
+                    continue
         hw["gpus"] = gpus or None
     except Exception:
-        hw["gpus"] = None
+        pass
+    if not hw["gpus"]:
+        try:
+            r = subprocess.run(
+                ["wmic", "path", "win32_VideoController", "get", "name,DriverVersion", "/format:csv"],
+                capture_output=True, text=True, timeout=8,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            gpus = []
+            for line in r.stdout.strip().splitlines():
+                parts = [p.strip() for p in line.split(",")]
+                if len(parts) >= 3 and parts[2] and parts[2] != "Name":
+                    gpus.append({"name": parts[2], "driver": parts[1]})
+            hw["gpus"] = gpus or None
+        except Exception:
+            hw["gpus"] = None
     # Monitor — resolución
     try:
         hw["monitor_width"]  = ctypes.windll.user32.GetSystemMetrics(0)
@@ -2515,22 +2755,50 @@ def _meta_os():
 
 # ── Fase 2: helpers de detección ─────────────────────────────────────────────
 
-def _meta_exe_path(exe_name):
-    """Retorna la ruta completa del proceso exe_name via wmic, o None si no corre."""
+def _meta_pids_by_exe(exe_name):
+    """PIDs de los procesos cuyo ejecutable se llama exe_name (sin ruta), por
+    CreateToolhelp32Snapshot. v0.9.23: reemplaza a `wmic process where name=...`,
+    que no existe en Windows 11 24H2/25H2 (WMIC dejó de instalarse) — medido el
+    25-09-2026: el 76 % de las sesiones subidas venían de máquinas sin wmic."""
+    pids = []
     if not exe_name:
-        return None
+        return pids
     try:
-        r = subprocess.run(
-            ["wmic", "process", "where", f'name="{exe_name}"',
-             "get", "ExecutablePath", "/format:list"],
-            capture_output=True, text=True, timeout=5,
-            creationflags=subprocess.CREATE_NO_WINDOW
-        )
-        for line in r.stdout.splitlines():
-            if line.startswith("ExecutablePath=") and line[15:].strip():
-                return line[15:].strip()
+        TH32CS_SNAPPROCESS = 0x2
+        class _PE32(ctypes.Structure):
+            _fields_ = [("dwSize", ctypes.c_ulong), ("cntUsage", ctypes.c_ulong),
+                        ("th32ProcessID", ctypes.c_ulong),
+                        ("th32DefaultHeapID", ctypes.POINTER(ctypes.c_ulong)),
+                        ("th32ModuleID", ctypes.c_ulong), ("cntThreads", ctypes.c_ulong),
+                        ("th32ParentProcessID", ctypes.c_ulong),
+                        ("pcPriClassBase", ctypes.c_long), ("dwFlags", ctypes.c_ulong),
+                        ("szExeFile", ctypes.c_wchar * 260)]
+        k32 = ctypes.windll.kernel32
+        snap = k32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
+        if snap == ctypes.c_void_p(-1).value or not snap:
+            return pids
+        try:
+            pe = _PE32(); pe.dwSize = ctypes.sizeof(_PE32)
+            target = exe_name.lower()
+            if k32.Process32FirstW(snap, ctypes.byref(pe)):
+                while True:
+                    if pe.szExeFile.lower() == target:
+                        pids.append(int(pe.th32ProcessID))
+                    if not k32.Process32NextW(snap, ctypes.byref(pe)):
+                        break
+        finally:
+            k32.CloseHandle(snap)
     except Exception:
         pass
+    return pids
+
+def _meta_exe_path(exe_name):
+    """Retorna la ruta completa del proceso exe_name (debe estar corriendo), o None.
+    v0.9.23: snapshot nativo de procesos + QueryFullProcessImageNameW; sin wmic."""
+    for pid in _meta_pids_by_exe(exe_name):
+        path = _meta_pid_image_path(pid)
+        if path:
+            return path
     return None
 
 def _meta_pid_image_path(pid):
@@ -2584,9 +2852,18 @@ def _meta_find_game_exe_path(obs_window, game_name):
         "explorer.exe", "applicationframehost.exe", "searchhost.exe",
         "searchapp.exe", "shellexperiencehost.exe", "dwm.exe", "sihost.exe",
         "startmenuexperiencehost.exe", "textinputhost.exe", "code.exe",
-        "chrome.exe", "msedge.exe", "firefox.exe", "obs64.exe",
+        "chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe", "obs64.exe",
         "pythonw.exe", "python.exe", "autohotkey64.exe",
+        # v0.9.23: chats y launchers que suelen tener una ventana con el nombre del
+        # título (un canal #playground en Slack resolvió a slack.exe el 25-09-2026).
+        "slack.exe", "discord.exe", "steam.exe", "steamwebhelper.exe", "ms-teams.exe",
+        "teams.exe", "whatsapp.exe", "telegram.exe", "spotify.exe", "epicgameslauncher.exe",
+        "battle.net.exe", "galaxyclient.exe", "notepad.exe", "notepad++.exe",
     }
+    # v0.9.23: si OBS ya dijo qué exe captura, la ventana elegida tiene que
+    # pertenecer a ESE exe. Antes cualquier ventana con el nombre del título
+    # ganaba (y el orden de enumeración decidía si era el juego o un chat).
+    exe_lower = exe.lower() if exe else ""
 
     result = {"path": None}
 
@@ -2607,6 +2884,8 @@ def _meta_find_game_exe_path(obs_window, game_name):
             # descartar procesos shell/sistema (no son el juego)
             if path and os.path.basename(path).lower() in _SYS_EXE:
                 return True   # seguir buscando
+            if path and exe_lower and os.path.basename(path).lower() != exe_lower:
+                return True   # otro programa con el nombre del título en la ventana
             if path:
                 result["path"] = path
                 return False
@@ -2701,18 +2980,9 @@ def _meta_window_mode(exe_name):
     if not exe_name:
         return None
     try:
-        # Obtener PID
-        r = subprocess.run(
-            ["wmic", "process", "where", f'name="{exe_name}"',
-             "get", "ProcessId", "/format:list"],
-            capture_output=True, text=True, timeout=4,
-            creationflags=subprocess.CREATE_NO_WINDOW
-        )
-        target_pid = None
-        for line in r.stdout.splitlines():
-            if line.startswith("ProcessId=") and line[10:].strip():
-                target_pid = int(line[10:].strip())
-                break
+        # Obtener PID (v0.9.23: snapshot nativo, sin wmic)
+        _pids = _meta_pids_by_exe(exe_name)
+        target_pid = _pids[0] if _pids else None
         if not target_pid:
             return None
 
@@ -3720,6 +3990,21 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 # None si OBS no estaba disponible al cerrar la sesión.
                 # Hasta 1.2 se llamaba `encuadre` y venía en español.
                 "framing":        _en_framing(_meta_encuadre()),
+            },
+
+            # v0.9.23: qué se hizo con el audio y qué quedó en el MP4. `capture`
+            # = "application" (fuente por proceso apuntada al exe del título) o
+            # "none" con `reason`. `bitrate_kbps` se mide sobre la pista del MP4:
+            # ~2 kbps es silencio digital (lo que salía desde la v0.9.15).
+            "audio": {
+                **(dict(_AUDIO.get("info") or {"capture": "none", "reason": "not configured"})),
+                "desktop_capture": "muted",
+                "microphone":      "muted",
+                **_meta_audio_info(session_dir),
+                "notes": ("Game audio only: an OBS application-audio-capture source bound to "
+                          "the captured executable. Desktop audio and microphone are muted, so "
+                          "voice chat from other applications is not recorded; voice chat "
+                          "rendered by the title itself would be."),
             },
 
             "sync": {
