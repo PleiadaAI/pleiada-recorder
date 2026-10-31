@@ -17,7 +17,7 @@ import sync_markers        # v0.9.18: anclas medidas input<->video (T0 capture.s
 import input_devices       # v0.9.18: calibración de mouse/teclado (T0 input.device_metadata)
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.23"
+VERSION = "v0.9.24"
 
 # El objeto de marcadores de la grabación en curso. Vive a nivel módulo porque
 # build_session_metadata() es una función suelta y necesita el resumen al cerrar.
@@ -131,6 +131,9 @@ WIN_W, WIN_H = 420, 780
 # entry point; acá vale True porque a 100% siempre entra.
 TIPS_VISIBLES = True
 MAX_SECONDS  = 3900   # 1 h 5 min
+# Piso de la duración máxima configurable: con un tope igual o menor que el
+# mínimo de sesión, el auto-stop produciría sesiones que siempre se rechazan.
+MIN_MAX_SESSION_MINUTES = sync_limits.MIN_SESSION_MS // 60_000 + 1
 
 # Gate AFK: una sesión con más de este tiempo CONTINUO sin inputs (teclado/
 # mouse) se marca como no válida para subir. Caso real 20/07/26: 30 min
@@ -291,7 +294,7 @@ def list_local_sessions():
 DEFAULT_SETTINGS = {
     "hotkey_start": {"vk": 0x78, "label": "F9"},
     "hotkey_stop":  {"vk": 0x79, "label": "F10"},
-    "max_session_minutes": 60,    # v0.7.1: duración máx de sesión, clamp [1, 60] min
+    "max_session_minutes": 60,    # v0.7.1: duración máx de sesión, clamp [MIN_MAX_SESSION_MINUTES, 60] min
     "auto_restart":        False, # v0.7.1: reiniciar grabación tras auto-stop por tiempo
     # v0.9.18: DPI del mouse declarado por el usuario (el SO no lo expone). None =
     # no lo sabe. Va al metadata como `counts_per_inch` con source user_declared.
@@ -307,7 +310,7 @@ def load_settings():
         out.update({k: v for k, v in s.items() if k in DEFAULT_SETTINGS})
         # v0.7.1: clamp/coerción de los valores nuevos
         try:
-            out["max_session_minutes"] = max(1, min(60, int(out["max_session_minutes"])))
+            out["max_session_minutes"] = max(MIN_MAX_SESSION_MINUTES, min(60, int(out["max_session_minutes"])))
         except Exception:
             out["max_session_minutes"] = 60
         out["auto_restart"] = bool(out.get("auto_restart", False))
@@ -1818,7 +1821,7 @@ def run_sync_check(session_dir, progress_cb=None):
         "signed_diff":  None,
         "csv_dur":      None,
         "session_ok":   False,
-        "short_session": False,   # PLE-41: True si la sesión fue < 30 s
+        "short_session": False,   # PLE-41: True si la sesión no llegó a MIN_SESSION_MS
         "afk":           False,   # True si hubo > MAX_CONT_IDLE_MS seguidos sin inputs
         "longest_idle_s": None,
         "idle_fraccion": None,    # proporción de la sesión que ocupa ese hueco
@@ -1830,6 +1833,7 @@ def run_sync_check(session_dir, progress_cb=None):
         "eventos_input":     None,   # conteo crudo por CSV, para el registro interno
         "bitrate_kbps":      None,   # bitrate medio real del MP4 (video + audio)
         "bitrate_bajo":      False,  # ADVERTENCIA, no rechazo — ver is_bitrate_bajo
+        "video_spec_fallas": [],     # v0.9.24: resolución, aspecto o fps fuera de spec
     }
 
     csv_names   = ["mouse_log.csv", "mouse_delta_log.csv", "key_log.csv", "video_timeline.csv"]
@@ -1857,7 +1861,7 @@ def run_sync_check(session_dir, progress_cb=None):
     result["csvs_ok"] = all_csv_ok
 
     # PLE-41: duración mínima — sesiones muy cortas producen diffs ~0 que pasan el check
-    # incorrectamente aunque no haya juego grabado. Mínimo 30 segundos de sesión válida.
+    # incorrectamente aunque no haya juego grabado. El mínimo es sync_limits.MIN_SESSION_MS.
     if sync_limits.is_short_session(csv_dur):
         if progress_cb:
             for _i in range(5):
@@ -1916,6 +1920,12 @@ def run_sync_check(session_dir, progress_cb=None):
     result["bitrate_kbps"] = sync_limits.video_bitrate_kbps(str(video_path), video_dur)
     result["bitrate_bajo"] = sync_limits.is_bitrate_bajo(result["bitrate_kbps"])
 
+    # — Gate de spec de video (v0.9.24): mismo criterio que la capa A del QA —
+    result["video_spec_fallas"] = sync_limits.fallas_spec_video(
+        sync_limits.mp4_video_info(str(video_path)))
+    if result["video_spec_fallas"] and progress_cb:
+        progress_cb(4, "err")
+
     # — Gate de video quieto: pantalla negra o imagen congelada —
     # Complementa el gate AFK, que solo mira inputs: si el juego queda minimizado
     # o el game capture se cae, OBS graba negro mientras el jugador sigue
@@ -1963,7 +1973,8 @@ def run_sync_check(session_dir, progress_cb=None):
 
     result["session_ok"] = (result["csvs_ok"] and result["video_ok"]
                             and not result["afk"] and not result["video_still"]
-                            and not result["sin_input"])
+                            and not result["sin_input"]
+                            and not result["video_spec_fallas"])
     return result
 
 # ─── Packager ─────────────────────────────────────────────────────────────────
@@ -4015,6 +4026,7 @@ def build_session_metadata(session_dir, selected_game, sync_results, exe_path=""
                 "csv_dur_ms":     sync_results.get("csv_dur"),
                 "video_dur_ms":   sync_results.get("video_dur"),
                 "short_session":  sync_results.get("short_session", False),
+                "video_spec_failures": sync_results.get("video_spec_fallas", []),
                 "truncated":      sync_results.get("truncated", False),
                 "afk_rejected":   sync_results.get("afk", False),
                 # Los dos brazos del gate AFK, para que sync_verify.py pueda
@@ -4888,7 +4900,7 @@ class PleiadaApp:
 
     def _set_max_minutes(self, mins):
         try:
-            mins = max(1, min(60, int(mins)))
+            mins = max(MIN_MAX_SESSION_MINUTES, min(60, int(mins)))
         except Exception:
             return
         self._settings["max_session_minutes"] = mins
@@ -7860,8 +7872,13 @@ class PleiadaApp:
             icon_col = RED
             title    = "Sesión no apta para enviar"
             if results and results.get("short_session"):
-                # PLE-41: sesión demasiado corta
-                body = "La sesión duró menos de 30 segundos.\nGrabá al menos 30 segundos de gameplay para que los datos sean válidos."
+                # PLE-41: sesión demasiado corta. A diferencia del resto de los
+                # gates, este umbral SÍ se informa (decisión de Martín, 31-10-2026).
+                _min = sync_limits.min_session_texto()
+                body = (f"La sesión duró menos de {_min}.\n"
+                        f"Grabá al menos {_min} de gameplay para que los datos sean válidos.")
+            elif results and results.get("video_spec_fallas"):
+                body = sync_limits.mensaje_spec_video(results["video_spec_fallas"])
             elif results and results.get("video_still"):
                 # Gate de video quieto. Va ANTES que el de AFK: si disparan los
                 # dos, la causa real suele ser que OBS no estaba capturando, y
@@ -8785,6 +8802,15 @@ class PleiadaApp:
         juego = (session_uploader.session_meta(session_dir) or {}).get("game_title", "")
 
         def _worker(token=self.auth_token, juego=juego):
+            # v0.9.24: las sesiones grabadas antes de este build no pasaron el
+            # gate de spec, así que se mide acá, antes de dejarlas subir.
+            _mp4s = list(Path(session_dir).glob("*.mp4"))
+            _fallas = (sync_limits.fallas_spec_video(sync_limits.mp4_video_info(str(_mp4s[0])))
+                       if _mp4s else [])
+            if _fallas:
+                write_session_state(session_dir, valid=False)
+                self.root.after(0, lambda: self._upload_fuera_de_spec_view(return_to, _fallas))
+                return
             calls = None
             try:
                 calls = pleiada_api.my_calls(token)
@@ -8809,6 +8835,28 @@ class PleiadaApp:
                 self._upload_confirm_view(session_dir, return_to, del_backend)
             self.root.after(0, _done)
         threading.Thread(target=_worker, daemon=True).start()
+
+    def _upload_fuera_de_spec_view(self, return_to, fallas):
+        """La sesión no cumple la spec de video: se explica y no se sube."""
+        self._clear_content()
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        tk.Label(frame, text="Subir Data Set", fg=TEXT, bg=BG,
+                 font=("Segoe UI", 14, "bold"), anchor="w").pack(fill="x", pady=(0, 12))
+        notify = tk.Frame(frame, bg="#140606", highlightthickness=1,
+                          highlightbackground="#7a2020")
+        notify.pack(fill="x")
+        tk.Label(notify, text="✗  Sesión no apta para enviar", fg=RED, bg="#140606",
+                 font=("Segoe UI", 11, "bold"), anchor="w").pack(
+            fill="x", padx=14, pady=(10, 2))
+        tk.Label(notify, text=sync_limits.mensaje_spec_video(fallas), fg="#f0c0c0",
+                 bg="#140606", font=("Segoe UI", 10), anchor="w", justify="left",
+                 wraplength=WIN_W - 90).pack(fill="x", padx=14, pady=(0, 12))
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        tk.Button(frame, text="Volver", fg=DIM, bg=CARD, relief="flat", bd=0,
+                  cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
+                  activeforeground=TEXT, command=return_to, highlightthickness=1,
+                  highlightbackground=BORDER).pack(fill="x", ipady=10)
 
     def _upload_confirm_view(self, session_dir, return_to, calls_backend=None):
         self._clear_content()

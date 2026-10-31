@@ -30,7 +30,9 @@ nueva sobre sesiones que hoy suben, asi que queda como decision aparte.
 """
 
 import csv as _csv
+import json as _json
 import os as _os
+import re as _re
 import struct as _struct
 
 # ── Tolerancia CSV vs video ──────────────────────────────────────────────────
@@ -45,8 +47,23 @@ ENCODER_FLUSH_MAX_MS = 10_000   # hasta aca el excedente es flush del encoder;
                                 # por encima ya es arranque tardio del logger
 
 # ── Gates de sesion ──────────────────────────────────────────────────────────
-MIN_SESSION_MS   =  30_000   # PLE-41: sesiones muy cortas dan diff ~0 y pasan
-                             # el check sin que haya juego grabado
+MIN_SESSION_MS   = 300_000   # PLE-41: sesiones muy cortas dan diff ~0 y pasan
+                             # el check sin que haya juego grabado.
+                             # Subido de 30 s a 5 min en la v0.9.24 (31-10-2026,
+                             # decision de Martin). No es por calidad: en el
+                             # reporte por sesion de troveo-002 (2.486 sesiones)
+                             # el yield no cambia con la duracion. Es operativo:
+                             # la tolerancia de sync pasa a pesar a lo sumo 5% de
+                             # la sesion (15 s de 5 min) y el brazo absoluto del
+                             # gate AFK recien puede disparar desde los 5 min.
+                             # Costo medido sobre 6.389 subidas: 3,6% de las
+                             # sesiones y 0,2% de las horas.
+# EXCEPCION (31-10-2026, decision de Martin): las sesiones grabadas ANTES de la
+# v0.9.24 se siguen aceptando desde los 30 s, que es lo que el mensaje les pedia
+# a esos jugadores. La version sale de `recorder_version` en session_metadata.json.
+# sync_verify.py (server-side) aplica la misma excepcion.
+MIN_SESSION_LEGACY_MS     = 30_000
+MIN_SESSION_DESDE_VERSION = "v0.9.24"
 MAX_CONT_IDLE_MS = 300_000   # 5 min continuos sin input → sesion AFK.
                              # Bajado de 10 a 5 el 24-08-2026 para alinearlo con
                              # el servidor, que ya estaba en 5. Mientras estuvieron
@@ -200,6 +217,27 @@ VIDEO_QUIETO_RATIO_MAX = 0.95     # o casi toda la sesion quieta, para las
 # del falso positivo cuando se pase a calidad constante.
 BITRATE_PISO_KBPS = 4_000         # kbps totales (video + audio) del MP4
 
+# ── Spec de video (v0.9.24) ──────────────────────────────────────────────────
+# Mismos criterios que la capa A del QA server-side (paquetes.py, decision de
+# Martin del 12-08-2026): 1080p o mas, 16:9 o mas alto (16:10 entra, ultrawide
+# no) y 59 fps. El Recorder los aplica antes de subir para que el jugador no
+# gaste horas de upload en algo que el QA rechaza despues.
+# OJO: paquetes.py es una copia deliberada. Si se toca uno, va el otro.
+SPEC_ALTO_MIN    = 1080
+SPEC_FPS_MIN     = 59.0
+SPEC_ASPECTO_MAX = 1.80   # 16:9 = 1,778 · 16:10 = 1,60 · ultrawide 21:9 = 2,39
+
+# Textos ya aprobados: son los mismos del rechazo server-side (qa_status.py).
+SPEC_COPY = {
+    "resolution": ("La grabación no llega a la resolución mínima que pide el "
+                   "programa. Revisá la resolución de salida antes de grabar."),
+    "aspect_ratio": ("La grabación tiene una relación de aspecto que no podemos "
+                     "usar. Si grabás en un monitor ultrawide, configurá la "
+                     "captura en formato estándar."),
+    "fps": ("La grabación quedó por debajo de los cuadros por segundo mínimos. "
+            "Revisá la configuración de FPS antes de grabar."),
+}
+
 
 # ── Predicados ───────────────────────────────────────────────────────────────
 
@@ -228,9 +266,46 @@ def video_in_range(signed_diff_ms):
     return DIFF_MIN_MS <= signed_diff_ms <= DIFF_MAX_MS
 
 
-def is_short_session(csv_dur_ms):
+def _version_tupla(version):
+    return tuple(int(n) for n in _re.findall(r"\d+", str(version or "")))
+
+
+def session_recorder_version(session_dir):
+    """
+    Version del Recorder que grabo la sesion. None si no hay metadata (sesion
+    recien grabada, todavia sin escribirlo); "" si hay metadata sin version.
+    """
+    try:
+        with open(_os.path.join(str(session_dir), "session_metadata.json"),
+                  encoding="utf-8") as f:
+            return _json.load(f).get("recorder_version") or ""
+    except FileNotFoundError:
+        return None
+    except Exception:
+        return ""
+
+
+def min_session_ms(recorder_version=None):
+    """
+    Minimo aplicable a una sesion. None = sesion grabada por este build. Una
+    version vacia o previa a MIN_SESSION_DESDE_VERSION cae en la excepcion.
+    """
+    if recorder_version is None:
+        return MIN_SESSION_MS
+    if _version_tupla(recorder_version) < _version_tupla(MIN_SESSION_DESDE_VERSION):
+        return MIN_SESSION_LEGACY_MS
+    return MIN_SESSION_MS
+
+
+def min_session_texto(recorder_version=None):
+    """El minimo en palabras, para el mensaje al jugador."""
+    ms = min_session_ms(recorder_version)
+    return f"{ms // 60_000} minutos" if ms >= 60_000 else f"{ms // 1000} segundos"
+
+
+def is_short_session(csv_dur_ms, recorder_version=None):
     """True si la sesion es mas corta que el minimo (PLE-41)."""
-    return csv_dur_ms is not None and csv_dur_ms < MIN_SESSION_MS
+    return csv_dur_ms is not None and csv_dur_ms < min_session_ms(recorder_version)
 
 
 def idle_fraccion(longest_idle_seconds, session_dur_ms):
@@ -598,6 +673,122 @@ def mp4_duration_ms(path):
 
     except Exception:
         return None
+
+
+def _muestras_fragmentado(f, size, track_id, trex_dur):
+    """(cantidad de muestras, duracion total) del track, recorriendo moof/trun."""
+    muestras, duracion, pos = 0, 0, 0
+    while pos < size:
+        box_fin, btype, datos = _next_box(f, pos, size)
+        if box_fin is None:
+            break
+        if btype == b'moof':
+            for traf, traf_fin in _find_all(f, datos, box_fin, b'traf'):
+                tfhd, _ = _find_box(f, traf, traf_fin, b'tfhd')
+                if tfhd is None:
+                    continue
+                f.seek(tfhd)
+                f.read(1)
+                fl = f.read(3)
+                flags = (fl[0] << 16) | (fl[1] << 8) | fl[2]
+                if _struct.unpack('>I', f.read(4))[0] != track_id:
+                    continue
+                if flags & 0x000001: f.read(8)
+                if flags & 0x000002: f.read(4)
+                dur_def = (_struct.unpack('>I', f.read(4))[0]
+                           if flags & 0x000008 else trex_dur)
+                for trun, _ in _find_all(f, traf, traf_fin, b'trun'):
+                    f.seek(trun)
+                    f.read(1)
+                    fl = f.read(3)
+                    t = (fl[0] << 16) | (fl[1] << 8) | fl[2]
+                    n = _struct.unpack('>I', f.read(4))[0]
+                    if t & 0x001: f.read(4)
+                    if t & 0x004: f.read(4)
+                    muestras += n
+                    if not t & 0x100:
+                        duracion += n * dur_def
+                        continue
+                    ancho = 4 * (1 + sum(bool(t & b) for b in (0x200, 0x400, 0x800)))
+                    crudo = f.read(n * ancho)
+                    for i in range(0, len(crudo), ancho):
+                        duracion += _struct.unpack_from('>I', crudo, i)[0]
+        pos = box_fin
+    return muestras, duracion
+
+
+def mp4_video_info(path):
+    """
+    {"ancho", "alto", "fps"} leidos de las cajas del MP4, o None si no se puede.
+    El fps es muestras / duracion, igual que el avg_frame_rate de ffprobe que usa
+    el QA. Sin dependencias: el Synch Checker y la app lo corren sobre el MP4
+    fragmentado de OBS y tambien sobre MP4 estandar o hibrido de versiones viejas.
+    """
+    try:
+        fsize = _os.path.getsize(path)
+        with open(path, 'rb') as f:
+            moov, moov_fin = _find_moov(f, fsize)
+            if moov is None:
+                return None
+            mdia, mdia_fin, track_id, timescale = _trak_video(f, moov, moov_fin)
+            if mdia is None:
+                return None
+            minf, minf_fin = _find_box(f, mdia, mdia_fin, b'minf')
+            stbl, stbl_fin = _find_box(f, minf, minf_fin, b'stbl')
+            stsd, _ = _find_box(f, stbl, stbl_fin, b'stsd')
+            if stsd is None:
+                return None
+            # stsd: version/flags + cantidad + entrada; ancho y alto estan a 32
+            # bytes del inicio de la entrada visual.
+            f.seek(stsd + 8 + 32)
+            ancho, alto = _struct.unpack('>HH', f.read(4))
+
+            trex_dur = 0
+            mvex, mvex_fin = _find_box(f, moov, moov_fin, b'mvex')
+            if mvex is not None:
+                for trex, _ in _find_all(f, mvex, mvex_fin, b'trex'):
+                    f.seek(trex + 4)
+                    tid, _desc, dur = _struct.unpack('>III', f.read(12))
+                    if tid == track_id:
+                        trex_dur = dur
+
+            muestras, duracion = _muestras_fragmentado(f, fsize, track_id, trex_dur)
+            if not muestras:
+                stts, _ = _find_box(f, stbl, stbl_fin, b'stts')
+                if stts is not None:
+                    f.seek(stts + 4)
+                    n = _struct.unpack('>I', f.read(4))[0]
+                    for _i in range(n):
+                        cuenta, delta = _struct.unpack('>II', f.read(8))
+                        muestras += cuenta
+                        duracion += cuenta * delta
+        fps = round(muestras * timescale / duracion, 3) if duracion else None
+        return {"ancho": ancho or None, "alto": alto or None, "fps": fps}
+    except Exception:
+        return None
+
+
+def fallas_spec_video(info):
+    """
+    Que requisitos de la spec no cumple el video: subconjunto de "resolution",
+    "aspect_ratio" y "fps". Lo que no se pudo medir no falla: el QA server-side
+    lo vuelve a medir con ffprobe y un error de parseo no debe frenar una sesion.
+    """
+    if not info:
+        return []
+    fallas = []
+    ancho, alto, fps = info.get("ancho"), info.get("alto"), info.get("fps")
+    if alto and alto < SPEC_ALTO_MIN:
+        fallas.append("resolution")
+    elif ancho and alto and ancho / alto > SPEC_ASPECTO_MAX:
+        fallas.append("aspect_ratio")
+    if fps and fps < SPEC_FPS_MIN:
+        fallas.append("fps")
+    return fallas
+
+
+def mensaje_spec_video(fallas):
+    return "\n".join(SPEC_COPY[x] for x in fallas if x in SPEC_COPY)
 
 
 def _ventanas_fragmentado(f, size, track_id, timescale):

@@ -1,5 +1,35 @@
 # Changelog — Pleiada Recorder
 
+## V9.24 — 31/10/2026 — mínimo de 5 minutos + spec de video antes de subir (MANDATORIA)
+
+### Duración mínima de sesión: 5 minutos
+
+`MIN_SESSION_MS` pasa de 30 s a 5 min. No es por calidad: en el reporte por sesión de
+troveo-002 el yield no cambia con la duración. Es operativo: la tolerancia de sync pesa a lo
+sumo 5% de la sesión y el brazo absoluto del gate AFK recién puede disparar desde los 5 min.
+Costo medido sobre 6.389 subidas: 3,6% de las sesiones y 0,2% de las horas.
+
+El mensaje informa el mínimo, a diferencia del resto de los gates (decisión de Martín).
+
+**Excepción:** lo grabado antes de la v0.9.24 se acepta desde los 30 s, que es lo que el
+mensaje les pedía a esos jugadores. La versión sale de `recorder_version` en el metadata.
+La aplican el Synch Checker y `sync_verify.py`. Esas sesiones no se revalidan al subir.
+
+### Resolución, aspecto y FPS antes de subir
+
+Mismos criterios que la capa A del QA (`paquetes.py`): alto ≥ 1080, ancho/alto ≤ 1,80 y
+fps ≥ 59. Se chequea al cerrar la sesión, en el Synch Checker y al apretar "Subir"; este
+último cubre lo grabado con versiones anteriores. `mp4_video_info` lee las cajas del MP4 sin
+dependencias, y coincidió con ffprobe en 22 grabaciones reales. Lo que no se puede medir no
+rechaza: lo vuelve a medir el QA. Los textos son los del rechazo server-side.
+
+El metadata suma `sync.video_spec_failures`.
+
+### Tope de duración
+
+`max_session_minutes` pasa de piso 1 a piso 6, para que un valor guardado no produzca
+sesiones que siempre se rechazan.
+
 ## V9.23 — 25/09/2026 — vuelve el audio del juego (por proceso) + exe del título sin wmic
 
 ### Audio del juego por captura de proceso

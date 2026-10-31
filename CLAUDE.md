@@ -136,6 +136,12 @@ Consecuencia operativa: `pleiada_sync_limits.py` tiene que estar en `[Files]` de
 server-side) repite los mismos umbrales a mano. No hay import entre repos. **Si cambian acá,
 cambiarlos allá.**
 
+Lo mismo con la spec de video (`SPEC_ALTO_MIN`, `SPEC_FPS_MIN`, `SPEC_ASPECTO_MAX`) y
+`Pleiada Tools\qa_muestreo\troveo\paquetes.py`.
+
+**Mínimo de sesión con excepción por versión:** desde la v0.9.24 son 5 min, pero lo grabado
+antes se acepta desde 30 s (`min_session_ms(recorder_version)`). `sync_verify.py` lo espeja.
+
 ---
 
 ## 5. Auto-update y releases
@@ -170,7 +176,7 @@ Está todo en **`COMO_PUBLICAR_ACTUALIZACIONES.md`** — leerlo antes de publica
 
 - **Confirmar el copy con Martín antes de implementarlo.** Cualquier frase nueva que ve el
   usuario se aprueba antes.
-- **Los mensajes al usuario nunca revelan umbrales.** Rechazos por duración, inactividad o
+- **Los mensajes al usuario nunca revelan umbrales** (única excepción: la duración mínima, que sí se informa). Rechazos por duración, inactividad o
   imagen quieta se explican en genérico; el valor medido va al registro interno / metadata.
 - **Nunca pushear, publicar ni deployar sin OK explícito de Martín, cada vez.**
 - **QA antes de producción:** todo cambio pasa por test manual antes del push (que, por §5,

@@ -150,6 +150,7 @@ def run_analysis(video, mouse, delta, key, timeline):
     afk           = False   # gate de inactividad continua
     still         = None    # medida de imagen quieta (None si no se pudo leer)
     video_still   = False   # gate de video quieto (negro / congelado)
+    fallas_spec   = []      # gate de spec de video (resolucion, aspecto, fps)
 
     add("GAMEPLAY RECORDER — Reporte de sincronización", ACCENT)
     add()
@@ -200,9 +201,11 @@ def run_analysis(video, mouse, delta, key, timeline):
     csv_dur       = sync_limits.csv_duration_ms(
         [(r.get("start_ts"), r.get("end_ts")) for r in results]
     )
-    short_session = sync_limits.is_short_session(csv_dur)
-
     _folder = next((os.path.dirname(p) for p in (mouse, delta, key, timeline) if p), None)
+    # La version define el minimo: las sesiones previas a la v0.9.24 entran con el viejo.
+    version = sync_limits.session_recorder_version(_folder) if _folder else None
+    short_session = sync_limits.is_short_session(csv_dur, version)
+
     if _folder and starts and ends:
         act = sync_limits.activity(_folder, min(starts), max(ends))
     afk = bool(act and sync_limits.is_afk(act.get("longest_idle_seconds"), csv_dur))
@@ -220,6 +223,8 @@ def run_analysis(video, mouse, delta, key, timeline):
     if video:
         still = sync_limits.video_stillness(video)
     video_still = sync_limits.is_video_still(still)
+    if video:
+        fallas_spec = sync_limits.fallas_spec_video(sync_limits.mp4_video_info(video))
 
     add()
     add("Actividad", ACCENT)
@@ -305,8 +310,16 @@ def run_analysis(video, mouse, delta, key, timeline):
         # ENVIAR" sobre sesiones que run_sync_check rechazaba.
         add(SEP, ERR_COLOR)
         add("⚠   SESIÓN NO APTA PARA ENVIAR", ERR_COLOR)
-        add("    La sesión no llegó al mínimo de duración para enviar.", ERR_COLOR)
-        add("    Por favor grabá una sesión más larga.", ERR_COLOR)
+        _min = sync_limits.min_session_texto(version)
+        add(f"    La sesión duró menos de {_min}.", ERR_COLOR)
+        add(f"    Grabá al menos {_min} de gameplay para que los datos sean válidos.", ERR_COLOR)
+        add(SEP, ERR_COLOR)
+
+    elif fallas_spec:
+        add(SEP, ERR_COLOR)
+        add("⚠   SESIÓN NO APTA PARA ENVIAR", ERR_COLOR)
+        for _linea in sync_limits.mensaje_spec_video(fallas_spec).split("\n"):
+            add(f"    {_linea}", ERR_COLOR)
         add(SEP, ERR_COLOR)
 
     elif video_still:
