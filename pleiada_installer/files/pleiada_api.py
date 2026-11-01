@@ -56,6 +56,12 @@ def request_otp(email):
     _call("request_otp", {"email": email})
 
 
+def verify_otp_con_nombre(email, code):
+    """Verifica el código. Devuelve (token, nombre de usuario). Lanza ApiError si falla."""
+    r = _call("verify_otp", {"email": email, "code": code})
+    return r["token"], (r.get("nombre") or "").strip()
+
+
 def verify_otp(email, code):
     """Verifica el código. Devuelve el token de sesión. Lanza ApiError si falla."""
     r = _call("verify_otp", {"email": email, "code": code})

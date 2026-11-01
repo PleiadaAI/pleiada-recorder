@@ -1,5 +1,31 @@
 # Changelog — Pleiada Recorder
 
+## V10.0 — 01/11/2026 — rediseño visual Neón (MANDATORIA si pasa el QA externo)
+
+Incluye todo lo de la V9.24, que nunca se publicó por separado.
+
+### Interfaz
+
+- Paleta Neón: fondo oscuro violeta, tarjetas redondeadas, degradé violeta a rosa en botones
+  principales y en el encabezado, cian solo para detalles y enlaces.
+- La app sigue en Tkinter + Pillow. `Boton` y `Caja` reemplazan a `tk.Button` y a los `tk.Frame`
+  con borde, con la misma interfaz, así que la lógica de las pantallas no cambió. Si Pillow no
+  está disponible, caen a color plano.
+- Barra de título con logo y degradé. El usuario pasa a un chip de sesión en la pantalla principal,
+  con el nombre que devuelve `verify_otp` y lo que va antes de la @ como respaldo. Una sesión ya
+  iniciada muestra la parte del email hasta el próximo login.
+- Grabando: el tiempo restante va debajo del contador grande.
+- Cuentas regresivas con anillo fijo.
+- Sin animaciones nuevas: el degradé de los botones es fijo, hasta aclarar el cierre con error
+  de Tcl visto en una prueba del prototipo.
+- Ventana de 790 px de alto y barra de 46 px: el contenido conserva su alto.
+
+### Copy
+
+- Tips, resultado de la sesión, oferta y modal del bono, identificación del título y subida, según
+  el lienzo de diseño aprobado por Martín. Se quitaron el monto y el 25 % de la oferta y del modal.
+- "Más tarde" sale del aviso de actualización.
+
 ## V9.24 — 31/10/2026 — mínimo de 5 minutos + spec de video antes de subir (MANDATORIA)
 
 ### Duración mínima de sesión: 5 minutos

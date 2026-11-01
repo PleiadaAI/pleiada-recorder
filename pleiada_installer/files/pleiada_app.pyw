@@ -17,7 +17,7 @@ import sync_markers        # v0.9.18: anclas medidas input<->video (T0 capture.s
 import input_devices       # v0.9.18: calibración de mouse/teclado (T0 input.device_metadata)
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.9.24"
+VERSION = "v0.10.0"
 
 # El objeto de marcadores de la grabación en curso. Vive a nivel módulo porque
 # build_session_metadata() es una función suelta y necesita el resumen al cerrar.
@@ -102,19 +102,21 @@ def _tk_callback_excepthook(exc, val, tb):
     _crashlog("GUI callback exception:\n" + "".join(traceback.format_exception(exc, val, tb)))
 
 # ─── Design tokens ────────────────────────────────────────────────────────────
-BG      = "#0d0d18"
-BG2     = "#0a0a12"
-CARD    = "#13132a"
-CARD2   = "#181838"
-ACCENT  = "#7c6fcd"
-TEXT    = "#e8e8f0"
-DIM     = "#7b78a8"
-DIMMER  = "#4f4d75"
+BG      = "#0e0b24"
+BG2     = "#0a0819"
+CARD    = "#1b1540"
+CARD2   = "#241c52"
+ACCENT  = "#7c3aed"
+TEXT    = "#f4f2ff"
+DIM     = "#a9a4d6"
+DIMMER  = "#8f89c4"
 GREEN   = "#3ecf8e"
 YELLOW  = "#febc2e"
 RED     = "#e05555"
-BORDER  = "#2a2850"
-BORDER2 = "#1f1d3d"
+BORDER  = "#3a2d78"
+BORDER2 = "#2a2158"
+ROSA    = "#db2777"
+CIAN    = "#22d3ee"
 
 # Alto: la barra de título propia mide 38 px fijos y la vista de Ajustes pide 681,
 # así que con 640 el botón de Cerrar sesión quedaba FUERA de la ventana (reportado
@@ -125,7 +127,7 @@ BORDER2 = "#1f1d3d"
 # v0.9.17: 730 -> 780. Con la tarjeta del bono, la pantalla de resultado y el
 # paso 1 del aporte quedaban cortados por abajo en la app real (la barra de
 # título propia se come ~44 px que el smoke test no tenía).
-WIN_W, WIN_H = 420, 780
+WIN_W, WIN_H = 420, 790
 # PLE-161: en pantallas muy escaladas la ventana no entra entera y el panel de
 # tips se oculta para que el pie no quede afuera. Lo decide el bloque de DPI del
 # entry point; acá vale True porque a 100% siempre entra.
@@ -150,12 +152,12 @@ def load_auth():
     except Exception:
         return None
 
-def save_auth(email, token):
+def save_auth(email, token, nombre=""):
     """Guarda email + token de sesión. Si token es vacío, borra el archivo."""
     AUTH_FILE.parent.mkdir(parents=True, exist_ok=True)
     if token:
         with open(AUTH_FILE, "w", encoding="utf-8") as f:
-            json.dump({"email": email, "token": token}, f)
+            json.dump({"email": email, "token": token, "nombre": nombre}, f)
     else:
         AUTH_FILE.unlink(missing_ok=True)
 
@@ -4110,6 +4112,288 @@ def _mk_section_label(parent, text):
     lbl.pack(fill="x", pady=(0, 6))
     return lbl
 
+
+# ─── Widgets Neón ─────────────────────────────────────────────────────────────
+#
+# Tk no tiene degradés ni esquinas redondeadas, así que se dibujan con Pillow y se
+# muestran como imagen de fondo. Las imágenes se generan solo cuando cambia el
+# tamaño y quedan en caché: no hay nada corriendo mientras se graba. Si Pillow no
+# está, todo cae a color plano y la app sigue funcionando igual.
+
+_NEON_CACHE = {}
+
+
+def _rgb(c):
+    return tuple(int(c[i:i + 2], 16) for i in (1, 3, 5))
+
+
+def _neon_img(w, h, r, fondo, relleno, borde=None, neon=False, grueso=1):
+    """Rectángulo redondeado con antialias. `relleno` None = degradé violeta a rosa."""
+    clave = (w, h, r, fondo, relleno, borde, neon, grueso)
+    if clave in _NEON_CACHE:
+        return _NEON_CACHE[clave]
+    from PIL import Image, ImageDraw, ImageTk
+
+    def mascara(a, b, x=0, y=0):
+        m = Image.new("L", (w * 4, h * 4), 0)
+        ImageDraw.Draw(m).rounded_rectangle(
+            (x * 4, y * 4, (x + a) * 4 - 1, (y + b) * 4 - 1), max(0, r - x) * 4, fill=255)
+        return m.resize((w, h), Image.LANCZOS)
+
+    def degrade(c1, c2):
+        a, b = _rgb(c1), _rgb(c2)
+        tira = Image.new("RGB", (w, 1))
+        tira.putdata([tuple(int(a[i] + (b[i] - a[i]) * x / max(1, w - 1)) for i in range(3))
+                      for x in range(w)])
+        return tira.resize((w, h))
+
+    im = Image.new("RGB", (w, h), _rgb(fondo))
+    if relleno is None:
+        im.paste(degrade(ACCENT, ROSA), (0, 0), mascara(w, h))
+    else:
+        if neon:
+            im.paste(degrade(ACCENT, CIAN), (0, 0), mascara(w, h))
+        elif borde:
+            im.paste(Image.new("RGB", (w, h), _rgb(borde)), (0, 0), mascara(w, h))
+        g = grueso if (neon or borde) else 0
+        im.paste(Image.new("RGB", (w, h), _rgb(relleno)), (0, 0),
+                 mascara(w - g * 2, h - g * 2, g, g))
+    if len(_NEON_CACHE) > 300:
+        _NEON_CACHE.clear()
+    foto = ImageTk.PhotoImage(im)
+    _NEON_CACHE[clave] = foto
+    return foto
+
+
+class Boton(tk.Canvas):
+    """Botón redondeado con la misma interfaz de tk.Button que usa la app.
+
+    `bg=ACCENT` es el botón principal y se dibuja con el degradé. Cualquier otro
+    color es relleno sólido, con `highlightbackground` como borde.
+    """
+
+    _PROPIAS = ("text", "fg", "bg", "state", "command", "font", "highlightbackground",
+                "highlightthickness", "activebackground", "activeforeground", "relief", "bd",
+                "padx", "pady", "disabledforeground", "takefocus", "width", "height", "anchor",
+                "justify", "wraplength", "overrelief", "compound")
+
+    def __init__(self, parent, **kw):
+        self._text = kw.get("text", "")
+        self._fg = kw.get("fg", TEXT)
+        self._bg = kw.get("bg", CARD)
+        self._font = kw.get("font", ("Segoe UI", 10))
+        self._state = kw.get("state", "normal")
+        self._command = kw.get("command")
+        self._borde = kw.get("highlightbackground") if kw.get("highlightthickness") else None
+        self._encima = False
+        self._radio = 10
+        fondo = parent.cget("bg")
+        f = tkfont.Font(font=self._font)
+        ancho = f.measure(self._text) + 24
+        if kw.get("width"):
+            ancho = max(ancho, int(kw["width"]) * f.measure("0") + 16)
+        alto = f.metrics("linespace") + 2 * max(6, int(kw.get("pady", 0) or 0))
+        super().__init__(parent, width=ancho, height=alto, bg=fondo, bd=0,
+                         highlightthickness=0, takefocus=0, cursor=kw.get("cursor", "hand2"))
+        self._img = self.create_image(0, 0, anchor="nw")
+        self._txt = self.create_text(ancho // 2, alto // 2, text=self._text, fill=self._fg,
+                                     font=self._font)
+        self.bind("<Configure>", lambda e: self._pintar())
+        self.bind("<Enter>", lambda e: self._hover(True))
+        self.bind("<Leave>", lambda e: self._hover(False))
+        self.bind("<ButtonRelease-1>", self._click)
+        self._pintar()
+
+    def _hover(self, valor):
+        self._encima = valor
+        self._pintar()
+
+    def _click(self, e):
+        if self._state != "disabled" and self._command \
+                and 0 <= e.x < self.winfo_width() and 0 <= e.y < self.winfo_height():
+            self._command()
+
+    def invoke(self):
+        if self._state != "disabled" and self._command:
+            self._command()
+
+    def _pintar(self):
+        w, h = self.winfo_width(), self.winfo_height()
+        if w < 4 or h < 4:
+            return
+        self.coords(self._txt, w // 2, h // 2)
+        apagado = self._state == "disabled"
+        self.itemconfigure(self._txt, text=self._text, font=self._font,
+                           fill=DIMMER if apagado else self._fg)
+        fondo = self.cget("bg")
+        principal = self._bg == ACCENT and not apagado
+        plano = self._bg == fondo
+        relleno = None if principal else (CARD if apagado and not plano else self._bg)
+        if self._encima and not apagado and not plano and not principal:
+            relleno = CARD2
+        borde = self._borde or (BORDER if not principal and not plano else None)
+        if plano:
+            self.itemconfigure(self._img, state="hidden")
+            return
+        try:
+            foto = _neon_img(w, h, self._radio, fondo, relleno, borde)
+            self.itemconfigure(self._img, image=foto, state="normal")
+        except Exception:
+            self.configure_lienzo(bg=ACCENT if principal else (relleno or CARD))
+
+    def configure_lienzo(self, **kw):
+        tk.Canvas.configure(self, **kw)
+
+    def configure(self, cnf=None, **kw):
+        kw.update(cnf or {})
+        propias = {k: kw.pop(k) for k in list(kw) if k in self._PROPIAS}
+        if "text" in propias:
+            self._text = propias["text"]
+        if "fg" in propias:
+            self._fg = propias["fg"]
+        if "bg" in propias:
+            self._bg = propias["bg"]
+        if "font" in propias:
+            self._font = propias["font"]
+        if "state" in propias:
+            self._state = propias["state"]
+        if "command" in propias:
+            self._command = propias["command"]
+        if "highlightbackground" in propias:
+            self._borde = propias["highlightbackground"]
+        if kw:
+            tk.Canvas.configure(self, **kw)
+        if propias:
+            self._pintar()
+
+    config = configure
+
+    def cget(self, key):
+        propias = {"text": self._text, "fg": self._fg, "state": self._state,
+                   "command": self._command}
+        return propias[key] if key in propias else tk.Canvas.cget(self, key)
+
+    __getitem__ = cget
+
+
+class Caja(tk.Frame):
+    """Frame con esquinas redondeadas y la misma interfaz que usaba la app.
+
+    El fondo es un Label detrás de los hijos; `padx`/`pady` dejan libres las
+    esquinas. Un borde ACCENT se dibuja con el degradé violeta a cian.
+    """
+
+    def __init__(self, parent, **kw):
+        self._borde = kw.pop("highlightbackground", BORDER)
+        kw.pop("highlightthickness", None)
+        kw.pop("relief", None)
+        kw.pop("bd", None)
+        kw.setdefault("padx", 5)
+        kw.setdefault("pady", 5)
+        super().__init__(parent, **kw)
+        self._fondo = None
+        self.bind("<Configure>", lambda e: self._pintar())
+
+    def _crear_fondo(self):
+        if self._fondo is not None and self._fondo.winfo_exists():
+            return
+        self._fondo = tk.Label(self, bd=0, highlightthickness=0, bg=self.cget("bg"))
+        self._fondo.place(x=0, y=0, relwidth=1, relheight=1, bordermode="outside")
+        self._fondo.lower()
+        self._fondo.bind("<Destroy>", lambda e: self.after_idle(self._revivir))
+
+    def _revivir(self):
+        try:
+            if self.winfo_exists():
+                self._pintar()
+        except tk.TclError:
+            pass
+
+    def _pintar(self):
+        w, h = self.winfo_width(), self.winfo_height()
+        if w < 4 or h < 4:
+            return
+        try:
+            neon = self._borde == ACCENT
+            foto = _neon_img(w, h, 12, self.master.cget("bg"), self.cget("bg"),
+                             None if neon else self._borde, neon, 2 if neon else 1)
+            self._crear_fondo()
+            self._fondo.configure(image=foto)
+        except tk.TclError:
+            pass
+        except Exception:
+            pass
+
+    def configure(self, cnf=None, **kw):
+        kw.update(cnf or {})
+        kw.pop("highlightthickness", None)
+        cambio = kw.pop("highlightbackground", None)
+        if cambio:
+            self._borde = cambio
+        if kw:
+            tk.Frame.configure(self, **kw)
+        if cambio:
+            self._pintar()
+
+    config = configure
+
+
+class _ItemBarra:
+    """Ítem de texto de la barra de título con la interfaz de Label que usa la app."""
+
+    def __init__(self, canvas, x, texto, fg, fuente, anchor="w", y=24):
+        self.c, self.fg = canvas, fg
+        self.id = canvas.create_text(x, y, text=texto, fill=fg, font=fuente, anchor=anchor,
+                                     tags=("control",))
+
+    def config(self, **kw):
+        if "fg" in kw:
+            self.c.itemconfigure(self.id, fill=kw["fg"])
+        if "text" in kw:
+            self.c.itemconfigure(self.id, text=kw["text"])
+
+    def bind(self, evento, fn):
+        self.c.tag_bind(self.id, evento, fn)
+        if evento == "<Enter>":
+            self.c.tag_bind(self.id, "<Enter>",
+                            lambda e: (self.c.configure(cursor="hand2"), fn(e)), add=True)
+        if evento == "<Leave>":
+            self.c.tag_bind(self.id, "<Leave>",
+                            lambda e: (self.c.configure(cursor=""), fn(e)), add=True)
+
+    def pack(self, **kw):
+        self.c.itemconfigure(self.id, state="normal")
+
+    def pack_forget(self):
+        self.c.itemconfigure(self.id, state="hidden")
+
+def _mk_anillo(parent, diametro=190):
+    """Anillo fijo de las cuentas regresivas: degradé y brillo sin animación."""
+    c = tk.Canvas(parent, width=diametro + 40, height=diametro + 40, bg=parent.cget("bg"),
+                  bd=0, highlightthickness=0)
+    try:
+        from PIL import Image, ImageDraw, ImageFilter, ImageTk
+        lado = diametro + 40
+        m = Image.new("L", (lado * 4, lado * 4), 0)
+        d = ImageDraw.Draw(m)
+        d.ellipse((80, 80, lado * 4 - 80, lado * 4 - 80), fill=255)
+        d.ellipse((100, 100, lado * 4 - 100, lado * 4 - 100), fill=0)
+        m = m.resize((lado, lado), Image.LANCZOS)
+        fondo = Image.new("RGB", (lado, lado), _rgb(parent.cget("bg")))
+        a, b = _rgb(ACCENT), _rgb(ROSA)
+        tira = Image.new("RGB", (lado, 1))
+        tira.putdata([tuple(int(a[i] + (b[i] - a[i]) * x / (lado - 1)) for i in range(3))
+                      for x in range(lado)])
+        grad = tira.resize((lado, lado))
+        fondo.paste(grad, (0, 0), m.filter(ImageFilter.GaussianBlur(9)).point(lambda v: int(v * .55)))
+        fondo.paste(grad, (0, 0), m)
+        c._foto = ImageTk.PhotoImage(fondo)
+        c.create_image(0, 0, anchor="nw", image=c._foto)
+    except Exception:
+        pass
+    return c
+
+
 # ─── App principal ────────────────────────────────────────────────────────────
 
 class PleiadaApp:
@@ -4171,6 +4455,8 @@ class PleiadaApp:
         # Estado de la sesión
         self.logged_in     = False
         self.user_email    = ""
+        self.user_nombre   = ""
+        self._usuario_chip = ""
         self.auth_token    = ""
         self.open_calls    = []     # inscripciones a Open Calls (my_calls del backend)
         self.selected_game = None   # dict con game/perspective/genre/mode
@@ -4233,97 +4519,100 @@ class PleiadaApp:
 
     def _build_window(self):
         """Frame raíz: borde 1px + contenido."""
-        outer = tk.Frame(self.root, bg=BORDER2, bd=0)
+        self.root.configure(bg=BORDER2)
+        outer = tk.Frame(self.root, bg=BG, bd=0)
         outer.pack(fill="both", expand=True, padx=1, pady=1)
 
         self._build_titlebar(outer)
-        _mk_separator(outer, color=BORDER2)
 
         # v0.8: banner de actualización — vive FUERA de self.content para
         # sobrevivir a los cambios de pantalla (_clear_content). Oculto hasta
         # que el chequeo detecte una versión nueva.
-        self._upd_banner = tk.Frame(outer, bg=CARD2)
+        self._upd_banner = Caja(outer, bg=CARD, highlightbackground=CIAN)
 
         self.content = tk.Frame(outer, bg=BG)
         self.content.pack(fill="both", expand=True)
 
     def _build_titlebar(self, parent):
-        tb = tk.Frame(parent, bg=BG2, height=38)
+        alto = 46
+        tb = tk.Canvas(parent, height=alto, bg=BG, bd=0, highlightthickness=0)
         tb.pack(fill="x")
-        tb.pack_propagate(False)
+        self._tb = tb
+        self._tb_foto = None
+
+        def fondo(e=None):
+            w = tb.winfo_width()
+            if w < 4 or (self._tb_foto and self._tb_foto[0] == w):
+                return
+            try:
+                from PIL import Image, ImageTk
+                ini, fin_ = _rgb("#4a2384"), _rgb(BG)
+                col = Image.new("RGB", (1, alto))
+                col.putdata([tuple(int(ini[i] + (fin_[i] - ini[i]) * y / (alto - 1))
+                                   for i in range(3)) for y in range(alto)])
+                im = col.resize((w, alto))
+                im.paste(Image.new("RGB", (w, 2), _rgb(ROSA)), (0, 0))
+                foto = ImageTk.PhotoImage(im)
+                self._tb_foto = (w, foto)
+                tb.itemconfigure(self._tb_fondo, image=foto)
+            except Exception:
+                pass
+
+        self._tb_fondo = tb.create_image(0, 0, anchor="nw")
+        tb.tag_lower(self._tb_fondo)
+        tb.bind("<Configure>", fondo)
 
         # v0.9: Atras. Vive en la barra porque el flujo dejo de ser una sola
-        # pantalla: identificar el juego, elegir entre candidatos y elegir orden
-        # son pasos, y de cualquiera se tiene que poder volver. Se oculta cuando
-        # no hay a donde ir (pantalla inicial) y mientras se graba: ahi el unico
-        # camino valido es Detener o Cancelar.
-        self._back_btn = tk.Label(tb, text="‹", fg=DIM, bg=BG2, width=2,
-                                  font=("Segoe UI", 14), cursor="hand2",
-                                  anchor="center")
+        # pantalla. Se oculta cuando no hay a donde ir (pantalla inicial) y
+        # mientras se graba: ahi el unico camino valido es Detener o Cancelar.
+        self._back_btn = _ItemBarra(tb, 12, "‹", TEXT, ("Segoe UI", 17))
+        self._back_btn.pack_forget()
         self._back_btn.bind("<Button-1>", lambda e: self._go_back())
-        self._back_btn.bind("<Enter>", lambda e: self._back_btn.config(fg=TEXT))
-        self._back_btn.bind("<Leave>", lambda e: self._back_btn.config(fg=DIM))
+        self._back_btn.bind("<Enter>", lambda e: self._back_btn.config(fg=CIAN))
+        self._back_btn.bind("<Leave>", lambda e: self._back_btn.config(fg=TEXT))
 
-        # Logo mark (✦)
-        tk.Label(tb, text="✦", fg=ACCENT, bg=BG2,
-                 font=("Segoe UI", 11, "bold")).pack(side="left", padx=(14, 0), pady=8)
+        x = 32
+        self._tb_logo = None
+        try:
+            from PIL import Image, ImageTk
+            logo = Image.open(APP_DIR / "gameplay_recorder_icon.png").convert("RGBA")
+            self._tb_logo = ImageTk.PhotoImage(logo.resize((24, 24), Image.LANCZOS))
+            tb.create_image(x, 24, anchor="w", image=self._tb_logo)
+        except Exception:
+            tb.create_text(x, 24, anchor="w", text="✦", fill=CIAN, font=("Segoe UI", 12, "bold"))
+        tb.create_text(x + 32, 24, anchor="w", text="Gameplay Recorder", fill=TEXT,
+                       font=("Segoe UI", 11, "bold"))
+        tb.create_text(x + 180, 25, anchor="w", text=VERSION, fill=DIM, font=("Segoe UI", 9))
 
-        # Título + versión
-        tk.Label(tb, text="Gameplay Recorder", fg=TEXT, bg=BG2,
-                 font=("Segoe UI", 11, "bold")).pack(side="left", padx=(6, 2))
-        tk.Label(tb, text=VERSION, fg=DIM, bg=BG2,
-                 font=("Segoe UI", 9)).pack(side="left")
-
-        # Botón cerrar — la × se ve siempre (Bug 5), centrada en el cuadrado
-        close_btn = tk.Label(tb, text="×", bg="#3a2a3e", fg=DIM, width=2,
-                             font=("Segoe UI", 12), anchor="center",
-                             cursor="hand2", relief="flat")
-        close_btn.pack(side="right", padx=(0, 12), pady=10)
+        # Botón cerrar — la × se ve siempre (Bug 5)
+        close_btn = _ItemBarra(tb, WIN_W - 22, "×", TEXT, ("Segoe UI", 13), anchor="center")
         close_btn.bind("<Button-1>", lambda e: self._on_close())
-        close_btn.bind("<Enter>",  lambda e: close_btn.config(fg="#ff5f57"))
-        close_btn.bind("<Leave>",  lambda e: close_btn.config(fg=DIM))
-
-        # Nombre de usuario (solo display — el deslogueo está en Opciones ⚙). Bug 3.
-        self._signout_lbl = tk.Label(tb, text="", fg=DIM, bg=BG2,
-                                      font=("Segoe UI", 10))
-        self._signout_lbl.pack(side="right", padx=(0, 14))
-        self._signout_lbl.pack_forget()  # oculto hasta login
-
-        # Sep vertical antes de close dot
-        tk.Frame(tb, bg=BORDER2, width=1, height=16).pack(side="right", pady=11)
+        close_btn.bind("<Enter>", lambda e: close_btn.config(fg="#ff5f57"))
+        close_btn.bind("<Leave>", lambda e: close_btn.config(fg=TEXT))
 
         # v0.5: ícono de Settings (⚙)
-        self._settings_btn = tk.Label(tb, text="⚙", fg=DIM, bg=BG2,
-                                       font=("Segoe UI", 12), cursor="hand2")
-        self._settings_btn.pack(side="right", padx=(0, 10))
+        self._settings_btn = _ItemBarra(tb, WIN_W - 54, "⚙", DIM, ("Segoe UI", 12), anchor="center")
         self._settings_btn.bind("<Button-1>", lambda e: self._show_settings())
         self._settings_btn.bind("<Enter>", lambda e: self._settings_btn.config(fg=TEXT))
         self._settings_btn.bind("<Leave>", lambda e: self._settings_btn.config(fg=DIM))
 
-        # Dragging.
-        #
-        # v0.9.7: antes esto era `for w in (tb,)`, o sea SOLO el frame. En Tk el
-        # click lo recibe el widget de más arriba, no su contenedor, así que
-        # cada Label de la barra —el ✦, "Gameplay Recorder", la versión, el
-        # usuario— se comía el evento. Lo único arrastrable eran los pocos
-        # píxeles de frame que ninguna etiqueta tapaba: la franja de arriba y el
-        # borde izquierdo. Reportado como "solo se puede arrastrar del extremo
-        # superior izquierdo", y así era literalmente.
-        #
-        # Se bindea la barra y todos sus hijos, salteando los que ya tienen su
-        # propio <Button-1> (Atrás, ⚙, ×): bindear encima los reemplazaría y
-        # dejaría esos tres botones muertos. Consultar el binding en vez de
-        # listar los botones a mano es lo que evita que esto se rompa solo
-        # cuando alguien agregue un control nuevo a la barra.
+        # Dragging: toda la barra arrastra, salvo los controles.
         self._drag_x = self._drag_y = 0
-        for w in [tb] + list(tb.winfo_children()):
-            try:
-                if w is not tb and w.bind("<Button-1>"):
-                    continue                    # es un botón, no zona de arrastre
-            except tk.TclError:
-                continue
-            w.bind("<ButtonPress-1>", self._drag_start)
-            w.bind("<B1-Motion>",     self._drag_move)
+
+        def inicio(e):
+            actual = tb.find_withtag("current")
+            if actual and "control" in tb.gettags(actual[0]):
+                self._arrastrando = False
+                return
+            self._arrastrando = True
+            self._drag_start(e)
+
+        def mover(e):
+            if getattr(self, "_arrastrando", False):
+                self._drag_move(e)
+
+        tb.bind("<ButtonPress-1>", inicio)
+        tb.bind("<B1-Motion>", mover)
 
     def _drag_start(self, e):
         self._drag_x = e.x_root - self.root.winfo_x()
@@ -4367,28 +4656,21 @@ class PleiadaApp:
     def _upd_row(self, text, fg=TEXT):
         """(Re)arma el banner: texto arriba + fila de botones abajo (retornada)."""
         self._upd_clear()
-        self._upd_banner.config(highlightthickness=1, highlightbackground=ACCENT)
-        self._upd_banner.pack(fill="x", before=self.content)
-        inner = tk.Frame(self._upd_banner, bg=CARD2)
-        inner.pack(fill="x", padx=12, pady=8)
-        self._upd_text_lbl = tk.Label(inner, text=text, fg=fg, bg=CARD2,
-                                      font=("Segoe UI", 10), wraplength=WIN_W - 60,
+        self._upd_banner.pack(fill="x", padx=22, pady=(0, 8), before=self.content)
+        inner = tk.Frame(self._upd_banner, bg=CARD)
+        inner.pack(fill="x", padx=8, pady=4)
+        self._upd_text_lbl = tk.Label(inner, text=text, fg=fg, bg=CARD,
+                                      font=("Segoe UI", 10, "bold"), wraplength=WIN_W - 80,
                                       justify="left", anchor="w")
         self._upd_text_lbl.pack(fill="x")
-        btns = tk.Frame(inner, bg=CARD2)
+        btns = tk.Frame(inner, bg=CARD)
         btns.pack(fill="x", pady=(6, 0))
         return btns
 
-    def _upd_btn(self, parent, text, cmd, primary=False):
-        b = tk.Label(parent, text=text, cursor="hand2",
-                     bg=(ACCENT if primary else CARD2),
-                     fg=("#ffffff" if primary else DIM),
-                     font=("Segoe UI", 9, "bold"), padx=10, pady=3)
-        b.pack(side="right", padx=(8, 0))
-        b.bind("<Button-1>", lambda e: cmd())
-        if not primary:
-            b.bind("<Enter>", lambda e: b.config(fg=TEXT))
-            b.bind("<Leave>", lambda e: b.config(fg=DIM))
+    def _upd_btn(self, parent, text, cmd, primary=True):
+        b = Boton(parent, text=text, fg="#ffffff", bg=ACCENT, command=cmd,
+                  font=("Segoe UI", 9, "bold"))
+        b.pack(fill="x")
         return b
 
     def _upd_show_offer(self):
@@ -4398,15 +4680,12 @@ class PleiadaApp:
                                  "Actualizá para seguir grabando.", fg="#f5d77a")
         else:
             btns = self._upd_row(f"Nueva versión disponible ({m.get('version', '')})")
-            self._upd_btn(btns, "Más tarde", self._upd_hide)
         self._upd_btn(btns, "Actualizar ahora", self._upd_start_download, primary=True)
 
     def _upd_show_error(self):
         self._updating = False
         btns = self._upd_row("No se pudo descargar la actualización. "
                              "Probá de nuevo más tarde.", fg="#f5d77a")
-        if not self._update_required:
-            self._upd_btn(btns, "Más tarde", self._upd_hide)
         self._upd_btn(btns, "Reintentar", self._upd_start_download, primary=True)
 
     def _upd_start_download(self):
@@ -4506,6 +4785,7 @@ class PleiadaApp:
             self.logged_in  = True
             self.user_email = auth["email"]
             self.auth_token = auth["token"]
+            self.user_nombre = auth.get("nombre") or ""
             self._set_signout_label(auth["email"])
             self._refresh_open_calls()
             self._show_idle()
@@ -4580,25 +4860,27 @@ class PleiadaApp:
         return out
 
     def _set_signout_label(self, email):
-        _uname = email.split('@')[0]
-        _uname = (_uname[:20] + "…") if len(_uname) > 20 else _uname  # PLE-36
-        self._signout_lbl.config(text=f"  {_uname}")
-        self._signout_lbl.pack(side="right", padx=(0, 14))
+        _uname = (self.user_nombre or email.split('@')[0]).strip()
+        self._usuario_chip = (_uname[:20] + "…") if len(_uname) > 20 else _uname  # PLE-36
 
     def _login_header(self, frame):
-        tk.Frame(frame, bg=BG, height=30).pack()
-        tk.Label(frame, text="✦", fg=ACCENT, bg=BG,
-                 font=("Segoe UI", 28)).pack()
+        tk.Frame(frame, bg=BG, height=24).pack()
+        try:
+            from PIL import Image, ImageTk
+            logo = Image.open(APP_DIR / "gameplay_recorder_icon.png").convert("RGBA")
+            self._login_logo = ImageTk.PhotoImage(logo.resize((72, 72), Image.LANCZOS))
+            tk.Label(frame, image=self._login_logo, bg=BG).pack()
+        except Exception:
+            tk.Label(frame, text="✦", fg=CIAN, bg=BG, font=("Segoe UI", 28)).pack()
         tk.Label(frame, text="Gameplay Recorder", fg=TEXT, bg=BG,
                  font=("Segoe UI", 17, "bold")).pack(pady=(10, 0))
-        tk.Label(frame, text="Gameplay Alliance — sesión de grabación", fg=DIM, bg=BG,
+        tk.Label(frame, text="Desarrollado por Gameplay Alliance", fg=DIM, bg=BG,
                  font=("Segoe UI", 11)).pack(pady=(4, 32))
 
     # ── Login paso 1: pedir el código ───────────────────────────────────────────
 
     def _show_login(self):
         self._clear_content()
-        self._signout_lbl.pack_forget()
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=36, pady=0)
         self._login_header(frame)
@@ -4624,7 +4906,7 @@ class PleiadaApp:
                            wraplength=WIN_W - 80, justify="left")
         err_lbl.pack(pady=(0, 6))
 
-        btn = tk.Button(frame, text="Enviar código", fg="#fff", bg=ACCENT,
+        btn = Boton(frame, text="Enviar código", fg="#fff", bg=ACCENT,
                         relief="flat", bd=0, cursor="hand2",
                         font=("Segoe UI", 12, "bold"),
                         activebackground="#9080e0", activeforeground="#fff")
@@ -4682,7 +4964,7 @@ class PleiadaApp:
                            wraplength=WIN_W - 80, justify="left")
         err_lbl.pack(pady=(0, 6))
 
-        btn = tk.Button(frame, text="Ingresar", fg="#fff", bg=ACCENT,
+        btn = Boton(frame, text="Ingresar", fg="#fff", bg=ACCENT,
                         relief="flat", bd=0, cursor="hand2",
                         font=("Segoe UI", 12, "bold"),
                         activebackground="#9080e0", activeforeground="#fff")
@@ -4698,12 +4980,13 @@ class PleiadaApp:
 
             def _worker():
                 try:
-                    token = pleiada_api.verify_otp(email, code)
+                    token, nombre = pleiada_api.verify_otp_con_nombre(email, code)
                     def _ok():
                         self.logged_in  = True
                         self.user_email = email
                         self.auth_token = token
-                        save_auth(email, token)
+                        self.user_nombre = nombre
+                        save_auth(email, token, nombre)
                         self._set_signout_label(email)
                         self._refresh_open_calls()
                         self._show_idle()
@@ -4723,7 +5006,7 @@ class PleiadaApp:
         links = tk.Frame(frame, bg=BG)
         links.pack(fill="x", pady=(16, 0))
 
-        resend_lbl = tk.Label(links, text="Reenviar código", fg=ACCENT, bg=BG,
+        resend_lbl = tk.Label(links, text="Reenviar código", fg=CIAN, bg=BG,
                               font=("Segoe UI", 10), cursor="hand2")
         resend_lbl.pack(side="left")
 
@@ -4736,7 +5019,7 @@ class PleiadaApp:
                         text="Código reenviado", fg=GREEN))
                 except pleiada_api.ApiError:
                     self.root.after(0, lambda: resend_lbl.config(
-                        text="Reenviar código", fg=ACCENT))
+                        text="Reenviar código", fg=CIAN))
             threading.Thread(target=_worker, daemon=True).start()
         resend_lbl.bind("<Button-1>", on_resend)
 
@@ -4754,7 +5037,6 @@ class PleiadaApp:
         self.auth_token = ""
         self.selected_game = None
         save_auth("", "")
-        self._signout_lbl.pack_forget()
         self._show_login()
 
     # ── Settings (v0.5) ────────────────────────────────────────────────────────
@@ -4772,14 +5054,6 @@ class PleiadaApp:
         self._set_back(self._show_idle)
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
-
-        # Back arriba — siempre visible (v0.7.1)
-        _back = tk.Label(frame, text="←  Volver", fg=DIM, bg=BG,
-                         font=("Segoe UI", 10), cursor="hand2", anchor="w")
-        _back.pack(fill="x", pady=(0, 10))
-        _back.bind("<Button-1>", lambda e: self._show_idle())
-        _back.bind("<Enter>", lambda e: _back.config(fg=TEXT))
-        _back.bind("<Leave>", lambda e: _back.config(fg=DIM))
 
         _mk_section_label(frame, "AJUSTES")
 
@@ -4805,7 +5079,7 @@ class PleiadaApp:
             tk.Label(hrow, text=label + ":", fg=TEXT, bg=BG,
                      font=("Segoe UI", 10), anchor="w").pack(side="left")
             btn = tk.Label(hrow, text=self._settings[key]["label"],
-                           fg=ACCENT, bg=CARD, font=("Cascadia Code", 10),
+                           fg=CIAN, bg=CARD, font=("Cascadia Code", 10),
                            cursor="hand2", padx=12, pady=4,
                            highlightthickness=1, highlightbackground=BORDER)
             btn.pack(side="right")
@@ -4823,9 +5097,8 @@ class PleiadaApp:
 
         tk.Label(frame, text="Duración máxima de sesión", fg=TEXT, bg=BG,
                  font=("Segoe UI", 10), anchor="w").pack(fill="x", pady=(2, 2))
-        self._maxdur_lbl = tk.Label(frame, text="", fg=ACCENT, bg=BG,
+        self._maxdur_lbl = tk.Label(frame, text="", fg=CIAN, bg=BG,
                                     font=("Cascadia Code", 12, "bold"), anchor="w")
-        self._maxdur_lbl.pack(fill="x")
 
         presets_row = tk.Frame(frame, bg=BG)
         presets_row.pack(fill="x", pady=(6, 0))
@@ -4868,7 +5141,7 @@ class PleiadaApp:
         tk.Label(dpi_row, text="DPI de tu mouse (opcional)", fg=TEXT, bg=BG,
                  font=("Segoe UI", 10), anchor="w").pack(side="left")
         self._dpi_var = tk.StringVar(value=str(self._settings.get("mouse_dpi") or ""))
-        dpi_entry = tk.Entry(dpi_row, textvariable=self._dpi_var, width=7, fg=ACCENT, bg=CARD,
+        dpi_entry = tk.Entry(dpi_row, textvariable=self._dpi_var, width=7, fg=CIAN, bg=CARD,
                              insertbackground=TEXT, relief="flat", justify="center",
                              font=("Cascadia Code", 10), highlightthickness=1,
                              highlightbackground=BORDER)
@@ -4886,7 +5159,7 @@ class PleiadaApp:
         # — Cuenta (sin título, v0.7.1) —
         tk.Label(frame, text=self.user_email or "—", fg=DIM, bg=BG,
                  font=("Segoe UI", 10), anchor="w").pack(fill="x")
-        tk.Button(frame, text="Cerrar sesión", fg=TEXT, bg=CARD,
+        Boton(frame, text="Cerrar sesión", fg=TEXT, bg=CARD,
                   relief="flat", bd=0, cursor="hand2",
                   font=("Segoe UI", 10), activebackground=CARD2,
                   activeforeground=TEXT, command=self._sign_out,
@@ -4964,18 +5237,18 @@ class PleiadaApp:
         self._capturing_hotkey = None
         if vk is None:
             # tecla no soportada → restaurar
-            self._hotkey_btns[key].config(text=self._settings[key]["label"], fg=ACCENT)
+            self._hotkey_btns[key].config(text=self._settings[key]["label"], fg=CIAN)
             return
         # Evitar que start y stop sean la misma tecla
         other = "hotkey_stop" if key == "hotkey_start" else "hotkey_start"
         if self._settings[other]["vk"] == vk:
             self._hotkey_btns[key].config(text="Ya en uso", fg=RED)
             self.root.after(1200, lambda: self._hotkey_btns[key].config(
-                text=self._settings[key]["label"], fg=ACCENT))
+                text=self._settings[key]["label"], fg=CIAN))
             return
         self._settings[key] = {"vk": vk, "label": label}
         save_settings(self._settings)
-        self._hotkey_btns[key].config(text=label, fg=ACCENT)
+        self._hotkey_btns[key].config(text=label, fg=CIAN)
 
     def _hotkey_listener(self):
         """Thread daemon: detecta los hotkeys globales vía GetAsyncKeyState.
@@ -5023,17 +5296,13 @@ class PleiadaApp:
     # arriba del panel; se movió acá el 20/8 para que esté donde el jugador lee
     # las reglas. A propósito NO dice el umbral exacto (pedido de Martín 20/7).
     _TIPS = (
-        ("\U0001F3AE", "Gameplay puro: nada de menús, inventario ni cinemáticas "
-                       "(y si las hay, salteálas). Períodos largos sin actividad "
-                       "de teclado o mouse van a ser rechazados"),
-        ("⚙", "Ajustá settings ANTES de grabar, nunca durante"),
-        ("\U0001F5A5", "Ultrawide del monitor: configuralo en OBS como monitor normal"),
-        ("\U0001F399", "Muteá tu micrófono"),
-        ("\U0001F3A5", "Cuidá que la imagen se vea nítida y estable"),
-        ("⌨", "Usá los controles DEFAULT del título, sin remapear"),
-        ("\U0001F4DD", "Cargá la metadata de controles en tu perfil "
-                       "(¡suma ticket! \U0001F39F)"),
-        ("\U0001F504", "Variá el contenido, no repitas siempre lo mismo"),
+        "Gameplay puro: minimizá los menús, inventario y cinemáticas (y si las hay, salteálas).",
+        "Ajustá settings ANTES de grabar, nunca durante",
+        "Ultrawide del monitor: configuralo en OBS como monitor normal",
+        "Muteá tu micrófono",
+        "Cuidá que la imagen se vea nítida y estable, a 60FPS mínimo",
+        "Usá los controles DEFAULT del título, sin remapear",
+        "Cargá la metadata de controles en tu perfil",
     )
 
     def _tips_panel(self, parent):
@@ -5044,21 +5313,14 @@ class PleiadaApp:
         que antes ocupaban dos renglones entran en uno. El panel completo tiene
         que caber en el hueco que queda entre el aviso de AFK y el boton Iniciar.
         """
-        tk.Label(parent, text="\U0001F4A1 TIPS esenciales para tu Gameplay \U0001F4A1",
-                 fg=ACCENT, bg=BG, font=("Segoe UI", 9, "bold")).pack(fill="x", pady=(0, 3))
-        box = tk.Frame(parent, bg=CARD, highlightthickness=1,
-                       highlightbackground=BORDER2)
+        tk.Label(parent, text="TIPS esenciales para tu Gameplay",
+                 fg=CIAN, bg=BG, font=("Segoe UI", 9, "bold")).pack(fill="x", pady=(0, 3))
+        box = Caja(parent, bg=CARD, highlightbackground=BORDER2)
         box.pack(fill="x")
-        for ico, txt in self._TIPS:
-            # WIN_W - 64: el frame padre ya come 22 px por lado, el borde 1 y el
-            # padx de abajo 7. Poner mas que eso no ensancha nada, clipea el texto.
-            tk.Label(box, text=f"{ico}  {txt}", fg=DIM, bg=CARD,
-                     font=("Segoe UI", 8), anchor="w", justify="left",
-                     wraplength=WIN_W - 64).pack(fill="x", padx=7, pady=1)
-        tk.Label(parent, text="Cuanto mejor sigas esto, más rápido pasa tu sesión el "
-                              "control de calidad \U0001F680",
-                 fg=DIMMER, bg=BG, font=("Segoe UI", 8), justify="left",
-                 anchor="w", wraplength=WIN_W - 60).pack(fill="x", pady=(3, 0))
+        for txt in self._TIPS:
+            tk.Label(box, text=txt, fg=DIM, bg=CARD,
+                     font=("Segoe UI", 9), anchor="w", justify="left",
+                     wraplength=WIN_W - 76).pack(fill="x", padx=6, pady=1)
 
     def _show_idle(self, resuelto=None):
         """Pantalla principal.
@@ -5072,13 +5334,13 @@ class PleiadaApp:
         self._obs_status   = "idle"
 
         frame = tk.Frame(self.content, bg=BG)
-        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        frame.pack(fill="both", expand=True, padx=22, pady=(4, 14))
 
         # — Sección: Juego (detección automática, v0.9) ————————————
         # Ya no hay selector: el juego sale de lo que OBS está capturando y lo
         # resuelve el backend. Este frame se rellena solo, según el estado.
         _mk_section_label(frame, "TÍTULO DETECTADO")
-        self._det_box = tk.Frame(frame, bg=CARD, highlightthickness=1,
+        self._det_box = Caja(frame, bg=CARD, highlightthickness=1,
                                  highlightbackground=BORDER)
         self._det_box.pack(fill="x")
         self._det_calls_box = tk.Frame(frame, bg=BG)
@@ -5137,7 +5399,7 @@ class PleiadaApp:
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
 
         # — Botón Iniciar ————————————————————————————
-        self._rec_btn_idle = tk.Button(
+        self._rec_btn_idle = Boton(
             frame, text="  Iniciar grabación", fg=DIMMER, bg=CARD,
             relief="flat", bd=0, cursor="arrow",
             font=("Segoe UI", 12, "bold"),
@@ -5148,12 +5410,12 @@ class PleiadaApp:
         self._update_record_btn()
 
         # — Acceso a "Mis grabaciones" (subir sesiones grabadas antes) ——————
-        sessions_btn = tk.Label(frame, text="📤  Mis grabaciones",
-                                fg=ACCENT, bg=BG, font=("Segoe UI", 10),
+        sessions_btn = tk.Label(frame, text="Mis grabaciones",
+                                fg=CIAN, bg=BG, font=("Segoe UI", 10),
                                 cursor="hand2", anchor="center")
         sessions_btn.pack(fill="x", pady=(8, 0))
-        sessions_btn.bind("<Enter>", lambda e: sessions_btn.config(fg="#9d8fe8"))
-        sessions_btn.bind("<Leave>", lambda e: sessions_btn.config(fg=ACCENT))
+        sessions_btn.bind("<Enter>", lambda e: sessions_btn.config(fg="#7dedfb"))
+        sessions_btn.bind("<Leave>", lambda e: sessions_btn.config(fg=CIAN))
         sessions_btn.bind("<Button-1>", lambda e: self._show_sessions_list())
 
         # — Footer ————————————————————————————————————
@@ -5162,15 +5424,18 @@ class PleiadaApp:
         footer.pack(fill="x", pady=(10, 0))
         tk.Label(footer, text="SESIÓN", fg=DIM, bg=BG,
                   font=("Segoe UI", 8, "bold"), anchor="w").pack(side="left")
-        tk.Label(footer, text="No iniciada", fg=DIMMER, bg=BG,
-                  font=("Cascadia Code", 10), anchor="e").pack(side="right")
+        chip = Caja(footer, bg=CARD, highlightbackground=BORDER, padx=8, pady=3)
+        chip.pack(side="right")
+        tk.Label(chip, text="●", fg=GREEN, bg=CARD, font=("Segoe UI", 8)).pack(side="left")
+        tk.Label(chip, text=self._usuario_chip, fg=TEXT, bg=CARD,
+                 font=("Cascadia Code", 10)).pack(side="left", padx=(6, 0))
 
         # — Link tutorial ————————————————————————————
         tutorial_lbl = tk.Label(frame, text="Ver tutorial de configuración ↗",
                                  fg=DIMMER, bg=BG, font=("Segoe UI", 9),
                                  cursor="hand2", anchor="w")
         tutorial_lbl.pack(fill="x", pady=(6, 0))
-        tutorial_lbl.bind("<Enter>", lambda e: tutorial_lbl.config(fg=ACCENT))
+        tutorial_lbl.bind("<Enter>", lambda e: tutorial_lbl.config(fg=CIAN))
         tutorial_lbl.bind("<Leave>", lambda e: tutorial_lbl.config(fg=DIMMER))
         tutorial_lbl.bind("<Button-1>", lambda e: self._open_tutorial())
 
@@ -5220,7 +5485,7 @@ class PleiadaApp:
         sw  = self._sel_outer.winfo_width()
         y_off = self._sel_outer.winfo_rooty() + self._sel_outer.winfo_height() + 4
 
-        outer = tk.Frame(dd, bg=CARD2, bd=1, relief="solid",
+        outer = Caja(dd, bg=CARD2, bd=1, relief="solid",
                           highlightthickness=1, highlightbackground=BORDER)
         outer.pack(fill="both", expand=True)
 
@@ -5237,7 +5502,7 @@ class PleiadaApp:
         lb = tk.Listbox(
             body, activestyle="none", bd=0, highlightthickness=0,
             bg=CARD2, fg=TEXT, font=("Segoe UI", 11),
-            selectbackground="#1e1c40", selectforeground=TEXT,
+            selectbackground="#241c52", selectforeground=TEXT,
             height=min(len(results), VISIBLE), cursor="hand2",
         )
         sb = tk.Scrollbar(body, orient="vertical", command=lb.yview)
@@ -5277,7 +5542,7 @@ class PleiadaApp:
         y_off = self._sel_outer.winfo_rooty() + self._sel_outer.winfo_height() + 4
         dd.geometry(f"{sw}x52+{rx + sx}+{y_off}")
 
-        outer = tk.Frame(dd, bg=CARD2, bd=1, relief="solid",
+        outer = Caja(dd, bg=CARD2, bd=1, relief="solid",
                           highlightthickness=1, highlightbackground=BORDER)
         outer.pack(fill="both", expand=True)
         tk.Label(outer, text="Sin resultados — revisá la ortografía.", fg=DIM, bg=CARD2,
@@ -5511,6 +5776,9 @@ class PleiadaApp:
     # — Render de cada estado —————————————————————————————
 
     def _det_clear(self):
+        self._det_box.config(highlightbackground={
+            "resuelto": ACCENT, "bloqueado": RED, "error": RED,
+            "no_identificado": RED}.get(self._det_state, BORDER))
         for box in (getattr(self, "_det_box", None), getattr(self, "_det_calls_box", None)):
             if box:
                 for w in box.winfo_children():
@@ -5563,7 +5831,7 @@ class PleiadaApp:
         self._det_clear()
         row = tk.Frame(self._det_box, bg=CARD)
         row.pack(fill="x", padx=14, pady=12)
-        tk.Label(row, text="\u25d0", fg=ACCENT, bg=CARD, font=("Segoe UI", 10)).pack(side="left")
+        tk.Label(row, text="\u25d0", fg=CIAN, bg=CARD, font=("Segoe UI", 10)).pack(side="left")
         tk.Label(row, text=titulo or "Identificando...", fg=TEXT, bg=CARD,
                  font=("Segoe UI", 11, "bold"), anchor="w",
                  wraplength=WIN_W - 90).pack(side="left", padx=(8, 0))
@@ -5620,7 +5888,7 @@ class PleiadaApp:
         # _on_auth_expired, que tiene el botón para volver a entrar. Acá quedan
         # los errores en los que Reintentar sí puede servir (backend caído, sin
         # internet, Airtable que no responde).
-        b = tk.Label(self._det_calls_box, text="Reintentar", fg=ACCENT, bg=BG,
+        b = tk.Label(self._det_calls_box, text="Reintentar", fg=CIAN, bg=BG,
                      font=("Segoe UI", 10), cursor="hand2", anchor="w")
         b.pack(fill="x", pady=(10, 0))
         b.bind("<Button-1>", lambda e: self._reintentar_deteccion())
@@ -5767,7 +6035,7 @@ class PleiadaApp:
                          fg=DIMMER, bg=BG, font=("Segoe UI", 9), cursor="hand2",
                          anchor="w")
         no_es.pack(fill="x", pady=(12, 0))
-        no_es.bind("<Enter>", lambda e: no_es.config(fg=ACCENT))
+        no_es.bind("<Enter>", lambda e: no_es.config(fg=CIAN))
         no_es.bind("<Leave>", lambda e: no_es.config(fg=DIMMER))
         no_es.bind("<Button-1>", lambda e: self._corregir_titulo())
         self._update_record_btn()
@@ -5813,7 +6081,7 @@ class PleiadaApp:
                              "habilitar.",
                  fg=DIM, bg=BG, font=("Segoe UI", 10), justify="left", anchor="w",
                  wraplength=WIN_W - 60).pack(fill="x")
-        b = tk.Label(self._det_calls_box, text="Identificar el título", fg=ACCENT,
+        b = tk.Label(self._det_calls_box, text="Identificar el título", fg=CIAN,
                      bg=BG, font=("Segoe UI", 10), cursor="hand2", anchor="w")
         b.pack(fill="x", pady=(10, 0))
         b.bind("<Button-1>", lambda e: self._ident_nombre_view(exe, titulo))
@@ -5944,7 +6212,7 @@ class PleiadaApp:
             return
         tk.Label(parent, text="OBS ESTÁ CAPTURANDO", fg=DIM, bg=BG,
                  font=("Segoe UI", 8, "bold"), anchor="w").pack(fill="x", pady=(14, 4))
-        box = tk.Frame(parent, bg=CARD, highlightthickness=1,
+        box = Caja(parent, bg=CARD, highlightthickness=1,
                        highlightbackground=BORDER)
         box.pack(fill="x")
         tk.Label(box, text=visto, fg=TEXT, bg=CARD, font=("Segoe UI", 10),
@@ -5973,14 +6241,14 @@ class PleiadaApp:
         err = tk.Label(parent, text="", fg=RED, bg=BG, font=("Segoe UI", 10),
                        anchor="w", justify="left", wraplength=WIN_W - 60)
         err.pack(fill="x", pady=(0, 6))
-        btn = tk.Button(parent, text=texto_btn, fg="#fff", bg=ACCENT, relief="flat",
+        btn = Boton(parent, text=texto_btn, fg="#fff", bg=ACCENT, relief="flat",
                         bd=0, cursor="hand2", font=("Segoe UI", 12, "bold"),
                         activebackground="#9080e0", activeforeground="#fff")
         btn.pack(fill="x", ipady=11)
         return err, btn
 
     def _ident_link(self, parent, texto, cmd, pady=(10, 0)):
-        lbl = tk.Label(parent, text=texto, fg=ACCENT, bg=BG, font=("Segoe UI", 10),
+        lbl = tk.Label(parent, text=texto, fg=CIAN, bg=BG, font=("Segoe UI", 10),
                        cursor="hand2", anchor="w", justify="left",
                        wraplength=WIN_W - 60)
         lbl.pack(fill="x", pady=pady)
@@ -6103,7 +6371,7 @@ class PleiadaApp:
                              lambda: self._ident_steam_view(exe, titulo),
                              pady=(8, 0))
             tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
-            tk.Button(frame, text="Volver a la pantalla de inicio", fg=DIM, bg=CARD,
+            Boton(frame, text="Volver a la pantalla de inicio", fg=DIM, bg=CARD,
                       relief="flat", bd=0, cursor="hand2", font=("Segoe UI", 11),
                       activebackground=CARD2, activeforeground=TEXT,
                       highlightthickness=1, highlightbackground=BORDER,
@@ -6113,18 +6381,19 @@ class PleiadaApp:
         frame = self._ident_frame(
             "¿Es alguno de estos?",
             "Es lo que encontramos en IGDB, la base con la que catalogamos. "
-            "Tocá el nombre para abrir su ficha y confirmá el que estás jugando.",
+            "Tocá el nombre para abrir su ficha y confirmá el que estás jugando. "
+            "Solo podés seleccionar uno.",
             volver_a=volver)
         tk.Frame(frame, bg=BG, height=12).pack()
         for c in candidatos:
-            card = tk.Frame(frame, bg=CARD, highlightthickness=1,
+            card = Caja(frame, bg=CARD, highlightthickness=1,
                             highlightbackground=BORDER)
             card.pack(fill="x", pady=(0, 6))
             fila = tk.Frame(card, bg=CARD)
             fila.pack(fill="x", padx=12, pady=8)
             # El botón se packea PRIMERO para que, con un nombre largo, el texto
             # se recorte antes que el control que hay que poder apretar.
-            tk.Button(fila, text="Es este", fg="#fff", bg=ACCENT, relief="flat",
+            Boton(fila, text="Seleccionar", fg="#fff", bg=ACCENT, relief="flat",
                       bd=0, cursor="hand2", font=("Segoe UI", 9, "bold"),
                       activebackground="#9080e0", activeforeground="#fff",
                       command=lambda cc=c: self._ident_confirmar(exe, titulo, cc)
@@ -6145,7 +6414,7 @@ class PleiadaApp:
                        lambda e, u=c.get("url") or "": self._abrir_url(u))
 
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
-        tk.Button(frame, text="Ninguno es el mío", fg=DIM, bg=CARD, relief="flat",
+        Boton(frame, text="Ninguno es el mío", fg=DIM, bg=CARD, relief="flat",
                   bd=0, cursor="hand2", font=("Segoe UI", 11),
                   activebackground=CARD2, activeforeground=TEXT,
                   highlightthickness=1, highlightbackground=BORDER,
@@ -6159,7 +6428,7 @@ class PleiadaApp:
             "Con esto queda catalogada tu grabación, así que conviene mirar la "
             "ficha antes de confirmar.",
             volver_a=lambda: self._ident_nombre_view(exe, titulo))
-        card = tk.Frame(frame, bg=CARD, highlightthickness=1,
+        card = Caja(frame, bg=CARD, highlightthickness=1,
                         highlightbackground=BORDER)
         card.pack(fill="x", pady=(16, 0))
         anio = cand.get("year")
@@ -6167,7 +6436,7 @@ class PleiadaApp:
                  fg=TEXT, bg=CARD, font=("Segoe UI", 12, "bold"), anchor="w",
                  justify="left", wraplength=WIN_W - 90).pack(
             fill="x", padx=14, pady=(12, 2))
-        ver = tk.Label(card, text="ver ficha en IGDB ↗", fg=ACCENT, bg=CARD,
+        ver = tk.Label(card, text="ver ficha en IGDB ↗", fg=CIAN, bg=CARD,
                        font=("Segoe UI", 9), anchor="w", cursor="hand2")
         ver.pack(fill="x", padx=14, pady=(0, 12))
         ver.bind("<Button-1>",
@@ -6256,7 +6525,7 @@ class PleiadaApp:
         # tk.OptionMenu y no ttk.Combobox: el combobox de ttk solo toma colores
         # si se cambia el tema, y el tema es global — se llevaría puesta la barra
         # de progreso de la pantalla de subida.
-        caja = tk.Frame(frame, bg=CARD, highlightthickness=1,
+        caja = Caja(frame, bg=CARD, highlightthickness=1,
                         highlightbackground=BORDER)
         caja.pack(fill="x")
         om = tk.OptionMenu(caja, pers_var, *etiquetas)
@@ -6287,7 +6556,7 @@ class PleiadaApp:
             err.config(text=(res or {}).get("message")
                        or "No pudimos verificar ese título.")
             if salida["lbl"] is None:
-                lbl = tk.Label(frame, text="No lo puedo identificar", fg=ACCENT,
+                lbl = tk.Label(frame, text="No lo puedo identificar", fg=CIAN,
                                bg=BG, font=("Segoe UI", 10), cursor="hand2",
                                anchor="w")
                 lbl.pack(fill="x", pady=(0, 8), before=err)
@@ -6316,30 +6585,29 @@ class PleiadaApp:
     def _ident_bloqueado_view(self, exe, titulo, msg=""):
         """Fin del camino. Bloquea, y dice por qué sin adornarlo."""
         frame = self._ident_frame("No podemos habilitar la grabación")
-        card = tk.Frame(frame, bg=CARD, highlightthickness=1,
+        card = Caja(frame, bg=CARD, highlightthickness=1,
                         highlightbackground=BORDER)
         card.pack(fill="x", pady=(16, 0))
-        tk.Label(card, text=msg or "Probamos por todos lados y no logramos "
-                                   "identificar qué es lo que estás grabando.",
+        tk.Label(card, text=msg or "Probamos de varias maneras y aún así no logramos "
+                                   "identificar qué título es el que estás grabando.",
                  fg=TEXT, bg=CARD, font=("Segoe UI", 10), anchor="w",
                  justify="left", wraplength=WIN_W - 90).pack(
             fill="x", padx=14, pady=(12, 8))
         tk.Label(card, text="Sin saber qué título es no podemos catalogar la "
-                            "sesión ni asignarla a una orden, así que grabarla "
-                            "sería tiempo perdido.",
+                            "sesión ni asignarla a una orden.",
                  fg=DIM, bg=CARD, font=("Segoe UI", 9), anchor="w",
                  justify="left", wraplength=WIN_W - 90).pack(
             fill="x", padx=14, pady=(0, 12))
         self._ident_detectado(frame, exe, titulo)
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
-        tk.Button(frame, text="Volver a la pantalla de inicio", fg="#fff", bg=ACCENT,
+        Boton(frame, text="Volver a la pantalla de inicio", fg="#fff", bg=ACCENT,
                   relief="flat", bd=0, cursor="hand2", font=("Segoe UI", 12, "bold"),
                   activebackground="#9080e0", activeforeground="#fff",
                   command=self._show_idle).pack(fill="x", ipady=11)
 
     def _check_obs_game(self):
         """Verifica en OBS qué juego está capturado (en thread)."""
-        self._obs_dot.config(fg=ACCENT)
+        self._obs_dot.config(fg=CIAN)
         self._obs_lbl.config(text="Verificando OBS...", fg=DIM)
         self._obs_status = "checking"
         self._warn_frame.pack_forget()
@@ -6821,7 +7089,7 @@ class PleiadaApp:
                      justify="center").pack()
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
         _mk_separator(frame, color=BORDER2, pady=(0, 14))
-        tk.Button(frame, text="Volver", fg=TEXT, bg=CARD, relief="flat", bd=0,
+        Boton(frame, text="Volver", fg=TEXT, bg=CARD, relief="flat", bd=0,
                   cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
                   activeforeground=TEXT, command=self._show_idle,
                   highlightthickness=1, highlightbackground=BORDER).pack(fill="x", ipady=10)
@@ -7004,10 +7272,12 @@ class PleiadaApp:
 
         # — Número grande de countdown (misma fuente que el timer) ————————
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
-        self._cd_num_lbl = tk.Label(frame, text=str(self._COUNTDOWN_SECS),
-                                     fg=YELLOW, bg=BG,
+        anillo = _mk_anillo(frame)
+        anillo.pack()
+        self._cd_num_lbl = tk.Label(anillo, text=str(self._COUNTDOWN_SECS),
+                                     fg=TEXT, bg=BG,
                                      font=("Cascadia Code", 52, "normal"))
-        self._cd_num_lbl.pack()
+        anillo.create_window(115, 115, window=self._cd_num_lbl)
         tk.Label(frame, text="La grabación comenzará en...", fg=DIM, bg=BG,
                   font=("Segoe UI", 10)).pack(pady=(10, 0))
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
@@ -7015,7 +7285,7 @@ class PleiadaApp:
         _mk_separator(frame, color=BORDER2, pady=(0, 14))
 
         # — Botón cancelar ———————————————————————————————————
-        tk.Button(frame, text="Cancelar", fg=DIMMER, bg=CARD,
+        Boton(frame, text="Cancelar", fg=DIMMER, bg=CARD,
                    relief="flat", bd=0, cursor="hand2",
                    font=("Segoe UI", 10), activebackground=CARD2,
                    activeforeground=DIM,
@@ -7066,8 +7336,8 @@ class PleiadaApp:
             # OBS StartRecord ocurre en thread separado — no bloquea la UI
             threading.Thread(target=self._launch_at_zero, daemon=True).start()
             return
-        # Color: amarillo mientras queda tiempo, rojo en los últimos 5
-        col = RED if self._cd_remaining <= 5 else YELLOW
+        # Color: blanco mientras queda tiempo, rojo en los últimos 5
+        col = RED if self._cd_remaining <= 5 else TEXT
         self._cd_num_lbl.config(text=str(self._cd_remaining), fg=col)
         self._cd_remaining -= 1
         self._cd_timer_id = self.root.after(1000, self._tick_countdown)
@@ -7558,13 +7828,6 @@ class PleiadaApp:
         # Status row — right items primero para evitar overlap en ventanas angostas
         status_row = tk.Frame(frame, bg=BG)
         status_row.pack(fill="x")
-        # Derecha: límite + countdown (se packean antes para reservar espacio)
-        _mh, _mm, _ms = self._max_seconds // 3600, (self._max_seconds % 3600) // 60, self._max_seconds % 60
-        self._countdown_lbl = tk.Label(status_row, text=f"{_mh:02d}:{_mm:02d}:{_ms:02d}", fg=DIM, bg=BG,
-                                        font=("Cascadia Code", 11))
-        self._countdown_lbl.pack(side="right")
-        tk.Label(status_row, text="límite  ", fg=DIMMER, bg=BG,
-                  font=("Segoe UI", 9)).pack(side="right")
         # Izquierda: dot + GRABANDO
         self._rec_dot = tk.Label(status_row, text="●", fg=RED, bg=BG,
                                   font=("Segoe UI", 10, "bold"))
@@ -7585,12 +7848,20 @@ class PleiadaApp:
         self._timer_lbl = tk.Label(frame, text="00:00:00", fg=TEXT, bg=BG,
                                     font=("Cascadia Code", 52, "normal"))
         self._timer_lbl.pack(pady=(10, 0))
+        _mh, _mm, _ms = self._max_seconds // 3600, (self._max_seconds % 3600) // 60, self._max_seconds % 60
+        restante = tk.Frame(frame, bg=BG)
+        restante.pack(pady=(10, 0))
+        tk.Label(restante, text="Tiempo restante de grabación: ", fg=DIM, bg=BG,
+                  font=("Segoe UI", 10)).pack(side="left")
+        self._countdown_lbl = tk.Label(restante, text=f"{_mh:02d}:{_mm:02d}:{_ms:02d}", fg=TEXT, bg=BG,
+                                        font=("Cascadia Code", 11))
+        self._countdown_lbl.pack(side="left")
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
 
         _mk_separator(frame, color=BORDER2, pady=(0, 14))
 
         # Stop button
-        stop_btn = tk.Button(frame, text="  ⏹  Detener grabación", fg=RED, bg="#1a0808",
+        stop_btn = Boton(frame, text="  ⏹  Detener grabación", fg=RED, bg="#200b16",
                               relief="flat", bd=0, cursor="hand2",
                               font=("Segoe UI", 12, "bold"),
                               activebackground="#2a1010", activeforeground=RED,
@@ -7600,7 +7871,7 @@ class PleiadaApp:
 
         # Cancelar: descarta la sesion en vez de cerrarla. Va abajo y en gris —
         # Detener es la accion normal y tiene que seguir siendo la obvia.
-        cancel_btn = tk.Button(frame, text="Cancelar grabación", fg=DIM, bg=BG,
+        cancel_btn = Boton(frame, text="Cancelar grabación", fg=DIM, bg=BG,
                                relief="flat", bd=0, cursor="hand2",
                                font=("Segoe UI", 10),
                                activebackground=BG, activeforeground=TEXT,
@@ -7656,16 +7927,18 @@ class PleiadaApp:
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
         tk.Label(frame, text="✓ Sesión guardada", fg=GREEN, bg=BG,
                  font=("Segoe UI", 12, "bold")).pack()
-        tk.Label(frame, text="Reiniciando grabación en", fg=DIM, bg=BG,
-                 font=("Segoe UI", 11)).pack(pady=(12, 0))
-        self._restart_big = tk.Label(frame, text="10", fg=TEXT, bg=BG,
+        anillo = _mk_anillo(frame)
+        anillo.pack(pady=(10, 0))
+        self._restart_big = tk.Label(anillo, text="10", fg=TEXT, bg=BG,
                                      font=("Cascadia Code", 52, "normal"))
-        self._restart_big.pack()
+        anillo.create_window(115, 115, window=self._restart_big)
+        tk.Label(frame, text="Reiniciando grabación en", fg=DIM, bg=BG,
+                 font=("Segoe UI", 11)).pack(pady=(4, 0))
         tk.Label(frame, text="Cada sesión se guarda en su propia carpeta — no se sobrescriben.",
                  fg=DIMMER, bg=BG, font=("Segoe UI", 9), wraplength=WIN_W - 60).pack(pady=(0, 10))
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
         _mk_separator(frame, color=BORDER2, pady=(0, 14))
-        tk.Button(frame, text="Cancelar", fg=TEXT, bg=CARD, relief="flat", bd=0,
+        Boton(frame, text="Cancelar", fg=TEXT, bg=CARD, relief="flat", bd=0,
                   cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
                   activeforeground=TEXT, command=self._cancel_auto_restart,
                   highlightthickness=1, highlightbackground=BORDER).pack(fill="x", ipady=10)
@@ -7702,7 +7975,7 @@ class PleiadaApp:
                   font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 14))
 
         # Verify panel
-        verify = tk.Frame(frame, bg="#0b0b1d", bd=1, relief="solid",
+        verify = Caja(frame, bg="#0a0819", bd=1, relief="solid",
                            highlightthickness=1, highlightbackground=BORDER2)
         verify.pack(fill="x")
         verify.configure(highlightbackground=BORDER2)
@@ -7716,19 +7989,19 @@ class PleiadaApp:
             ("video",               "video MP4"),
         ]
         for i, (key, label) in enumerate(items):
-            row = tk.Frame(verify, bg="#0b0b1d")
+            row = tk.Frame(verify, bg="#0a0819")
             row.pack(fill="x", padx=14, pady=4)
-            mark = tk.Label(row, text="·", fg=ACCENT, bg="#0b0b1d",
+            mark = tk.Label(row, text="·", fg=CIAN, bg="#0a0819",
                              font=("Cascadia Code", 10), width=2)
             mark.pack(side="left")
-            tk.Label(row, text=label, fg=TEXT, bg="#0b0b1d",
+            tk.Label(row, text=label, fg=TEXT, bg="#0a0819",
                       font=("Cascadia Code", 10), anchor="w", width=22).pack(side="left")
-            val = tk.Label(row, text="verificando...", fg=ACCENT, bg="#0b0b1d",
+            val = tk.Label(row, text="verificando...", fg=CIAN, bg="#0a0819",
                             font=("Cascadia Code", 10), anchor="e")
             val.pack(side="right")
             self._sync_rows[key] = (mark, val)
 
-        self._sync_summary_lbl = tk.Label(verify, text="", fg=DIM, bg="#0b0b1d",
+        self._sync_summary_lbl = tk.Label(verify, text="", fg=DIM, bg="#0a0819",
                                            font=("Segoe UI", 10, "bold"))
         self._sync_summary_lbl.pack(anchor="w", padx=14, pady=(8, 10))
 
@@ -7761,7 +8034,7 @@ class PleiadaApp:
         if not hasattr(self, "_sync_summary_lbl"):
             return
         try:
-            self._sync_summary_lbl.config(text="Guardando localmente los archivos...", fg=ACCENT)
+            self._sync_summary_lbl.config(text="Guardando localmente los archivos...", fg=CIAN)
         except Exception:
             return
         self._pkg_anim_state = 0
@@ -7782,7 +8055,7 @@ class PleiadaApp:
         ]
         self._pkg_anim_state = (getattr(self, "_pkg_anim_state", 0) + 1) % len(frames)
         try:
-            self._sync_summary_lbl.config(text=frames[self._pkg_anim_state], fg=ACCENT)
+            self._sync_summary_lbl.config(text=frames[self._pkg_anim_state], fg=CIAN)
         except Exception:
             return
         self._pkg_anim_id = self.root.after(380, self._animate_packaging_dots)
@@ -7828,7 +8101,7 @@ class PleiadaApp:
             self.session_dir = None
             self._show_idle()
 
-        tk.Button(btn_row, text="Nueva grabación", fg=TEXT, bg=CARD,
+        Boton(btn_row, text="Nueva grabación", fg=TEXT, bg=CARD,
                    relief="flat", bd=0, cursor="hand2",
                    font=("Segoe UI", 11), activebackground=CARD2,
                    activeforeground=TEXT, command=go_again,
@@ -7839,7 +8112,7 @@ class PleiadaApp:
             # v0.9.17: pasa por el bono de metadata. Si el título pide sus
             # controles y el usuario todavía no los compartió, primero se le
             # pregunta (modal); si no, sigue derecho a la subida de siempre.
-            tk.Button(btn_row, text="Subir Data Set", fg="#fff", bg=ACCENT,
+            Boton(btn_row, text="Subir Data Set", fg="#fff", bg=ACCENT,
                        relief="flat", bd=0, cursor="hand2",
                        font=("Segoe UI", 11, "bold"), activebackground="#9080e0",
                        command=self._bono_antes_de_subir).pack(
@@ -7862,11 +8135,12 @@ class PleiadaApp:
             icon_txt = "✓"
             icon_col = GREEN
             title    = "¡Sesión lista para enviar!"
-            body     = ("La sesión fue analizada y se encuentra sincronizada. "
+            body     = ("¡La sesión superó el primer nivel de Control de Calidad! "
                         "Verifica que no haya nada personal en los archivos, no los "
-                        "modifiques, y comienza la subida a la plataforma")
+                        "modifiques, y comienza la subida a la plataforma para el "
+                        "segundo control.")
         else:
-            card_bg  = "#140606"
+            card_bg  = "#1c0812"
             card_brd = "#7a2020"
             icon_txt = "✗"
             icon_col = RED
@@ -7910,7 +8184,7 @@ class PleiadaApp:
             else:
                 body = "Los archivos no pasaron el sync check.\nDescartá esta sesión e iniciá una nueva."
 
-        notify = tk.Frame(inner, bg=card_bg, highlightthickness=1,
+        notify = Caja(inner, bg=card_bg, highlightthickness=1,
                            highlightbackground=card_brd)
         notify.pack(fill="x", pady=(0, 12))
         nrow = tk.Frame(notify, bg=card_bg)
@@ -7937,8 +8211,8 @@ class PleiadaApp:
         # ── Panel de análisis (siempre visible) ───────────────────────────────
         _mk_section_label(inner, "ANÁLISIS DE SINCRONIZACIÓN")
 
-        vbg = "#0b0b1d"
-        verify = tk.Frame(inner, bg=vbg, highlightthickness=1, highlightbackground=BORDER2)
+        vbg = "#0a0819"
+        verify = Caja(inner, bg=vbg, highlightthickness=1, highlightbackground=BORDER2)
         verify.pack(fill="x", pady=(0, 12))
 
         file_items = [
@@ -8129,20 +8403,19 @@ class PleiadaApp:
     def _bono_render_oferta(self, slot):
         """Tarjeta A (con orden: bono) o A2 (modo libre: sorteo)."""
         b = self._bono
-        card_bg, card_brd = "#171226", "#5a4d9a"
+        card_bg, card_brd = "#1b1540", "#3a2d78"
         # Compacta a propósito: esta pantalla ya venía justa de alto y con la
         # tarjeta el bloque SESIÓN quedaba cortado por los botones fijos.
-        card = tk.Frame(slot, bg=card_bg, highlightthickness=1, highlightbackground=card_brd)
+        card = Caja(slot, bg=card_bg, highlightthickness=1, highlightbackground=card_brd)
         card.pack(fill="x", pady=(0, 8))
         row = tk.Frame(card, bg=card_bg)
         row.pack(fill="x", padx=10, pady=7)
         if b["oferta"] == "bono":
             icono, icol = "★", YELLOW
-            titulo = "Ganá el 25 % de la hora por la metadata"
-            cuerpo = (f"{b['game']} todavía no tiene su mapa de controles. Compartí la "
-                      f"pantalla de controles del título y cobrás {self._fmt_usd(b['monto_usd'])} "
-                      "cuando se valide, aunque el dataset no se comercialice. Se paga "
-                      "dentro de los 45 días a tu wallet.")
+            titulo = "Ganá un % adicional por la metadata"
+            cuerpo = ("Este título todavía no tiene su mapa de controles por defecto. "
+                      "Compartí la pantalla de controles del título y cobrás un plus "
+                      "cuando se valide.")
         else:
             icono, icol = "◈", ACCENT
             titulo = "Este título no tiene mapa de controles"
@@ -8157,7 +8430,7 @@ class PleiadaApp:
                  anchor="w", justify="left", wraplength=WIN_W - 120).pack(fill="x")
         tk.Label(col, text=cuerpo, fg=DIM, bg=card_bg, font=("Segoe UI", 9),
                  anchor="w", justify="left", wraplength=WIN_W - 120).pack(fill="x", pady=(2, 0))
-        tk.Button(col, text="Compartir controles", fg="#fff", bg=ACCENT, relief="flat",
+        Boton(col, text="Compartir controles", fg="#fff", bg=ACCENT, relief="flat",
                   bd=0, cursor="hand2", font=("Segoe UI", 9, "bold"),
                   activebackground="#9080e0", activeforeground="#fff",
                   command=self._bono_paso1).pack(fill="x", ipady=5, pady=(6, 0))
@@ -8175,16 +8448,15 @@ class PleiadaApp:
         dlg = tk.Toplevel(self.root)
         dlg.withdraw()
         dlg.overrideredirect(True)
-        dlg.configure(bg=CARD2, highlightthickness=1, highlightbackground="#5a4d9a")
+        dlg.configure(bg=CARD2, highlightthickness=1, highlightbackground="#3a2d78")
         dlg.transient(self.root)
         inner = tk.Frame(dlg, bg=CARD2)
         inner.pack(fill="both", expand=True, padx=16, pady=16)
         tk.Label(inner, text="¿Subir el dataset sin la metadata?", fg=TEXT, bg=CARD2,
                  font=("Segoe UI", 12, "bold"), anchor="w", justify="left",
                  wraplength=WIN_W - 100).pack(fill="x")
-        tk.Label(inner, text=(f"Compartir los controles de {b['game']} te paga el 25 % de la "
-                              f"hora ({self._fmt_usd(b['monto_usd'])}) aunque el dataset no se "
-                              "comercialice. Lleva un minuto y se hace ahora, con el título abierto."),
+        tk.Label(inner, text=(f"Compartir los controles de {b['game']} te paga un % adicional al "
+                              "validarse. Lleva un minuto y se hace ahora, con el título abierto."),
                  fg=DIM, bg=CARD2, font=("Segoe UI", 10), anchor="w", justify="left",
                  wraplength=WIN_W - 100).pack(fill="x", pady=(8, 14))
 
@@ -8196,11 +8468,11 @@ class PleiadaApp:
             dlg.grab_release(); dlg.destroy()
             self._bono_continuar()
 
-        tk.Button(inner, text="Compartir controles", fg="#fff", bg=ACCENT, relief="flat",
+        Boton(inner, text="Compartir controles", fg="#fff", bg=ACCENT, relief="flat",
                   bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
                   activebackground="#9080e0", activeforeground="#fff",
                   command=_compartir).pack(fill="x", ipady=10)
-        tk.Button(inner, text="Subir sin metadata", fg=TEXT, bg=CARD, relief="flat",
+        Boton(inner, text="Subir sin metadata", fg=TEXT, bg=CARD, relief="flat",
                   bd=0, cursor="hand2", font=("Segoe UI", 10), activebackground=CARD2,
                   activeforeground=TEXT, highlightthickness=1, highlightbackground=BORDER,
                   command=_sin).pack(fill="x", ipady=8, pady=(8, 0))
@@ -8220,13 +8492,13 @@ class PleiadaApp:
     def _bono_frame(self, titulo, paso, volver_a):
         frame = self._ident_frame(titulo, volver_a=volver_a)
         migas = tk.Frame(frame, bg=BG)
-        migas.pack(fill="x", pady=(4, 12))
+        migas.pack(fill="x", pady=(4, 8))
         for i, txt in enumerate(("1 QUÉ", "2 CÓMO", "3 REVISAR"), start=1):
-            if i > 1:
-                tk.Label(migas, text="›", fg=DIMMER, bg=BG, font=("Segoe UI", 8)).pack(
-                    side="left", padx=4)
-            tk.Label(migas, text=txt, fg=ACCENT if i == paso else DIMMER, bg=BG,
-                     font=("Segoe UI", 8, "bold")).pack(side="left")
+            b = Boton(migas, text=txt, bg=ACCENT if i == paso else CARD,
+                      fg="#ffffff" if i == paso else (CIAN if i < paso else DIM),
+                      font=("Segoe UI", 8, "bold"), cursor="arrow",
+                      highlightthickness=1, highlightbackground=BORDER2)
+            b.pack(side="left", fill="x", expand=True, padx=(0 if i == 1 else 6, 0))
         return frame
 
     def _bono_botones(self, parent, izq, cmd_izq, der, cmd_der):
@@ -8235,11 +8507,11 @@ class PleiadaApp:
         cuando la pantalla es alta, que fue lo que pasó con el paso 1."""
         btns = tk.Frame(parent, bg=BG)
         btns.pack(side="bottom", fill="x")
-        tk.Button(btns, text=izq, fg=DIM, bg=CARD, relief="flat", bd=0, cursor="hand2",
+        Boton(btns, text=izq, fg=DIM, bg=CARD, relief="flat", bd=0, cursor="hand2",
                   font=("Segoe UI", 11), activebackground=CARD2, activeforeground=TEXT,
                   command=cmd_izq, highlightthickness=1, highlightbackground=BORDER).pack(
             side="left", fill="x", expand=True, ipady=10, padx=(0, 6))
-        b = tk.Button(btns, text=der, fg="#fff", bg=ACCENT, relief="flat", bd=0,
+        b = Boton(btns, text=der, fg="#fff", bg=ACCENT, relief="flat", bd=0,
                       cursor="hand2", font=("Segoe UI", 11, "bold"),
                       activebackground="#9080e0", activeforeground="#fff", command=cmd_der)
         b.pack(side="right", fill="x", expand=True, ipady=10, padx=(6, 0))
@@ -8267,29 +8539,29 @@ class PleiadaApp:
                  fg=DIM, bg=BG, font=("Segoe UI", 10), anchor="w", justify="left",
                  wraplength=WIN_W - 60).pack(fill="x")
 
-        ill = tk.Frame(frame, bg="#0b0b1d", highlightthickness=1, highlightbackground="#3a3768")
+        ill = Caja(frame, bg="#0a0819", highlightthickness=1, highlightbackground="#3a2d78", pady=2)
         ill.pack(fill="x", pady=(8, 6))
-        win = tk.Frame(ill, bg="#1b1b2f", highlightthickness=1, highlightbackground="#33305a")
+        win = Caja(ill, bg="#1b1540", highlightthickness=1, highlightbackground="#3a2d78", pady=2)
         win.pack(fill="x", padx=10, pady=(8, 4))
-        tk.Label(win, text="TECLADO Y MOUSE", fg=TEXT, bg="#1b1b2f",
+        tk.Label(win, text="TECLADO Y MOUSE", fg=TEXT, bg="#1b1540",
                  font=("Cascadia Code", 8, "bold"), anchor="w").pack(fill="x", padx=8, pady=(4, 2))
         filas = [("Avanzar", "W", True), ("Izquierda", "A", True), ("Retroceder", "S", True),
                  ("Derecha", "D", True), ("Disparar / acción principal", "Mouse izq.", True),
                  ("Recargar (ejemplo)", "R", False), ("Interactuar (ejemplo)", "F", False),
                  ("Saltar (ejemplo)", "Espacio", False)]
         for accion, tecla, minimo in filas:
-            r = tk.Frame(win, bg="#1b1b2f")
+            r = tk.Frame(win, bg="#1b1540")
             r.pack(fill="x", padx=8)
             tk.Label(r, text=("● " if minimo else "   ") + accion,
-                     fg=GREEN if minimo else "#c9c6e6", bg="#1b1b2f",
+                     fg=GREEN if minimo else "#c9c6e6", bg="#1b1540",
                      font=("Cascadia Code", 8), anchor="w").pack(side="left")
-            tk.Label(r, text=tecla, fg=YELLOW, bg="#1b1b2f",
+            tk.Label(r, text=tecla, fg=YELLOW, bg="#1b1540",
                      font=("Cascadia Code", 8), anchor="e").pack(side="right")
-        tk.Frame(win, bg="#1b1b2f", height=4).pack()
+        tk.Frame(win, bg="#1b1540", height=4).pack()
         tk.Label(ill, text=("Esta es la información mínima que necesitamos: ● las cuatro "
                             "teclas de movimiento, el botón principal del mouse y al menos "
                             "ocho controles en total."),
-                 fg=DIM, bg="#0b0b1d", font=("Segoe UI", 9), anchor="w", justify="left",
+                 fg=DIM, bg="#0a0819", font=("Segoe UI", 9), anchor="w", justify="left",
                  wraplength=WIN_W - 90).pack(fill="x", padx=10, pady=(0, 8))
 
         for mark, col, txt in (
@@ -8304,7 +8576,7 @@ class PleiadaApp:
             tk.Label(r, text=txt, fg=TEXT, bg=BG, font=("Segoe UI", 9), anchor="w",
                      justify="left", wraplength=WIN_W - 90).pack(side="left", fill="x", expand=True)
 
-        dos = tk.Frame(frame, bg=CARD, highlightthickness=1, highlightbackground="#4a3f7a")
+        dos = Caja(frame, bg=CARD, highlightthickness=1, highlightbackground="#3a2d78", pady=1)
         dos.pack(fill="x", pady=(8, 8))
         tk.Label(dos, text="Hacen falta dos personas", fg=YELLOW, bg=CARD,
                  font=("Segoe UI", 10, "bold"), anchor="w").pack(fill="x", padx=12, pady=(6, 1))
@@ -8323,7 +8595,7 @@ class PleiadaApp:
         frame = self._bono_frame("Cómo lo compartís", 2, self._bono_paso1)
         btn_rev = self._bono_botones(frame, "Volver", self._bono_paso1, "Revisar", self._bono_paso3)
 
-        opt = tk.Frame(frame, bg=CARD2, highlightthickness=1, highlightbackground=ACCENT)
+        opt = Caja(frame, bg=CARD2, highlightthickness=1, highlightbackground=ACCENT)
         opt.pack(fill="x")
         tk.Label(opt, text="Subí las capturas de la pantalla de controles", fg=TEXT, bg=CARD2,
                  font=("Segoe UI", 11, "bold"), anchor="w", justify="left",
@@ -8333,13 +8605,13 @@ class PleiadaApp:
                  fg=DIM, bg=CARD2, font=("Segoe UI", 9), anchor="w", justify="left",
                  wraplength=WIN_W - 90).pack(fill="x", padx=12, pady=(0, 10))
 
-        drop = tk.Frame(frame, bg="#0b0b1d", highlightthickness=1, highlightbackground="#4a4680")
+        drop = Caja(frame, bg="#0a0819", highlightthickness=1, highlightbackground="#3a2d78")
         drop.pack(fill="x", pady=(8, 0))
-        elegir = tk.Label(drop, text="Elegir imágenes…", fg=ACCENT, bg="#0b0b1d",
+        elegir = tk.Label(drop, text="Elegir imágenes…", fg=CIAN, bg="#0a0819",
                           font=("Segoe UI", 11, "underline"), cursor="hand2")
         elegir.pack(pady=(16, 2))
         tk.Label(drop, text="PNG, JPG o WebP · de a una o varias a la vez", fg=DIMMER,
-                 bg="#0b0b1d", font=("Segoe UI", 9)).pack(pady=(0, 14))
+                 bg="#0a0819", font=("Segoe UI", 9)).pack(pady=(0, 14))
         err = tk.Label(frame, text="", fg=RED, bg=BG, font=("Segoe UI", 9), anchor="w",
                        justify="left", wraplength=WIN_W - 60)
         err.pack(fill="x", pady=(6, 0))
@@ -8362,12 +8634,12 @@ class PleiadaApp:
             imgs = b["imgs"]
             total = sum(len(i["bytes"]) for i in imgs)
             for idx, im in enumerate(imgs):
-                cell = tk.Frame(thumbs, bg="#1e1e3a", highlightthickness=1,
-                                highlightbackground="#3a3768", width=96, height=64)
+                cell = tk.Frame(thumbs, bg="#241c52", highlightthickness=1,
+                                highlightbackground="#3a2d78", width=96, height=64)
                 cell.pack_propagate(False)
                 cell.grid(row=idx // 4, column=idx % 4, padx=(0, 6), pady=(0, 6))
-                tk.Label(cell, image=im["thumb"], bg="#1e1e3a").place(x=0, y=0)
-                x = tk.Label(cell, text="✕", fg=TEXT, bg="#1e1e3a", font=("Segoe UI", 8, "bold"),
+                tk.Label(cell, image=im["thumb"], bg="#241c52").place(x=0, y=0)
+                x = tk.Label(cell, text="✕", fg=TEXT, bg="#241c52", font=("Segoe UI", 8, "bold"),
                              cursor="hand2")
                 x.place(relx=1.0, x=-4, y=2, anchor="ne")
                 x.bind("<Button-1>", lambda e, i=idx: (imgs.pop(i), _refrescar()))
@@ -8505,7 +8777,7 @@ class PleiadaApp:
         btn = self._bono_botones(frame, "Volver", self._bono_paso2,
                                  "Analizar metadata", self._bono_analizar)
         btn.config(state="disabled", bg=CARD, fg=DIMMER)
-        card = tk.Frame(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+        card = Caja(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
         card.pack(fill="x")
         bono_txt = (f"{self._fmt_usd(b['monto_usd'])} al validarse" if b["oferta"] == "bono"
                     else "Ticket para el sorteo mensual")
@@ -8524,26 +8796,26 @@ class PleiadaApp:
         thumbs = tk.Frame(frame, bg=BG)
         thumbs.pack(fill="x", pady=(10, 0))
         for idx, im in enumerate(b["imgs"]):
-            cell = tk.Frame(thumbs, bg="#1e1e3a", highlightthickness=1,
-                            highlightbackground="#3a3768", width=96, height=64)
+            cell = tk.Frame(thumbs, bg="#241c52", highlightthickness=1,
+                            highlightbackground="#3a2d78", width=96, height=64)
             cell.pack_propagate(False)
             cell.grid(row=idx // 4, column=idx % 4, padx=(0, 6), pady=(0, 6))
             if im.get("thumb"):
-                tk.Label(cell, image=im["thumb"], bg="#1e1e3a").place(x=0, y=0)
+                tk.Label(cell, image=im["thumb"], bg="#241c52").place(x=0, y=0)
 
         tk.Label(frame, text=("Vamos a leer las capturas ahora mismo. Si falta algo de lo "
                               "mínimo, te lo decimos y podés sumar otra captura."),
                  fg=DIM, bg=BG, font=("Segoe UI", 9), anchor="w", justify="left",
                  wraplength=WIN_W - 60).pack(fill="x", pady=(6, 0))
 
-        box = tk.Frame(frame, bg="#181428", highlightthickness=1, highlightbackground=YELLOW)
+        box = Caja(frame, bg="#1b1540", highlightthickness=1, highlightbackground=YELLOW)
         box.pack(fill="x", pady=(10, 0))
-        tk.Label(box, text="OBLIGATORIO PARA ANALIZAR", fg=YELLOW, bg="#181428",
+        tk.Label(box, text="OBLIGATORIO PARA ANALIZAR", fg=YELLOW, bg="#1b1540",
                  font=("Segoe UI", 8, "bold"), anchor="w").pack(fill="x", padx=12, pady=(8, 4))
         chk_var = tk.BooleanVar(value=False)
         chk = tk.Checkbutton(
-            box, variable=chk_var, fg=TEXT, bg="#181428", selectcolor=CARD,
-            activebackground="#181428", activeforeground=TEXT, highlightthickness=0, bd=0,
+            box, variable=chk_var, fg=TEXT, bg="#1b1540", selectcolor=CARD,
+            activebackground="#1b1540", activeforeground=TEXT, highlightthickness=0, bd=0,
             font=("Segoe UI", 9), anchor="w", justify="left", wraplength=WIN_W - 120,
             text=(f"Confirmo que es la pantalla de controles por defecto de {b['game']}, "
                   "no de otro título ni de otro modo de juego."))
@@ -8570,7 +8842,7 @@ class PleiadaApp:
                  font=("Segoe UI", 14, "bold"), anchor="w").pack(fill="x")
         tk.Label(frame, text="No cierres el Recorder. Suele tardar menos de un minuto.",
                  fg=DIM, bg=BG, font=("Segoe UI", 10), anchor="w").pack(fill="x", pady=(4, 0))
-        spin = tk.Label(frame, text="⠋", fg=ACCENT, bg=BG, font=("Segoe UI", 40))
+        spin = tk.Label(frame, text="⠋", fg=CIAN, bg=BG, font=("Segoe UI", 40))
         spin.pack(pady=(26, 10))
         etapas = ["Capturas subidas", "Leyendo los controles…",
                   "Comparando con tu sesión", "Validando el mapa del título"]
@@ -8669,8 +8941,8 @@ class PleiadaApp:
                                   else "No se pudo analizar", volver_a=self._bono_paso2)
         btn = self._bono_botones(frame, "Subir sin metadata", self._bono_continuar,
                                  "Volver a intentar", self._bono_paso2)
-        card_bg, card_brd = "#140606", "#7a2020"
-        card = tk.Frame(frame, bg=card_bg, highlightthickness=1, highlightbackground=card_brd)
+        card_bg, card_brd = "#1c0812", "#7a2020"
+        card = Caja(frame, bg=card_bg, highlightthickness=1, highlightbackground=card_brd)
         card.pack(fill="x", pady=(12, 0))
         row = tk.Frame(card, bg=card_bg)
         row.pack(fill="x", padx=12, pady=10)
@@ -8721,7 +8993,7 @@ class PleiadaApp:
                                   mensaje or "¡Gracias igual!", volver_a=None)
         self._set_back(None)
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
-        tk.Button(frame, text="Continuar con la subida del dataset", fg="#fff", bg=ACCENT,
+        Boton(frame, text="Continuar con la subida del dataset", fg="#fff", bg=ACCENT,
                   relief="flat", bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
                   activebackground="#9080e0",
                   command=self._bono_continuar).pack(fill="x", ipady=10)
@@ -8734,7 +9006,7 @@ class PleiadaApp:
         frame = self._ident_frame("Controles recibidos", volver_a=None)
         self._set_back(None)
         card_bg, card_brd = "#06140d", "#1e6644"
-        card = tk.Frame(frame, bg=card_bg, highlightthickness=1, highlightbackground=card_brd)
+        card = Caja(frame, bg=card_bg, highlightthickness=1, highlightbackground=card_brd)
         card.pack(fill="x", pady=(12, 0))
         row = tk.Frame(card, bg=card_bg)
         row.pack(fill="x", padx=12, pady=10)
@@ -8753,9 +9025,8 @@ class PleiadaApp:
                  wraplength=WIN_W - 130).pack(fill="x")
         if b["oferta"] == "bono":
             cuerpo = ("Tu aporte queda registrado. El mapa del título se valida cuando otra "
-                      "persona confirma los mismos controles; en ese momento tu bono de "
-                      f"{self._fmt_usd(b['monto_usd'])} entra a Pago pendiente y se acredita "
-                      "dentro de los 45 días a tu wallet.")
+                      "persona confirma los mismos controles; en ese momento tu bono "
+                      "entra a Pago pendiente y se acredita dentro de los 45 días a tu wallet.")
         else:
             cuerpo = ("Tu aporte queda registrado. El mapa del título se valida cuando otra "
                       "persona confirma los mismos controles; en ese momento tu ticket para "
@@ -8763,7 +9034,7 @@ class PleiadaApp:
         tk.Label(col, text=cuerpo, fg=DIM, bg=card_bg, font=("Segoe UI", 10), anchor="w",
                  justify="left", wraplength=WIN_W - 130).pack(fill="x", pady=(3, 0))
 
-        info = tk.Frame(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+        info = Caja(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
         info.pack(fill="x", pady=(12, 0))
         for k, v, col_v in (("Estado", "Validación pendiente", YELLOW),
                             ("Lo ves en", "tu perfil, debajo de este dataset", TEXT)):
@@ -8780,7 +9051,7 @@ class PleiadaApp:
             texto, cmd = "Continuar con la subida del dataset", self._bono_continuar
         else:
             texto, cmd = "Listo", self._show_idle
-        tk.Button(frame, text=texto, fg="#fff", bg=ACCENT, relief="flat", bd=0,
+        Boton(frame, text=texto, fg="#fff", bg=ACCENT, relief="flat", bd=0,
                   cursor="hand2", font=("Segoe UI", 11, "bold"), activebackground="#9080e0",
                   command=cmd).pack(fill="x", ipady=10)
 
@@ -8843,17 +9114,17 @@ class PleiadaApp:
         frame.pack(fill="both", expand=True, padx=22, pady=20)
         tk.Label(frame, text="Subir Data Set", fg=TEXT, bg=BG,
                  font=("Segoe UI", 14, "bold"), anchor="w").pack(fill="x", pady=(0, 12))
-        notify = tk.Frame(frame, bg="#140606", highlightthickness=1,
+        notify = Caja(frame, bg="#1c0812", highlightthickness=1,
                           highlightbackground="#7a2020")
         notify.pack(fill="x")
-        tk.Label(notify, text="✗  Sesión no apta para enviar", fg=RED, bg="#140606",
+        tk.Label(notify, text="✗  Sesión no apta para enviar", fg=RED, bg="#1c0812",
                  font=("Segoe UI", 11, "bold"), anchor="w").pack(
             fill="x", padx=14, pady=(10, 2))
         tk.Label(notify, text=sync_limits.mensaje_spec_video(fallas), fg="#f0c0c0",
-                 bg="#140606", font=("Segoe UI", 10), anchor="w", justify="left",
+                 bg="#1c0812", font=("Segoe UI", 10), anchor="w", justify="left",
                  wraplength=WIN_W - 90).pack(fill="x", padx=14, pady=(0, 12))
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
-        tk.Button(frame, text="Volver", fg=DIM, bg=CARD, relief="flat", bd=0,
+        Boton(frame, text="Volver", fg=DIM, bg=CARD, relief="flat", bd=0,
                   cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
                   activeforeground=TEXT, command=return_to, highlightthickness=1,
                   highlightbackground=BORDER).pack(fill="x", ipady=10)
@@ -8897,20 +9168,20 @@ class PleiadaApp:
         if not matches:
             tk.Label(frame, text="Subir Data Set", fg=TEXT, bg=BG,
                      font=("Segoe UI", 14, "bold"), anchor="w").pack(fill="x", pady=(0, 12))
-            card_bg, card_brd = "#140e06", "#7a5a20"
-            notify = tk.Frame(frame, bg=card_bg, highlightthickness=1,
+            card_bg, card_brd = "#1c1508", "#7a5a12"
+            notify = Caja(frame, bg=card_bg, highlightthickness=1,
                               highlightbackground=card_brd)
             notify.pack(fill="x")
             juego = meta["game_title"] or "este juego"
             if self.open_calls:
                 body = (f"{juego} no entra en ninguna de tus órdenes activas.\n\n"
-                        "Las subidas solo se habilitan para juegos elegibles de una "
+                        "Las subidas solo se habilitan para títulos elegibles de una "
                         "orden en la que estés inscripto. Revisá las órdenes abiertas "
                         "en el dashboard de Gameplay Alliance.")
             else:
                 body = ("No estás inscripto en ninguna orden abierta.\n\n"
                         "Para subir contenido, primero inscribite en una orden desde "
-                        "el dashboard de Gameplay Alliance y grabá un juego elegible.")
+                        "el dashboard de Gameplay Alliance y grabá un título elegible.")
             tk.Label(notify, text="⚠  Subida no disponible", fg=YELLOW, bg=card_bg,
                      font=("Segoe UI", 11, "bold"), anchor="w").pack(
                 fill="x", padx=14, pady=(10, 2))
@@ -8921,7 +9192,7 @@ class PleiadaApp:
             tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
             btns = tk.Frame(frame, bg=BG)
             btns.pack(fill="x")
-            tk.Button(btns, text="Volver", fg=DIM, bg=CARD, relief="flat", bd=0,
+            Boton(btns, text="Volver", fg=DIM, bg=CARD, relief="flat", bd=0,
                       cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
                       activeforeground=TEXT, command=return_to,
                       highlightthickness=1, highlightbackground=BORDER).pack(
@@ -8929,7 +9200,7 @@ class PleiadaApp:
             def _open_dashboard():
                 import webbrowser
                 webbrowser.open("https://gameplayalliance.gg/dashboard/")
-            tk.Button(btns, text="Ver órdenes abiertas", fg="#fff", bg=ACCENT, relief="flat",
+            Boton(btns, text="Ver órdenes abiertas", fg="#fff", bg=ACCENT, relief="flat",
                       bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
                       activebackground="#9080e0", command=_open_dashboard).pack(
                 side="right", fill="x", expand=True, ipady=10, padx=(6, 0))
@@ -8941,13 +9212,13 @@ class PleiadaApp:
                  fg=DIM, bg=BG, font=("Segoe UI", 11), anchor="w",
                  justify="left", wraplength=WIN_W - 60).pack(fill="x", pady=(0, 16))
 
-        card = tk.Frame(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+        card = Caja(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
         card.pack(fill="x")
         dur_min = max(1, meta["duration_seconds"] // 60) if meta["duration_seconds"] else None
         rows = [("Sesión",   session_dir.name),
                 ("Archivos", f"{info['count']} ({info['size_label']})")]
         if meta["game_title"]:
-            rows.insert(0, ("Juego", meta["game_title"]))
+            rows.insert(0, ("Título", meta["game_title"]))
         if dur_min:
             rows.append(("Duración", f"{dur_min} min"))
         for label, value in rows:
@@ -8962,7 +9233,7 @@ class PleiadaApp:
         # ── Open Call de destino (1 match: fijo; varios: selector) ────────────
         call_var = tk.StringVar(value=matches[0]["call_id"])
         _mk_section_label(frame, "ORDEN DE DESTINO")
-        sel = tk.Frame(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+        sel = Caja(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
         sel.pack(fill="x")
         for m in matches:
             row = tk.Frame(sel, bg=CARD)
@@ -8990,12 +9261,12 @@ class PleiadaApp:
 
         btns = tk.Frame(frame, bg=BG)
         btns.pack(fill="x")
-        tk.Button(btns, text="Volver", fg=DIM, bg=CARD, relief="flat", bd=0,
+        Boton(btns, text="Volver", fg=DIM, bg=CARD, relief="flat", bd=0,
                   cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
                   activeforeground=TEXT, command=return_to,
                   highlightthickness=1, highlightbackground=BORDER).pack(
             side="left", fill="x", expand=True, ipady=10, padx=(0, 6))
-        tk.Button(btns, text="Subir", fg="#fff", bg=ACCENT, relief="flat", bd=0,
+        Boton(btns, text="Subir", fg="#fff", bg=ACCENT, relief="flat", bd=0,
                   cursor="hand2", font=("Segoe UI", 11, "bold"), activebackground="#9080e0",
                   command=lambda: self._bono_antes_de_subir_guardada(
                       session_dir, return_to, call_var.get())).pack(
@@ -9073,7 +9344,7 @@ class PleiadaApp:
         self._bono_slot = slot
         self._bono_render_oferta(slot)
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
-        tk.Button(frame, text="Subir sin metadata", fg=TEXT, bg=CARD, relief="flat", bd=0,
+        Boton(frame, text="Subir sin metadata", fg=TEXT, bg=CARD, relief="flat", bd=0,
                   cursor="hand2", font=("Segoe UI", 10), activebackground=CARD2,
                   activeforeground=TEXT, highlightthickness=1, highlightbackground=BORDER,
                   command=self._bono_continuar).pack(fill="x", ipady=8)
@@ -9119,7 +9390,7 @@ class PleiadaApp:
             cancelled[0] = True
             cancel_event.set()   # corta el thread de subida: aborta el PUT y no finaliza
             return_to()
-        tk.Button(frame, text="Cancelar", fg=DIM, bg=CARD, relief="flat", bd=0,
+        Boton(frame, text="Cancelar", fg=DIM, bg=CARD, relief="flat", bd=0,
                   cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
                   activeforeground=TEXT, command=_cancel,
                   highlightthickness=1, highlightbackground=BORDER).pack(
@@ -9212,17 +9483,17 @@ class PleiadaApp:
         btns = tk.Frame(frame, bg=BG)
         btns.pack(fill="x")
         if status in ("ok", "already", "gate"):
-            tk.Button(btns, text="Listo", fg="#fff", bg=ACCENT, relief="flat", bd=0,
+            Boton(btns, text="Listo", fg="#fff", bg=ACCENT, relief="flat", bd=0,
                       cursor="hand2", font=("Segoe UI", 11, "bold"),
                       activebackground="#9080e0", command=return_to).pack(
                 fill="x", ipady=10)
         else:
-            tk.Button(btns, text="Volver", fg=DIM, bg=CARD, relief="flat", bd=0,
+            Boton(btns, text="Volver", fg=DIM, bg=CARD, relief="flat", bd=0,
                       cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
                       activeforeground=TEXT, command=return_to,
                       highlightthickness=1, highlightbackground=BORDER).pack(
                 side="left", fill="x", expand=True, ipady=10, padx=(0, 6))
-            tk.Button(btns, text="Reintentar", fg="#fff", bg=ACCENT, relief="flat",
+            Boton(btns, text="Reintentar", fg="#fff", bg=ACCENT, relief="flat",
                       bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
                       activebackground="#9080e0",
                       command=lambda: self._upload_progress_view(
@@ -9254,9 +9525,8 @@ class PleiadaApp:
             self.logged_in  = False
             self.auth_token = ""
             save_auth("", "")
-            self._signout_lbl.pack_forget()
             self._show_login()
-        tk.Button(frame, text="Iniciar sesión", fg="#fff", bg=ACCENT, relief="flat",
+        Boton(frame, text="Iniciar sesión", fg="#fff", bg=ACCENT, relief="flat",
                   bd=0, cursor="hand2", font=("Segoe UI", 11, "bold"),
                   activebackground="#9080e0", command=_relogin).pack(fill="x", ipady=10)
 
@@ -9270,11 +9540,7 @@ class PleiadaApp:
 
         head = tk.Frame(outer, bg=BG, padx=22, pady=16)
         head.pack(fill="x")
-        back = tk.Label(head, text="←", fg=ACCENT, bg=BG, font=("Segoe UI", 16),
-                        cursor="hand2")
-        back.pack(side="left")
-        back.bind("<Button-1>", lambda e: self._show_idle())
-        tk.Label(head, text="  Mis grabaciones", fg=TEXT, bg=BG,
+        tk.Label(head, text="Mis grabaciones", fg=TEXT, bg=BG,
                  font=("Segoe UI", 14, "bold")).pack(side="left")
 
         canvas = tk.Canvas(outer, bg=BG, bd=0, highlightthickness=0)
@@ -9294,7 +9560,7 @@ class PleiadaApp:
             self._session_row(lst, sdir, state)
 
     def _session_row(self, parent, sdir, state):
-        card = tk.Frame(parent, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+        card = Caja(parent, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
         card.pack(fill="x", padx=18, pady=5)
         inner = tk.Frame(card, bg=CARD)
         inner.pack(fill="x", padx=12, pady=10)
@@ -9318,7 +9584,7 @@ class PleiadaApp:
                  font=("Cascadia Code", 9)).pack(side="left", padx=(10, 0))
 
         if state.get("status") == "pending":
-            tk.Button(meta, text="Subir", fg="#fff", bg=ACCENT, relief="flat", bd=0,
+            Boton(meta, text="Subir", fg="#fff", bg=ACCENT, relief="flat", bd=0,
                       cursor="hand2", font=("Segoe UI", 9, "bold"),
                       activebackground="#9080e0",
                       command=lambda d=sdir: self._start_upload_flow(
@@ -9344,7 +9610,7 @@ class PleiadaApp:
             if destino is None:
                 btn.pack_forget()
             else:
-                btn.pack(side="left", padx=(8, 0), before=btn.master.winfo_children()[1])
+                btn.pack()
         except Exception:
             pass
 
