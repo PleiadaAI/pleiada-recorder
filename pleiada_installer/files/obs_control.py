@@ -23,14 +23,16 @@ OBS_HOST     = "localhost"
 OBS_PORT     = 4455
 OBS_PASSWORD = ""
 
-DEBUG_LOG   = os.path.join(os.environ.get("TEMP", "C:\\Temp"), "pleiada_obs_debug.txt")
+# v0.10.1: mismo registro que la app, en Documentos\\Pleiada Logs.
+DEBUG_LOG   = os.path.join(os.path.expanduser("~"), "Documents", "Pleiada Logs", "recorder.log")
 ANCHOR_FILE = os.path.join(os.environ.get("TEMP", "C:\\Temp"), "pleiada_anchor_ts.txt")
 GAME_FILE   = os.path.join(os.environ.get("TEMP", "C:\\Temp"), "pleiada_game_name.txt")
 
 def dbg(msg):
     try:
+        os.makedirs(os.path.dirname(DEBUG_LOG), exist_ok=True)
         with open(DEBUG_LOG, "a", encoding="utf-8") as f:
-            f.write(f"[{time.strftime('%H:%M:%S')}] {msg}\n")
+            f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] obs_control: {msg}\n")
     except Exception:
         pass
 

@@ -1,5 +1,25 @@
 # Changelog — Pleiada Recorder
 
+## V10.1 — 04/11/2026 — fixes del QA de la V10.0 (MANDATORIA si pasa el QA externo)
+
+- **Registro:** `pleiada_obs_debug.txt` se mueve de `%TEMP%` a `Documentos\Pleiada Logs\recorder.log`,
+  con fecha completa y rotación a 5 MB (`recorder.log.1`). `obs_control.py` escribe en el mismo.
+- **PLE-250:** con la sesión vencida o sin login no se ven ⚙ ni Atrás, y F9 no graba.
+- **PLE-253:** durante una subida, el Atrás de la barra cancela igual que "Cancelar".
+- **PLE-246:** el alto de la ventana se ajusta al área útil (sin la barra de tareas) a cualquier
+  escala, y la ventana se centra dentro de esa área.
+- **PLE-247:** la barra de título ubica la versión según el ancho medido del nombre y escala
+  posiciones y logo.
+- **PLE-248:** Ajustes con scroll y la cuenta fija abajo. Los pasos de la metadata también
+  scrollean, con barra fina propia.
+- **PLE-249:** el número de la cuenta regresiva es texto del canvas; el anillo escala.
+- **PLE-252:** los pasos de la metadata navegan, con la misma condición que los botones.
+- **PLE-242/243/245:** hover en los botones principales.
+- **PLE-244:** botones y enlaces ejecutan al soltar sobre ellos.
+- **PLE-254:** se avisa si el disco de OBS tiene menos de 5 GB libres antes de grabar, y si OBS
+  corta con menos de 1 GB libre, la pantalla dice que se llenó el disco. La sesión se descarta.
+- **PLE-251:** no es error. El MP4 sale en 1080p porque OBS escala la captura, y se acepta.
+
 ## V10.0 — 01/11/2026 — rediseño visual Neón (MANDATORIA si pasa el QA externo)
 
 Incluye todo lo de la V9.24, que nunca se publicó por separado.

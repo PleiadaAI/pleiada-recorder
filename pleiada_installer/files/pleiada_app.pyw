@@ -17,7 +17,7 @@ import sync_markers        # v0.9.18: anclas medidas input<->video (T0 capture.s
 import input_devices       # v0.9.18: calibración de mouse/teclado (T0 input.device_metadata)
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.10.0"
+VERSION = "v0.10.1"
 
 # El objeto de marcadores de la grabación en curso. Vive a nivel módulo porque
 # build_session_metadata() es una función suelta y necesita el resumen al cerrar.
@@ -128,6 +128,7 @@ CIAN    = "#22d3ee"
 # paso 1 del aporte quedaban cortados por abajo en la app real (la barra de
 # título propia se come ~44 px que el smoke test no tenía).
 WIN_W, WIN_H = 420, 790
+AREA_UTIL = None     # (left, top, right, bottom) del escritorio sin la barra de tareas
 # PLE-161: en pantallas muy escaladas la ventana no entra entera y el panel de
 # tips se oculta para que el pie no quede afuera. Lo decide el bloque de DPI del
 # entry point; acá vale True porque a 100% siempre entra.
@@ -643,11 +644,30 @@ class OBSAuthError(RuntimeError):
     """OBS WebSocket rechazó la autenticación (contraseña activada en OBS)."""
     pass
 
+# v0.10.1: el registro de lo que hace el Recorder vive con los demás logs, en
+# Documentos\Pleiada Logs. Antes iba a %TEMP%\pleiada_obs_debug.txt: QA buscaba en
+# Pleiada Logs, encontraba faulthandler.log y upload.log vacíos (lo esperado) y no
+# sabía que el registro estaba en otro lado, que además Windows limpia solo.
+DIAG_LOG = LOG_DIR / "recorder.log"
+DIAG_LOG_MAX = 5 * 1024 * 1024
+
+
+def _rotar_diag_log():
+    """Al abrir la app: si el log pasó el tope, queda como recorder.log.1."""
+    try:
+        if DIAG_LOG.exists() and DIAG_LOG.stat().st_size > DIAG_LOG_MAX:
+            viejo = DIAG_LOG.with_name("recorder.log.1")
+            viejo.unlink(missing_ok=True)
+            DIAG_LOG.rename(viejo)
+    except Exception:
+        pass
+
+
 def _obs_dbg(msg):
     try:
-        log = TEMP_DIR / "pleiada_obs_debug.txt"
-        with open(log, "a", encoding="utf-8") as f:
-            f.write(f"[{time.strftime('%H:%M:%S')}] {msg}\n")
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        with open(DIAG_LOG, "a", encoding="utf-8") as f:
+            f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}\n")
     except Exception:
         pass
 
@@ -4113,6 +4133,21 @@ def _mk_section_label(parent, text):
     return lbl
 
 
+# ─── Espacio en disco (v0.10.1, PLE-254) ──────────────────────────────────────
+# Mínimo para empezar a grabar en el disco de OBS. Una hora de sesión ocupa entre
+# 1 y 20 GB según cómo grabe OBS; con menos de esto es probable que se corte.
+DISCO_MIN_PARA_GRABAR = 5 * 1024 ** 3
+# Por debajo de esto, un corte de OBS se atribuye a que se llenó el disco.
+DISCO_LLENO = 1024 ** 3
+
+
+def _espacio_libre(carpeta):
+    try:
+        return shutil.disk_usage(carpeta).free
+    except Exception:
+        return None
+
+
 # ─── Widgets Neón ─────────────────────────────────────────────────────────────
 #
 # Tk no tiene degradés ni esquinas redondeadas, así que se dibujan con Pillow y se
@@ -4127,9 +4162,9 @@ def _rgb(c):
     return tuple(int(c[i:i + 2], 16) for i in (1, 3, 5))
 
 
-def _neon_img(w, h, r, fondo, relleno, borde=None, neon=False, grueso=1):
+def _neon_img(w, h, r, fondo, relleno, borde=None, neon=False, grueso=1, claro=False):
     """Rectángulo redondeado con antialias. `relleno` None = degradé violeta a rosa."""
-    clave = (w, h, r, fondo, relleno, borde, neon, grueso)
+    clave = (w, h, r, fondo, relleno, borde, neon, grueso, claro)
     if clave in _NEON_CACHE:
         return _NEON_CACHE[clave]
     from PIL import Image, ImageDraw, ImageTk
@@ -4149,7 +4184,10 @@ def _neon_img(w, h, r, fondo, relleno, borde=None, neon=False, grueso=1):
 
     im = Image.new("RGB", (w, h), _rgb(fondo))
     if relleno is None:
-        im.paste(degrade(ACCENT, ROSA), (0, 0), mascara(w, h))
+        g = degrade(ACCENT, ROSA)
+        if claro:
+            g = Image.blend(g, Image.new("RGB", (w, h), (255, 255, 255)), 0.16)
+        im.paste(g, (0, 0), mascara(w, h))
     else:
         if neon:
             im.paste(degrade(ACCENT, CIAN), (0, 0), mascara(w, h))
@@ -4195,6 +4233,7 @@ class Boton(tk.Canvas):
         alto = f.metrics("linespace") + 2 * max(6, int(kw.get("pady", 0) or 0))
         super().__init__(parent, width=ancho, height=alto, bg=fondo, bd=0,
                          highlightthickness=0, takefocus=0, cursor=kw.get("cursor", "hand2"))
+        self._cursor = kw.get("cursor", "hand2")
         self._img = self.create_image(0, 0, anchor="nw")
         self._txt = self.create_text(ancho // 2, alto // 2, text=self._text, fill=self._fg,
                                      font=self._font)
@@ -4206,6 +4245,7 @@ class Boton(tk.Canvas):
 
     def _hover(self, valor):
         self._encima = valor
+        self.configure_lienzo(cursor="arrow" if self._state == "disabled" else self._cursor)
         self._pintar()
 
     def _click(self, e):
@@ -4229,14 +4269,15 @@ class Boton(tk.Canvas):
         principal = self._bg == ACCENT and not apagado
         plano = self._bg == fondo
         relleno = None if principal else (CARD if apagado and not plano else self._bg)
-        if self._encima and not apagado and not plano and not principal:
+        if self._encima and not apagado and not principal:
             relleno = CARD2
         borde = self._borde or (BORDER if not principal and not plano else None)
-        if plano:
+        if plano and not (self._encima and not apagado):
             self.itemconfigure(self._img, state="hidden")
             return
         try:
-            foto = _neon_img(w, h, self._radio, fondo, relleno, borde)
+            foto = _neon_img(w, h, self._radio, fondo, relleno, borde,
+                             claro=principal and self._encima)
             self.itemconfigure(self._img, image=foto, state="normal")
         except Exception:
             self.configure_lienzo(bg=ACCENT if principal else (relleno or CARD))
@@ -4338,10 +4379,44 @@ class Caja(tk.Frame):
     config = configure
 
 
+def _clic(widget, fn):
+    """Como bind("<Button-1>") pero la acción corre al SOLTAR sobre el widget:
+    apretar y salir arrastrando cancela, como en cualquier botón (PLE-244)."""
+    def soltar(e):
+        if 0 <= e.x < widget.winfo_width() and 0 <= e.y < widget.winfo_height():
+            fn(e)
+    widget.bind("<ButtonRelease-1>", soltar)
+
+
+class _TextoAnillo:
+    """Número dentro del anillo: ítem de texto del canvas, sin caja de fondo (PLE-249).
+    Mantiene la interfaz de Label que usa la cuenta regresiva."""
+
+    def __init__(self, canvas, texto, fg, fuente):
+        self.c = canvas
+        lado = int(canvas.cget("width"))
+        self.id = canvas.create_text(lado // 2, lado // 2, text=texto, fill=fg, font=fuente)
+
+    def config(self, **kw):
+        if "text" in kw:
+            self.c.itemconfigure(self.id, text=kw["text"])
+        if "fg" in kw:
+            self.c.itemconfigure(self.id, fill=kw["fg"])
+
+    configure = config
+
+    def winfo_exists(self):
+        try:
+            return self.c.winfo_exists()
+        except tk.TclError:
+            return 0
+
+
 class _ItemBarra:
     """Ítem de texto de la barra de título con la interfaz de Label que usa la app."""
 
     def __init__(self, canvas, x, texto, fg, fuente, anchor="w", y=24):
+        y = getattr(canvas, "_centro_y", y)
         self.c, self.fg = canvas, fg
         self.id = canvas.create_text(x, y, text=texto, fill=fg, font=fuente, anchor=anchor,
                                      tags=("control",))
@@ -4353,6 +4428,13 @@ class _ItemBarra:
             self.c.itemconfigure(self.id, text=kw["text"])
 
     def bind(self, evento, fn):
+        if evento == "<Button-1>":
+            def soltar(e, fn=fn):
+                x0, y0, x1, y1 = self.c.bbox(self.id) or (0, 0, 0, 0)
+                if x0 - 6 <= e.x <= x1 + 6 and y0 - 6 <= e.y <= y1 + 6:
+                    fn(e)
+            self.c.tag_bind(self.id, "<ButtonRelease-1>", soltar)
+            return
         self.c.tag_bind(self.id, evento, fn)
         if evento == "<Enter>":
             self.c.tag_bind(self.id, "<Enter>",
@@ -4367,8 +4449,71 @@ class _ItemBarra:
     def pack_forget(self):
         self.c.itemconfigure(self.id, state="hidden")
 
+def _escala(widget):
+    """Factor de escala de Windows (1.0 = 100 %): las fuentes en puntos crecen con él."""
+    try:
+        return max(1.0, widget.winfo_fpixels("1i") / 96.0)
+    except Exception:
+        return 1.0
+
+
+def _mk_scroll(parent, padx=0, pady=0):
+    """Área que scrollea solo si el contenido no entra. Devuelve el frame interior."""
+    caja = tk.Frame(parent, bg=BG)
+    caja.pack(fill="both", expand=True, padx=padx, pady=pady)
+    c = tk.Canvas(caja, bg=BG, bd=0, highlightthickness=0)
+    # Barra propia y fina: la nativa de Windows no toma los colores del tema y
+    # sobre el fondo oscuro no se veía.
+    barra = tk.Canvas(caja, width=8, bg=BG, bd=0, highlightthickness=0, cursor="hand2")
+    pos = [0.0, 1.0]
+
+    def pintar_barra(e=None):
+        barra.delete("all")
+        h = barra.winfo_height()
+        barra.create_rectangle(2, int(pos[0] * h) + 1, 6, int(pos[1] * h) - 1,
+                               fill=BORDER, outline=BORDER)
+
+    def mover_barra(lo, hi):
+        pos[0], pos[1] = float(lo), float(hi)
+        pintar_barra()
+
+    def arrastrar(e):
+        h = max(1, barra.winfo_height())
+        c.yview_moveto(e.y / h - (pos[1] - pos[0]) / 2)
+
+    barra.bind("<Configure>", pintar_barra)
+    barra.bind("<Button-1>", arrastrar)
+    barra.bind("<B1-Motion>", arrastrar)
+    c.configure(yscrollcommand=mover_barra)
+    c.pack(side="left", fill="both", expand=True)
+    dentro = tk.Frame(c, bg=BG)
+    win = c.create_window(0, 0, window=dentro, anchor="nw")
+
+    def ajustar(e=None):
+        c.itemconfigure(win, width=c.winfo_width() - (6 if barra.winfo_ismapped() else 0))
+        c.configure(scrollregion=(0, 0, 0, dentro.winfo_reqheight()))
+        sobra = dentro.winfo_reqheight() > c.winfo_height() + 2
+        if sobra and not barra.winfo_ismapped():
+            barra.pack(side="right", fill="y", before=c)
+        elif not sobra and barra.winfo_ismapped():
+            barra.pack_forget()
+            c.yview_moveto(0)
+
+    def rueda(e):
+        if barra.winfo_ismapped():
+            c.yview_scroll(int(-e.delta / 120), "units")
+
+    dentro.bind("<Configure>", lambda e: c.after_idle(ajustar))
+    c.bind("<Configure>", lambda e: c.after_idle(ajustar))
+    c.after(50, ajustar)
+    caja.bind_all("<MouseWheel>", rueda, add=True)
+    caja.bind("<Destroy>", lambda e: e.widget is caja and caja.unbind_all("<MouseWheel>"))
+    return dentro
+
+
 def _mk_anillo(parent, diametro=190):
     """Anillo fijo de las cuentas regresivas: degradé y brillo sin animación."""
+    diametro = int(diametro * _escala(parent))
     c = tk.Canvas(parent, width=diametro + 40, height=diametro + 40, bg=parent.cget("bg"),
                   bd=0, highlightthickness=0)
     try:
@@ -4376,8 +4521,9 @@ def _mk_anillo(parent, diametro=190):
         lado = diametro + 40
         m = Image.new("L", (lado * 4, lado * 4), 0)
         d = ImageDraw.Draw(m)
+        g = max(20, int(20 * _escala(parent)))
         d.ellipse((80, 80, lado * 4 - 80, lado * 4 - 80), fill=255)
-        d.ellipse((100, 100, lado * 4 - 100, lado * 4 - 100), fill=0)
+        d.ellipse((80 + g, 80 + g, lado * 4 - 80 - g, lado * 4 - 80 - g), fill=0)
         m = m.resize((lado, lado), Image.LANCZOS)
         fondo = Image.new("RGB", (lado, lado), _rgb(parent.cget("bg")))
         a, b = _rgb(ACCENT), _rgb(ROSA)
@@ -4407,10 +4553,13 @@ class PleiadaApp:
         self.root.configure(bg=BG)
         self.root.geometry(f"{WIN_W}x{WIN_H}")
         # Centrar en pantalla
-        sw = self.root.winfo_screenwidth()
-        sh = self.root.winfo_screenheight()
-        x  = (sw - WIN_W) // 2
-        y  = (sh - WIN_H) // 2
+        if AREA_UTIL:
+            l, t_, r_, b_ = AREA_UTIL
+            x = l + max(0, (r_ - l - WIN_W) // 2)
+            y = t_ + max(0, (b_ - t_ - WIN_H) // 2)
+        else:
+            x = (self.root.winfo_screenwidth() - WIN_W) // 2
+            y = max(0, (self.root.winfo_screenheight() - WIN_H) // 2)
         self.root.geometry(f"+{x}+{y}")
 
         # Ícono de la ventana (alt-tab, barra de tareas)
@@ -4534,8 +4683,10 @@ class PleiadaApp:
         self.content.pack(fill="both", expand=True)
 
     def _build_titlebar(self, parent):
-        alto = 46
+        esc = _escala(parent)
+        alto = int(46 * esc)
         tb = tk.Canvas(parent, height=alto, bg=BG, bd=0, highlightthickness=0)
+        tb._centro_y = alto // 2
         tb.pack(fill="x")
         self._tb = tb
         self._tb_foto = None
@@ -4565,33 +4716,37 @@ class PleiadaApp:
         # v0.9: Atras. Vive en la barra porque el flujo dejo de ser una sola
         # pantalla. Se oculta cuando no hay a donde ir (pantalla inicial) y
         # mientras se graba: ahi el unico camino valido es Detener o Cancelar.
-        self._back_btn = _ItemBarra(tb, 12, "‹", TEXT, ("Segoe UI", 17))
+        self._back_btn = _ItemBarra(tb, int(12 * esc), "‹", TEXT, ("Segoe UI", 17))
         self._back_btn.pack_forget()
         self._back_btn.bind("<Button-1>", lambda e: self._go_back())
         self._back_btn.bind("<Enter>", lambda e: self._back_btn.config(fg=CIAN))
         self._back_btn.bind("<Leave>", lambda e: self._back_btn.config(fg=TEXT))
 
-        x = 32
+        x = int(32 * esc)
+        cy = alto // 2
         self._tb_logo = None
         try:
             from PIL import Image, ImageTk
             logo = Image.open(APP_DIR / "gameplay_recorder_icon.png").convert("RGBA")
-            self._tb_logo = ImageTk.PhotoImage(logo.resize((24, 24), Image.LANCZOS))
-            tb.create_image(x, 24, anchor="w", image=self._tb_logo)
+            lado = int(24 * esc)
+            self._tb_logo = ImageTk.PhotoImage(logo.resize((lado, lado), Image.LANCZOS))
+            tb.create_image(x, cy, anchor="w", image=self._tb_logo)
         except Exception:
-            tb.create_text(x, 24, anchor="w", text="✦", fill=CIAN, font=("Segoe UI", 12, "bold"))
-        tb.create_text(x + 32, 24, anchor="w", text="Gameplay Recorder", fill=TEXT,
-                       font=("Segoe UI", 11, "bold"))
-        tb.create_text(x + 180, 25, anchor="w", text=VERSION, fill=DIM, font=("Segoe UI", 9))
+            tb.create_text(x, cy, anchor="w", text="✦", fill=CIAN, font=("Segoe UI", 12, "bold"))
+        nombre = tb.create_text(x + int(32 * esc), cy, anchor="w", text="Gameplay Recorder",
+                                fill=TEXT, font=("Segoe UI", 11, "bold"))
+        # PLE-247: la versión va donde termina el nombre medido, no a un x fijo.
+        tb.create_text(tb.bbox(nombre)[2] + int(8 * esc), cy + 1, anchor="w", text=VERSION,
+                       fill=DIM, font=("Segoe UI", 9))
 
         # Botón cerrar — la × se ve siempre (Bug 5)
-        close_btn = _ItemBarra(tb, WIN_W - 22, "×", TEXT, ("Segoe UI", 13), anchor="center")
+        close_btn = _ItemBarra(tb, WIN_W - int(22 * esc), "×", TEXT, ("Segoe UI", 13), anchor="center")
         close_btn.bind("<Button-1>", lambda e: self._on_close())
         close_btn.bind("<Enter>", lambda e: close_btn.config(fg="#ff5f57"))
         close_btn.bind("<Leave>", lambda e: close_btn.config(fg=TEXT))
 
         # v0.5: ícono de Settings (⚙)
-        self._settings_btn = _ItemBarra(tb, WIN_W - 54, "⚙", DIM, ("Segoe UI", 12), anchor="center")
+        self._settings_btn = _ItemBarra(tb, WIN_W - int(54 * esc), "⚙", DIM, ("Segoe UI", 12), anchor="center")
         self._settings_btn.bind("<Button-1>", lambda e: self._show_settings())
         self._settings_btn.bind("<Enter>", lambda e: self._settings_btn.config(fg=TEXT))
         self._settings_btn.bind("<Leave>", lambda e: self._settings_btn.config(fg=DIM))
@@ -5021,12 +5176,12 @@ class PleiadaApp:
                     self.root.after(0, lambda: resend_lbl.config(
                         text="Reenviar código", fg=CIAN))
             threading.Thread(target=_worker, daemon=True).start()
-        resend_lbl.bind("<Button-1>", on_resend)
+        _clic(resend_lbl, on_resend)
 
         change_lbl = tk.Label(links, text="Cambiar email", fg=DIM, bg=BG,
                              font=("Segoe UI", 10), cursor="hand2")
         change_lbl.pack(side="right")
-        change_lbl.bind("<Button-1>", lambda e: self._show_login())
+        _clic(change_lbl, lambda e: self._show_login())
 
     def _sign_out(self):
         if self.recording:
@@ -5052,8 +5207,20 @@ class PleiadaApp:
         self._capturing_hotkey = None
         self._clear_content()
         self._set_back(self._show_idle)
-        frame = tk.Frame(self.content, bg=BG)
-        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        # PLE-248: la cuenta va fija abajo y el resto scrollea si no entra, para
+        # que "Cerrar sesión" se vea a cualquier escala de pantalla.
+        pie = tk.Frame(self.content, bg=BG)
+        pie.pack(side="bottom", fill="x", padx=22, pady=(8, 16))
+        _mk_separator(pie, color=BORDER2, pady=(0, 10))
+        tk.Label(pie, text=self.user_email or "—", fg=DIM, bg=BG,
+                 font=("Segoe UI", 10), anchor="w").pack(fill="x")
+        Boton(pie, text="Cerrar sesión", fg=TEXT, bg=CARD,
+                  relief="flat", bd=0, cursor="hand2",
+                  font=("Segoe UI", 10), activebackground=CARD2,
+                  activeforeground=TEXT, command=self._sign_out,
+                  highlightthickness=1, highlightbackground=BORDER).pack(
+            fill="x", ipady=8, pady=(8, 0))
+        frame = _mk_scroll(self.content, padx=22, pady=(4, 0))
 
         _mk_section_label(frame, "AJUSTES")
 
@@ -5083,7 +5250,7 @@ class PleiadaApp:
                            cursor="hand2", padx=12, pady=4,
                            highlightthickness=1, highlightbackground=BORDER)
             btn.pack(side="right")
-            btn.bind("<Button-1>", lambda e, k=key: self._begin_capture_hotkey(k))
+            _clic(btn, lambda e, k=key: self._begin_capture_hotkey(k))
             self._hotkey_btns[key] = btn
         tk.Label(frame, text="Hacé clic en un atajo y presioná la nueva tecla.\n"
                               "Los atajos funcionan aunque la ventana no esté en foco.",
@@ -5108,7 +5275,7 @@ class PleiadaApp:
                           font=("Segoe UI", 10), cursor="hand2", padx=11, pady=5,
                           highlightthickness=1, highlightbackground=BORDER)
             _b.pack(side="left", padx=(0, 6))
-            _b.bind("<Button-1>", lambda e, m=_mins: self._set_max_minutes(m))
+            _clic(_b, lambda e, m=_mins: self._set_max_minutes(m))
             self._maxdur_preset_btns[_mins] = _b
 
         tk.Label(frame, text="La grabación se detiene automáticamente al alcanzar este tiempo. "
@@ -5126,7 +5293,7 @@ class PleiadaApp:
                                           padx=12, pady=4, highlightthickness=1,
                                           highlightbackground=BORDER)
         self._autorestart_btn.pack(side="right")
-        self._autorestart_btn.bind("<Button-1>", lambda e: self._toggle_auto_restart())
+        _clic(self._autorestart_btn, lambda e: self._toggle_auto_restart())
         self._refresh_autorestart_ui()
 
         tk.Label(frame, text="Cuando una grabación se detiene por alcanzar la duración máxima, "
@@ -5154,20 +5321,6 @@ class PleiadaApp:
                  fg=DIM, bg=BG, font=("Segoe UI", 9), justify="left",
                  wraplength=WIN_W - 60, anchor="w").pack(fill="x", pady=(6, 0))
 
-        _mk_separator(frame, color=BORDER2, pady=(14, 12))
-
-        # — Cuenta (sin título, v0.7.1) —
-        tk.Label(frame, text=self.user_email or "—", fg=DIM, bg=BG,
-                 font=("Segoe UI", 10), anchor="w").pack(fill="x")
-        Boton(frame, text="Cerrar sesión", fg=TEXT, bg=CARD,
-                  relief="flat", bd=0, cursor="hand2",
-                  font=("Segoe UI", 10), activebackground=CARD2,
-                  activeforeground=TEXT, command=self._sign_out,
-                  highlightthickness=1, highlightbackground=BORDER).pack(
-            fill="x", ipady=8, pady=(8, 0))
-
-        # spacer al fondo (el back vive arriba ahora)
-        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
 
     # ── Settings: duración máxima y auto-reinicio (v0.7.1) ─────────────────────
 
@@ -5416,7 +5569,7 @@ class PleiadaApp:
         sessions_btn.pack(fill="x", pady=(8, 0))
         sessions_btn.bind("<Enter>", lambda e: sessions_btn.config(fg="#7dedfb"))
         sessions_btn.bind("<Leave>", lambda e: sessions_btn.config(fg=CIAN))
-        sessions_btn.bind("<Button-1>", lambda e: self._show_sessions_list())
+        _clic(sessions_btn, lambda e: self._show_sessions_list())
 
         # — Footer ————————————————————————————————————
         _mk_separator(frame, color=BORDER2, pady=(12, 0))
@@ -5437,7 +5590,7 @@ class PleiadaApp:
         tutorial_lbl.pack(fill="x", pady=(6, 0))
         tutorial_lbl.bind("<Enter>", lambda e: tutorial_lbl.config(fg=CIAN))
         tutorial_lbl.bind("<Leave>", lambda e: tutorial_lbl.config(fg=DIMMER))
-        tutorial_lbl.bind("<Button-1>", lambda e: self._open_tutorial())
+        _clic(tutorial_lbl, lambda e: self._open_tutorial())
 
         self._idle_frame = frame
 
@@ -5574,7 +5727,7 @@ class PleiadaApp:
         self._game_tag_lbl.config(text="")
         # Mostrar × para limpiar la selección
         self._chevron_lbl.config(text="×", fg=TEXT, cursor="hand2")
-        self._chevron_lbl.bind("<Button-1>", lambda e: self._clear_game_selection())
+        _clic(self._chevron_lbl, lambda e: self._clear_game_selection())
         # Update hint
         self._hint_lbl.config(text="✓  Juego seleccionado.", fg=GREEN)
         # Check OBS game match
@@ -5891,7 +6044,7 @@ class PleiadaApp:
         b = tk.Label(self._det_calls_box, text="Reintentar", fg=CIAN, bg=BG,
                      font=("Segoe UI", 10), cursor="hand2", anchor="w")
         b.pack(fill="x", pady=(10, 0))
-        b.bind("<Button-1>", lambda e: self._reintentar_deteccion())
+        _clic(b, lambda e: self._reintentar_deteccion())
         self._update_record_btn()
 
     def _apply_resolve(self, res):
@@ -5949,7 +6102,7 @@ class PleiadaApp:
                          font=("Segoe UI", 10), anchor="w", cursor="hand2",
                          padx=12, pady=9)
             b.pack(fill="x", pady=(0, 6))
-            b.bind("<Button-1>", lambda e, c=cand: self._pick_candidato(c))
+            _clic(b, lambda e, c=cand: self._pick_candidato(c))
         self._update_record_btn()
 
     def _pick_candidato(self, cand):
@@ -6037,7 +6190,7 @@ class PleiadaApp:
         no_es.pack(fill="x", pady=(12, 0))
         no_es.bind("<Enter>", lambda e: no_es.config(fg=CIAN))
         no_es.bind("<Leave>", lambda e: no_es.config(fg=DIMMER))
-        no_es.bind("<Button-1>", lambda e: self._corregir_titulo())
+        _clic(no_es, lambda e: self._corregir_titulo())
         self._update_record_btn()
 
     def _corregir_titulo(self):
@@ -6084,7 +6237,7 @@ class PleiadaApp:
         b = tk.Label(self._det_calls_box, text="Identificar el título", fg=CIAN,
                      bg=BG, font=("Segoe UI", 10), cursor="hand2", anchor="w")
         b.pack(fill="x", pady=(10, 0))
-        b.bind("<Button-1>", lambda e: self._ident_nombre_view(exe, titulo))
+        _clic(b, lambda e: self._ident_nombre_view(exe, titulo))
         self._update_record_btn()
 
     def _reaplicar_declaracion(self, exe, bruto, decl):
@@ -6252,7 +6405,7 @@ class PleiadaApp:
                        cursor="hand2", anchor="w", justify="left",
                        wraplength=WIN_W - 60)
         lbl.pack(fill="x", pady=pady)
-        lbl.bind("<Button-1>", lambda e: cmd())
+        _clic(lbl, lambda e: cmd())
         return lbl
 
     def _clave_declaracion(self, exe, titulo):
@@ -6410,8 +6563,7 @@ class PleiadaApp:
                            font=("Segoe UI", 8), anchor="w", cursor="hand2")
             ver.pack(fill="x")
             for w in (nom, ver):
-                w.bind("<Button-1>",
-                       lambda e, u=c.get("url") or "": self._abrir_url(u))
+                _clic(w, lambda e, u=c.get("url") or "": self._abrir_url(u))
 
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
         Boton(frame, text="Ninguno es el mío", fg=DIM, bg=CARD, relief="flat",
@@ -6439,8 +6591,7 @@ class PleiadaApp:
         ver = tk.Label(card, text="ver ficha en IGDB ↗", fg=CIAN, bg=CARD,
                        font=("Segoe UI", 9), anchor="w", cursor="hand2")
         ver.pack(fill="x", padx=14, pady=(0, 12))
-        ver.bind("<Button-1>",
-                 lambda e, u=cand.get("url") or "": self._abrir_url(u))
+        _clic(ver, lambda e, u=cand.get("url") or "": self._abrir_url(u))
         self._ident_detectado(frame, exe, titulo)
         err, btn = self._ident_pie(frame, "Sí, es este")
 
@@ -6560,8 +6711,7 @@ class PleiadaApp:
                                bg=BG, font=("Segoe UI", 10), cursor="hand2",
                                anchor="w")
                 lbl.pack(fill="x", pady=(0, 8), before=err)
-                lbl.bind("<Button-1>",
-                         lambda e: self._ident_bloqueado_view(exe, titulo))
+                _clic(lbl, lambda e: self._ident_bloqueado_view(exe, titulo))
                 salida["lbl"] = lbl
 
         def _confirmar():
@@ -6765,6 +6915,8 @@ class PleiadaApp:
             return
         if self._update_required:
             return
+        if not self.logged_in:
+            return   # PLE-250: el atajo global tampoco graba sin sesión
         # PLE-154: el hotkey global entra por aca sin pasar por el estado del
         # boton, y entre la deteccion y el click el juego pudo cerrarse. Mismo
         # criterio que la deteccion: solo se frena con un NO explicito.
@@ -6906,6 +7058,13 @@ class PleiadaApp:
                 rec_dir_str = r.get("d", {}).get("responseData", {}).get("recordDirectory", "")
                 if rec_dir_str and os.path.isdir(rec_dir_str):
                     existing_vids = set(glob.glob(os.path.join(rec_dir_str, "*.mp4")))
+                    # PLE-254: sin espacio, OBS corta la grabación a mitad de
+                    # sesión y se pierde todo. Se avisa antes de empezar.
+                    libre = _espacio_libre(rec_dir_str)
+                    _obs_dbg(f"espacio libre en {rec_dir_str}: {libre}")
+                    if libre is not None and libre < DISCO_MIN_PARA_GRABAR:
+                        self.root.after(0, lambda d=rec_dir_str: self._show_sin_espacio(d, False))
+                        return
             except OBSAuthError as e:
                 self.root.after(0, lambda m=str(e): self._recording_start_error(m))
                 return
@@ -6923,6 +7082,29 @@ class PleiadaApp:
             # (La grabación real arranca en _launch_at_zero, cuando el countdown llega a 0)
 
         threading.Thread(target=_worker, daemon=True).start()
+
+    def _show_sin_espacio(self, carpeta, se_corto):
+        """PLE-254: el disco donde OBS guarda las grabaciones no tiene lugar."""
+        self._clear_content()
+        self._set_back(None)
+        unidad = (os.path.splitdrive(carpeta)[0] or carpeta) if carpeta else ""
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        tk.Label(frame, text=("La grabación se cortó" if se_corto
+                              else "No hay espacio en el disco"),
+                 fg=TEXT, bg=BG, font=("Segoe UI", 13, "bold")).pack()
+        texto = (f"Se llenó el disco donde OBS guarda las grabaciones ({unidad}). "
+                 "La sesión se descartó. Liberá espacio antes de volver a grabar."
+                 if se_corto else
+                 f"El disco donde OBS guarda las grabaciones ({unidad}) tiene poco "
+                 "espacio libre. Liberá espacio y volvé a intentar.")
+        tk.Label(frame, text=texto, fg=DIM, bg=BG, font=("Segoe UI", 10),
+                 justify="center", wraplength=WIN_W - 60).pack(pady=(6, 0))
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        Boton(frame, text="Volver", fg=TEXT, bg=CARD, command=self._show_idle,
+              font=("Segoe UI", 11), highlightthickness=1,
+              highlightbackground=BORDER).pack(fill="x", ipady=10)
 
     def _recording_start_error(self, msg="Error: no se pudo iniciar OBS."):
         self._show_idle()
@@ -7274,10 +7456,8 @@ class PleiadaApp:
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
         anillo = _mk_anillo(frame)
         anillo.pack()
-        self._cd_num_lbl = tk.Label(anillo, text=str(self._COUNTDOWN_SECS),
-                                     fg=TEXT, bg=BG,
-                                     font=("Cascadia Code", 52, "normal"))
-        anillo.create_window(115, 115, window=self._cd_num_lbl)
+        self._cd_num_lbl = _TextoAnillo(anillo, str(self._COUNTDOWN_SECS), TEXT,
+                                        ("Cascadia Code", 52, "normal"))
         tk.Label(frame, text="La grabación comenzará en...", fg=DIM, bg=BG,
                   font=("Segoe UI", 10)).pack(pady=(10, 0))
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
@@ -7607,6 +7787,15 @@ class PleiadaApp:
             target=self._delete_obs_video, args=(obs_prep,), daemon=True
         ).start()
 
+        # PLE-254: si OBS cortó porque se llenó el disco, se dice eso. La sesión se
+        # descarta igual que cualquier corte de OBS (decisión de Martín, 04-11).
+        rec_dir = (obs_prep or ("", None))[0]
+        libre = _espacio_libre(rec_dir) if rec_dir else None
+        _obs_dbg(f"OBS detuvo la grabación; espacio libre en {rec_dir or '?'}: {libre}")
+        if libre is not None and libre < DISCO_LLENO:
+            self._show_sin_espacio(rec_dir, True)
+            return
+
         # Volver al idle y mostrar advertencia
         self._show_idle()
         if hasattr(self, "_obs_lbl"):
@@ -7929,9 +8118,7 @@ class PleiadaApp:
                  font=("Segoe UI", 12, "bold")).pack()
         anillo = _mk_anillo(frame)
         anillo.pack(pady=(10, 0))
-        self._restart_big = tk.Label(anillo, text="10", fg=TEXT, bg=BG,
-                                     font=("Cascadia Code", 52, "normal"))
-        anillo.create_window(115, 115, window=self._restart_big)
+        self._restart_big = _TextoAnillo(anillo, "10", TEXT, ("Cascadia Code", 52, "normal"))
         tk.Label(frame, text="Reiniciando grabación en", fg=DIM, bg=BG,
                  font=("Segoe UI", 11)).pack(pady=(4, 0))
         tk.Label(frame, text="Cada sesión se guarda en su propia carpeta — no se sobrescriben.",
@@ -8288,7 +8475,7 @@ class PleiadaApp:
                                    font=("Segoe UI Emoji", 16), cursor="hand2",
                                    padx=4)
             folder_btn.pack(side="right", anchor="e")
-            folder_btn.bind("<Button-1>", lambda e: _open_folder())
+            _clic(folder_btn, lambda e: _open_folder())
 
         # (botones movidos al fondo fijo de self.content — ver inicio de _show_result)
 
@@ -8493,10 +8680,18 @@ class PleiadaApp:
         frame = self._ident_frame(titulo, volver_a=volver_a)
         migas = tk.Frame(frame, bg=BG)
         migas.pack(fill="x", pady=(4, 8))
+        # PLE-252: los pasos también navegan, con la misma condición que los
+        # botones del pie: al 3 solo se llega con capturas cargadas.
+        destinos = {1: self._bono_paso1, 2: self._bono_paso2, 3: self._bono_paso3}
+        hay_imgs = bool((getattr(self, "_bono", None) or {}).get("imgs"))
         for i, txt in enumerate(("1 QUÉ", "2 CÓMO", "3 REVISAR"), start=1):
+            libre = i != paso and (i < 3 or hay_imgs)
             b = Boton(migas, text=txt, bg=ACCENT if i == paso else CARD,
                       fg="#ffffff" if i == paso else (CIAN if i < paso else DIM),
-                      font=("Segoe UI", 8, "bold"), cursor="arrow",
+                      font=("Segoe UI", 8, "bold"),
+                      cursor="hand2" if libre else "arrow",
+                      state="normal" if (libre or i == paso) else "disabled",
+                      command=destinos[i] if libre else None,
                       highlightthickness=1, highlightbackground=BORDER2)
             b.pack(side="left", fill="x", expand=True, padx=(0 if i == 1 else 6, 0))
         return frame
@@ -8533,6 +8728,7 @@ class PleiadaApp:
         frame = self._bono_frame("Lo mínimo que necesitamos", 1, self._bono_volver_al_resultado)
         self._bono_botones(frame, "Volver", self._bono_volver_al_resultado,
                            "Siguiente", self._bono_paso2)
+        frame = _mk_scroll(frame)     # v0.10.1: a 125 % o en 768 no entraba todo
         tk.Label(frame, text=("La pantalla de controles de teclado y mouse del título, con los "
                               "controles por defecto. En la mayoría de los títulos está en "
                               "Opciones → Controles."),
@@ -8594,6 +8790,7 @@ class PleiadaApp:
         b = self._bono
         frame = self._bono_frame("Cómo lo compartís", 2, self._bono_paso1)
         btn_rev = self._bono_botones(frame, "Volver", self._bono_paso1, "Revisar", self._bono_paso3)
+        frame = _mk_scroll(frame)
 
         opt = Caja(frame, bg=CARD2, highlightthickness=1, highlightbackground=ACCENT)
         opt.pack(fill="x")
@@ -8642,7 +8839,7 @@ class PleiadaApp:
                 x = tk.Label(cell, text="✕", fg=TEXT, bg="#241c52", font=("Segoe UI", 8, "bold"),
                              cursor="hand2")
                 x.place(relx=1.0, x=-4, y=2, anchor="ne")
-                x.bind("<Button-1>", lambda e, i=idx: (imgs.pop(i), _refrescar()))
+                _clic(x, lambda e, i=idx: (imgs.pop(i), _refrescar()))
             contador.config(text=f"{len(imgs)} de {self.BONO_MAX_IMAGENES} imágenes · "
                                  f"{total / 1024 / 1024:.1f} de {self.BONO_MAX_MB_TOTAL} MB")
             if imgs:
@@ -8663,8 +8860,8 @@ class PleiadaApp:
             err.config(text="\n".join(errores[:3]))
             _refrescar()
 
-        elegir.bind("<Button-1>", lambda e: _elegir())
-        drop.bind("<Button-1>", lambda e: _elegir())
+        _clic(elegir, lambda e: _elegir())
+        _clic(drop, lambda e: _elegir())
         _refrescar()
 
     def _bono_agregar_imagen(self, ruta):
@@ -8776,6 +8973,7 @@ class PleiadaApp:
         frame = self._bono_frame("Revisá antes de enviar", 3, self._bono_paso2)
         btn = self._bono_botones(frame, "Volver", self._bono_paso2,
                                  "Analizar metadata", self._bono_analizar)
+        frame = _mk_scroll(frame)
         btn.config(state="disabled", bg=CARD, fg=DIMMER)
         card = Caja(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
         card.pack(fill="x")
@@ -9390,6 +9588,10 @@ class PleiadaApp:
             cancelled[0] = True
             cancel_event.set()   # corta el thread de subida: aborta el PUT y no finaliza
             return_to()
+        # PLE-253: el Atrás de la barra hace lo mismo que Cancelar. Antes quedaba el
+        # de la pantalla anterior: salía sin cortar la subida, _uploading seguía en
+        # True y el siguiente "Subir" no respondía.
+        self._set_back(_cancel)
         Boton(frame, text="Cancelar", fg=DIM, bg=CARD, relief="flat", bd=0,
                   cursor="hand2", font=("Segoe UI", 11), activebackground=CARD2,
                   activeforeground=TEXT, command=_cancel,
@@ -9512,6 +9714,10 @@ class PleiadaApp:
         desloguearse desde Ajustes.
         """
         self._clear_content()
+        # PLE-250: sin sesión no se navega. Antes se podía entrar a Ajustes con
+        # ⚙ y desde ahí volver a la principal con el Atrás.
+        self.logged_in = False
+        self._set_back(None)
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
@@ -9594,6 +9800,12 @@ class PleiadaApp:
 
     # ── Navegacion (v0.9) ─────────────────────────────────────────────────────
 
+    def _sincronizar_ajustes(self):
+        """El ⚙ solo se ve con sesión iniciada (PLE-250)."""
+        b = getattr(self, "_settings_btn", None)
+        if b is not None:
+            (b.pack if self.logged_in else b.pack_forget)()
+
     def _set_back(self, destino=None):
         """Muestra el Atras y a donde vuelve. None lo oculta.
 
@@ -9603,6 +9815,7 @@ class PleiadaApp:
         al usuario a una pantalla que ya no aplica.
         """
         self._back_to = destino
+        self._sincronizar_ajustes()
         btn = getattr(self, "_back_btn", None)
         if btn is None:
             return
@@ -9620,6 +9833,7 @@ class PleiadaApp:
             destino()
 
     def _clear_content(self):
+        self._sincronizar_ajustes()
         # v0.9: cortar el poll de deteccion al salir de la pantalla principal.
         # Si sigue vivo, el worker vuelve con un resultado y renderiza sobre
         # widgets ya destruidos.
@@ -9671,6 +9885,8 @@ if __name__ == "__main__":
     # cuatro guias de QA seguidas. Cada vez que QA contesto "ese archivo no
     # existe" era porque estaba mirando una carpeta que nunca existio.
     _install_crash_logging()
+    _rotar_diag_log()
+    _obs_dbg(f"===== Gameplay Recorder {VERSION} =====")
 
     # PLE-18: DPI awareness — evita que Windows clipee contenido en pantallas escaladas.
     # Debe llamarse ANTES de crear cualquier ventana Tk.
@@ -9686,26 +9902,24 @@ if __name__ == "__main__":
         # recibe píxeles físicos, pero las fuentes en puntos escalan con el DPI —
         # sin este ajuste la ventana queda angosta relativa al tamaño de letra.
         _sys_dpi = _ct_dpi.windll.user32.GetDpiForSystem()
-        if _sys_dpi and _sys_dpi != 96:
-            _dpi_scale = _sys_dpi / 96.0
-            # PLE-161: escalar desde las constantes REALES. Antes esto multiplicaba
-            # un 640 hardcodeado que quedó viejo cuando la ventana pasó a 730 de
-            # alto: a 125% pedía 800 px para un contenido de 912, y a 150% pedía
-            # 960 para 1095. Faltaban ~110-135 px y el pie —la fila SESIÓN y el
-            # link del tutorial— quedaba afuera.
-            _alto_pedido = int(WIN_H * _dpi_scale)
-            WIN_W = int(WIN_W * _dpi_scale)
-            # Techo por pantalla: a 150% sobre 1080 de alto, la ventana entera no
-            # entra en el monitor. Antes que dejarla cortada por abajo, se recorta
-            # acá y se esconde el panel de tips.
-            _alto_pantalla = _ct_dpi.windll.user32.GetSystemMetrics(1)   # SM_CYSCREEN
-            if _alto_pantalla:
-                WIN_H = min(_alto_pedido, max(400, _alto_pantalla - 60))
-            else:
-                WIN_H = _alto_pedido
-            # Los tips son el bloque más grande y el menos esencial: si no entró
-            # todo lo que pedíamos, se ocultan y el resto de la pantalla entra.
-            TIPS_VISIBLES = WIN_H >= _alto_pedido
+        _dpi_scale = (_sys_dpi / 96.0) if _sys_dpi else 1.0
+        # PLE-161: escalar desde las constantes REALES.
+        _alto_pedido = int(WIN_H * _dpi_scale)
+        WIN_W = int(WIN_W * _dpi_scale)
+        # PLE-246 (v0.10.1): el techo es el ÁREA ÚTIL (pantalla menos barra de
+        # tareas), y se aplica a cualquier escala. Antes solo se miraba con escala
+        # distinta de 100 % y contra la pantalla entera: en 1366x768 al 100 % la
+        # ventana quedaba debajo de la barra de tareas.
+        import ctypes.wintypes as _wt
+        _area = _wt.RECT()
+        if _ct_dpi.windll.user32.SystemParametersInfoW(0x30, 0, _ct_dpi.byref(_area), 0):
+            AREA_UTIL = (_area.left, _area.top, _area.right, _area.bottom)
+            WIN_H = min(_alto_pedido, max(400, _area.bottom - _area.top - 8))
+        else:
+            WIN_H = _alto_pedido
+        # Los tips son el bloque más grande y el menos esencial: si no entró
+        # todo lo que pedíamos, se ocultan y el resto de la pantalla entra.
+        TIPS_VISIBLES = WIN_H >= _alto_pedido
     except Exception:
         pass
 
