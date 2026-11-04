@@ -9093,6 +9093,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "God Save Birmingham",
+  "perspective": "Third Person",
+  "genre": "Simulator, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "314428",
+  "default_key_mapping": null
+ },
+ {
   "game": "Gold Mining Simulator 2",
   "perspective": "First Person",
   "genre": "Simulator, Adventure",
