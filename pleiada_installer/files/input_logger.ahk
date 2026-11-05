@@ -381,10 +381,74 @@ WatchdogFiltro() {
         SetTimer(WatchdogFiltro, 0)   ; queda un rato en menús antes de jugar
 }
 
+; ── Vigía de foco (PLE-257, v0.10.2) ──────────────────────────────
+; El watchdog de arriba deja de mirar con el primer evento capturado. En PLE-257
+; el juego tuvo el foco 36 s y después lo perdió (otro proceso en primer plano,
+; probablemente un overlay): el filtro descartó 59 minutos de juego y la sesión
+; terminó rechazada por "AFK". Este vigía corre TODA la sesión, una vez por
+; segundo, y deja en %TEMP% (no en la carpeta de sesión, misma razón que el
+; beacon) cuánto tiempo estuvo el título fuera de primer plano y quién tenía el
+; foco. La app lo lee para el aviso en vivo, para recorder.log y para explicar
+; el rechazo. No toca el filtro: el criterio de PLE-43 queda igual.
+; Formato: estado|exeEnFoco|tramoMs|totalMs|maxTramoMs|segConMovFuera|gameExe|ts
+global focoFile      := A_Temp . "\pleiada_foco.txt"
+global focoCambios   := A_Temp . "\pleiada_foco_cambios.txt"
+global fueraDesde    := 0
+global fueraTotalMs  := 0
+global fueraMaxMs    := 0
+global fueraMovSeg   := 0
+global focoUlt       := "?"
+global focoUltTick   := 0
+global focoUltPos    := 0
+
+VigiaFoco() {
+    global gameExe, posSamples, focoFile, focoCambios, fueraDesde, fueraTotalMs
+    global fueraMaxMs, fueraMovSeg, focoUlt, focoUltTick, focoUltPos
+    ahora := A_TickCount
+    dt := focoUltTick ? ahora - focoUltTick : 0
+    focoUltTick := ahora
+    movio := posSamples != focoUltPos
+    focoUltPos := posSamples
+
+    foco := ExeEnFoco()
+    ; Mismo criterio que GameActive(): sin filtro o sin foreground resoluble,
+    ; el input se registra, así que no cuenta como "fuera".
+    fuera := gameExe != "" && foco != "" && StrLower(foco) != StrLower(gameExe)
+    if fuera {
+        if !fueraDesde
+            fueraDesde := ahora
+        fueraTotalMs += dt
+        if movio
+            fueraMovSeg++
+        tramo := ahora - fueraDesde
+        if tramo > fueraMaxMs
+            fueraMaxMs := tramo
+    } else {
+        fueraDesde := 0
+        tramo := 0
+    }
+
+    if foco != focoUlt {
+        focoUlt := foco
+        try FileAppend(NowMs() . "|" . (fuera ? "fuera" : "juego") . "|" . foco . "`n",
+                       focoCambios, "UTF-8")
+    }
+    EscribirFoco(fuera ? "fuera" : "juego", foco, tramo)
+}
+
+EscribirFoco(estado, foco, tramo) {
+    global focoFile, fueraTotalMs, fueraMaxMs, fueraMovSeg, gameExe
+    try FileDelete(focoFile)
+    try FileAppend(estado . "|" . foco . "|" . tramo . "|" . fueraTotalMs . "|"
+                   . fueraMaxMs . "|" . fueraMovSeg . "|" . gameExe . "|" . NowMs(),
+                   focoFile, "UTF-8")
+}
+
 ; ── Salida ordenada — escribe ANCHOR_END y cierra handles ─────────
 GracefulExit() {
     global mouseFH, deltaFH, keyFH, videoFH, stopFile, keyHook
     try keyHook.Stop()
+    try VigiaFoco()        ; último estado de foco, para el resultado de la sesión
     ts := NowMs()
     mouseFH.WriteLine(ts . ",ANCHOR_END,,,")
     deltaFH.WriteLine(ts . ",ANCHOR_END,,")
@@ -469,6 +533,12 @@ SetTimer(CheckStop,    200)    ; ~5 Hz — señal de stop
 ;    que se puede llegar a perder si el filtro estaba mal apuntado.
 EscribirBeacon("arranque")
 SetTimer(WatchdogFiltro, 15000)
+
+; 8b. Vigía de foco (PLE-257): toda la sesión, 1 Hz. Arranca limpio: lo que
+;     haya quedado de una sesión anterior en %TEMP% no es de esta.
+try FileDelete(focoCambios)
+VigiaFoco()
+SetTimer(VigiaFoco, 1000)
 
 ; 9. Mantener vivo hasta que el padre lo mate
 Persistent()

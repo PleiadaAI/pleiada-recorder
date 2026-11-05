@@ -17,7 +17,7 @@ import sync_markers        # v0.9.18: anclas medidas input<->video (T0 capture.s
 import input_devices       # v0.9.18: calibración de mouse/teclado (T0 input.device_metadata)
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.10.1"
+VERSION = "v0.10.2"
 
 # El objeto de marcadores de la grabación en curso. Vive a nivel módulo porque
 # build_session_metadata() es una función suelta y necesita el resumen al cerrar.
@@ -1768,6 +1768,48 @@ def start_ahk_logger(log_dir_str, game_exe="", hotkey_vks=""):
     except Exception as e:
         _obs_dbg(f"AHK launch error: {e}")
         _ahk_proc = None
+
+# PLE-257: lo que deja el vigía de foco de input_logger.ahk. Va en %TEMP%, no en
+# la carpeta de sesión (el manifiesto de integridad hashea una lista fija).
+FOCO_FILE         = Path(os.environ.get("TEMP", ".")) / "pleiada_foco.txt"
+FOCO_CAMBIOS_FILE = Path(os.environ.get("TEMP", ".")) / "pleiada_foco_cambios.txt"
+
+
+def _leer_foco():
+    """Último estado del vigía de foco, o None si no hay (logger viejo, sin filtro)."""
+    try:
+        p = FOCO_FILE.read_text(encoding="utf-8-sig").strip().split("|")
+        return {"estado": p[0], "exe": p[1], "tramo_ms": int(p[2]),
+                "total_ms": int(p[3]), "max_tramo_ms": int(p[4]),
+                "seg_mov_fuera": int(p[5]), "game_exe": p[6]}
+    except Exception:
+        return None
+
+
+def _limpiar_foco():
+    for p in (FOCO_FILE, FOCO_CAMBIOS_FILE):
+        try:
+            p.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+def _foco_a_log(foco):
+    """Resumen del foco de la sesión + cada cambio de ventana, a recorder.log."""
+    if not foco:
+        return
+    _obs_dbg(f"foco: juego={foco['game_exe']} fuera_total={foco['total_ms'] // 1000}s "
+             f"tramo_max={foco['max_tramo_ms'] // 1000}s "
+             f"seg_con_mouse_fuera={foco['seg_mov_fuera']}")
+    try:
+        lineas = FOCO_CAMBIOS_FILE.read_text(encoding="utf-8-sig").splitlines()
+    except Exception:
+        return
+    for ln in lineas[:200]:   # tope: un alt-tab compulsivo no llena el log
+        _obs_dbg(f"foco cambio: {ln}")
+    if len(lineas) > 200:
+        _obs_dbg(f"foco cambio: ... {len(lineas) - 200} cambios más")
+
 
 def stop_ahk_logger(log_dir=None):
     """Para AHK de forma ordenada via stop file. Retorna True si AHK estaba corriendo."""
@@ -7374,6 +7416,20 @@ class PleiadaApp:
 
             results = run_sync_check(sdir, progress_cb=_on_progress)
 
+            # 5b. PLE-257: ¿el rechazo por inactividad se explica porque el título
+            #     no estaba en primer plano? Solo cambia el texto del rechazo.
+            _foco = _leer_foco()
+            _foco_a_log(_foco)
+            try:
+                if results.get("afk"):
+                    results["fuera_de_foco"] = sync_limits.diagnostico_foco(
+                        _foco, results.get("longest_idle_s"))
+                elif results.get("sin_input"):
+                    results["fuera_de_foco"] = sync_limits.diagnostico_foco(
+                        _foco, (results.get("csv_dur") or 0) / 1000)
+            except Exception as e:
+                _obs_dbg(f"diagnostico_foco: {e}")
+
             # 6. Guardar metadata sidecar localmente (siempre, ok o fallido).
             #    Ya NO se empaqueta un .pleiada — los archivos quedan sueltos en la
             #    carpeta de sesión (CSVs + MP4 + session_metadata.json).
@@ -7415,7 +7471,13 @@ class PleiadaApp:
     # ── Pantalla: iniciando grabación ──────────────────────────────────────────
 
     def _show_recording_starting(self):
+        # PLE-256: desde que se pide grabar, sin ⚙ ni Atrás. La marca solo cubre
+        # este redibujo: el ⚙ queda oculto hasta la próxima pantalla (cuenta
+        # regresiva, error o inicio), que lo vuelve a evaluar.
+        self._iniciando_grabacion = True
         self._clear_content()
+        self._set_back(None)
+        self._iniciando_grabacion = False
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True)
         tk.Label(frame, text="", bg=BG).pack(expand=True)
@@ -7697,6 +7759,7 @@ class PleiadaApp:
             for k in ("hotkey_start", "hotkey_stop")
             if self._settings.get(k, {}).get("vk")
         )
+        _limpiar_foco()   # PLE-257: que el aviso no lea el foco de la sesión anterior
         start_ahk_logger(str(self.session_dir), self._recording_exe, _hk_vks)
 
         # f. Listeners de OBS
@@ -8029,8 +8092,22 @@ class PleiadaApp:
                   font=("Segoe UI", 13, "bold"), anchor="w",
                   wraplength=WIN_W - 44).pack(fill="x", pady=(14, 4))
         genre = (self.selected_game or {}).get("genre", "")
-        tk.Label(frame, text=genre, fg=DIM, bg=BG,
-                  font=("Segoe UI", 10), anchor="w").pack(fill="x")
+        self._rec_genre_lbl = tk.Label(frame, text=genre, fg=DIM, bg=BG,
+                                       font=("Segoe UI", 10), anchor="w")
+        self._rec_genre_lbl.pack(fill="x")
+
+        # PLE-257: aviso en vivo si el título pierde el primer plano. Se arma
+        # oculto; _ticker lo muestra/oculta según el vigía de foco del logger.
+        # Copy aprobado por Martín (05-11-2026).
+        self._foco_aviso = tk.Label(
+            frame, text=("⚠  El título no está en primer plano: el Recorder no está "
+                         "registrando tus teclas ni tu mouse. Hacé clic en la ventana "
+                         "del título para seguir."),
+            fg=YELLOW, bg="#1f1a08", font=("Segoe UI", 10, "bold"), anchor="w",
+            justify="left", wraplength=WIN_W - 70, padx=10, pady=8,
+            highlightthickness=1, highlightbackground="#6b5a12")
+        self._foco_aviso_visible = False
+        self._foco_beep_seg = 0
 
         # Huge timer
         tk.Frame(frame, bg=BG).pack(fill="y", expand=True)
@@ -8089,6 +8166,7 @@ class PleiadaApp:
         rs  = rem % 60
         col = YELLOW if rem <= 300 else DIM
         self._countdown_lbl.config(text=f"{rh:02d}:{rm:02d}:{rs:02d}", fg=col)
+        self._vigilar_foco()
 
         if self.rec_seconds >= self._max_seconds:
             self._auto_stopped = True   # v0.7.1: distinguir auto-stop por tiempo del stop manual
@@ -8096,6 +8174,32 @@ class PleiadaApp:
             return
 
         self._timer_id = self.root.after(1000, self._ticker)
+
+    def _vigilar_foco(self):
+        """PLE-257: aviso en vivo cuando el título lleva un rato fuera de primer
+        plano. Banner en la pantalla de grabación + sonido de Windows (el jugador
+        está mirando el juego, no el Recorder), repetido cada minuto mientras
+        siga fuera. Nunca le roba el foco a nadie."""
+        try:
+            foco = _leer_foco()
+            fuera = bool(foco and foco["estado"] == "fuera"
+                         and foco["tramo_ms"] >= sync_limits.AVISO_FUERA_FOCO_S * 1000)
+            if fuera and not self._foco_aviso_visible:
+                self._foco_aviso.pack(fill="x", pady=(12, 0), after=self._rec_genre_lbl)
+                self._foco_aviso_visible = True
+                _obs_dbg(f"aviso foco: titulo fuera de primer plano, en foco={foco['exe']}")
+            elif not fuera and self._foco_aviso_visible:
+                self._foco_aviso.pack_forget()
+                self._foco_aviso_visible = False
+                self._foco_beep_seg = 0
+            if fuera:
+                if self._foco_beep_seg <= 0:
+                    import winsound
+                    winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
+                    self._foco_beep_seg = sync_limits.AVISO_FUERA_FOCO_S
+                self._foco_beep_seg -= 1
+        except Exception as e:
+            _obs_dbg(f"vigilar_foco: {e}")
 
     def _pulse_dot(self):
         if not self.recording:
@@ -8348,6 +8452,15 @@ class PleiadaApp:
                 body = ("La sesión tiene un período largo donde la imagen no cambió "
                         "(pantalla negra o congelada).\nVerificá que OBS esté capturando "
                         "el juego e iniciá una nueva sesión.")
+            elif results and results.get("fuera_de_foco"):
+                # PLE-257: el rechazo es AFK o sin_input, pero la causa real es
+                # que el título no tenía el foco y el filtro de PLE-43 descartó
+                # el input. "Estuviste inactivo" era falso: estaba jugando.
+                # Copy aprobado por Martín (05-11-2026).
+                body = ("El Recorder no registró tus teclas ni tu mouse durante gran parte "
+                        "de la grabación porque el título no estaba en primer plano.\n"
+                        "Antes de jugar, hacé clic en la ventana del título y no cambies "
+                        "de ventana mientras grabás.")
             elif results and results.get("sin_input"):
                 # Gate de input vacío. Va ANTES que el de AFK porque es más
                 # específico: AFK diría "estuviste inactivo" cuando en realidad
@@ -8694,7 +8807,21 @@ class PleiadaApp:
                       command=destinos[i] if libre else None,
                       highlightthickness=1, highlightbackground=BORDER2)
             b.pack(side="left", fill="x", expand=True, padx=(0 if i == 1 else 6, 0))
+            if i == 3:
+                self._bono_miga3 = b   # PLE-252: el paso 2 la prende al cargar capturas
         return frame
+
+    def _bono_miga3_habilitar(self, on):
+        """PLE-252: "3 REVISAR" se prende y apaga junto con el botón "Revisar".
+        Antes la condición se evaluaba una sola vez, al dibujar la pantalla."""
+        b = getattr(self, "_bono_miga3", None)
+        try:
+            if b is not None and b.winfo_exists():
+                b.config(state="normal" if on else "disabled",
+                         command=self._bono_paso3 if on else None,
+                         cursor="hand2" if on else "arrow")
+        except Exception:
+            pass
 
     def _bono_botones(self, parent, izq, cmd_izq, der, cmd_der):
         """Botonera anclada al pie. Se llama ANTES de armar el contenido (pack
@@ -8846,6 +8973,7 @@ class PleiadaApp:
                 btn_rev.config(state="normal", bg=ACCENT, fg="#fff")
             else:
                 btn_rev.config(state="disabled", bg=CARD, fg=DIMMER)
+            self._bono_miga3_habilitar(bool(imgs))
 
         def _elegir():
             from tkinter import filedialog
@@ -9261,6 +9389,7 @@ class PleiadaApp:
         Recorder, y si no refrescamos, la lista quedaría vieja y bloquearía la subida.
         """
         self._clear_content()
+        self._set_back(return_to)   # PLE-255: cada pantalla declara su Atrás
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
         tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
@@ -9308,6 +9437,7 @@ class PleiadaApp:
     def _upload_fuera_de_spec_view(self, return_to, fallas):
         """La sesión no cumple la spec de video: se explica y no se sube."""
         self._clear_content()
+        self._set_back(return_to)
         frame = tk.Frame(self.content, bg=BG)
         frame.pack(fill="both", expand=True, padx=22, pady=20)
         tk.Label(frame, text="Subir Data Set", fg=TEXT, bg=BG,
@@ -9329,6 +9459,10 @@ class PleiadaApp:
 
     def _upload_confirm_view(self, session_dir, return_to, calls_backend=None):
         self._clear_content()
+        # PLE-255: esta pantalla no declaraba su Atrás y heredaba el de "Antes de
+        # subir el dataset", que vuelve acá: el Atrás quedaba en loop. Va al
+        # mismo lugar que "Volver".
+        self._set_back(return_to)
         info = session_uploader.session_info(session_dir)
         meta = session_uploader.session_meta(session_dir)
         matches = self._calls_for_game(meta["game_title"])
@@ -9801,10 +9935,15 @@ class PleiadaApp:
     # ── Navegacion (v0.9) ─────────────────────────────────────────────────────
 
     def _sincronizar_ajustes(self):
-        """El ⚙ solo se ve con sesión iniciada (PLE-250)."""
+        """El ⚙ solo se ve con sesión iniciada (PLE-250), y nunca mientras se
+        graba o se sube (PLE-256): ahí Ajustes no abre, y un botón que no hace
+        nada parece roto."""
         b = getattr(self, "_settings_btn", None)
         if b is not None:
-            (b.pack if self.logged_in else b.pack_forget)()
+            visible = (self.logged_in and not getattr(self, "recording", False)
+                       and not getattr(self, "_uploading", False)
+                       and not getattr(self, "_iniciando_grabacion", False))
+            (b.pack if visible else b.pack_forget)()
 
     def _set_back(self, destino=None):
         """Muestra el Atras y a donde vuelve. None lo oculta.

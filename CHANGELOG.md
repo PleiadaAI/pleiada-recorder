@@ -1,5 +1,25 @@
 # Changelog — Pleiada Recorder
 
+## V10.2 — 05/11/2026 — fixes del QA de la V10.1 (MANDATORIA si pasa el QA externo)
+
+- **PLE-257:** una sesión rechazada por "AFK" tenía al jugador jugando: el título perdió el
+  primer plano a los 36 s (otro proceso se quedó con el foco) y el filtro de PLE-43 descartó
+  59 minutos de input. Ahora:
+  - `input_logger.ahk` tiene un vigía de foco que corre toda la sesión (1 Hz) y deja en
+    `%TEMP%\pleiada_foco.txt` el tiempo fuera de primer plano y qué proceso tenía el foco. No
+    cambia el filtro ni los archivos de la sesión.
+  - Aviso en vivo: con más de 1 minuto seguido fuera de primer plano, banner en la pantalla de
+    grabación y sonido de Windows, repetido cada minuto.
+  - Si el rechazo (AFK o sin input) se explica por el foco, el mensaje lo dice en lugar de
+    "período sin actividad". No es un gate nuevo; los umbrales están en `pleiada_sync_limits.py`.
+  - `recorder.log` anota el resumen del foco y cada cambio de ventana de la sesión.
+- **PLE-256:** ⚙ no se muestra desde "Iniciando grabación" hasta que termina, ni durante una
+  subida.
+- **PLE-255:** "Subir Data Set" y "fuera de spec" ya no heredan el Atrás de la pantalla anterior
+  (hacía loop): Atrás lleva al mismo lugar que "Volver".
+- **PLE-252:** "3 REVISAR" se habilita y deshabilita junto con el botón Revisar, al cargar o
+  borrar cada captura.
+
 ## V10.1 — 04/11/2026 — fixes del QA de la V10.0 (MANDATORIA si pasa el QA externo)
 
 - **Registro:** `pleiada_obs_debug.txt` se mueve de `%TEMP%` a `Documentos\Pleiada Logs\recorder.log`,

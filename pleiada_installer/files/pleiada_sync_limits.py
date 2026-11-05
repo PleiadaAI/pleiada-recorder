@@ -417,6 +417,28 @@ def diagnostico_sin_input(conteo, session_dur_ms=None):
     return "sin_teclado_ni_mouse"
 
 
+# ── Título fuera de primer plano (PLE-257, v0.10.2) ──────────────────────────
+# El filtro de ventana activa (PLE-43) descarta el input mientras el juego no
+# tiene el foco. Si otro proceso se queda con el foco (un overlay, el Recorder,
+# el navegador) el jugador puede seguir jugando y la sesión sale "AFK". Esto NO
+# es un gate nuevo —el rechazo lo siguen decidiendo AFK y sin_input—: solo
+# decide qué causa se le explica al usuario y cuándo avisarle en vivo.
+AVISO_FUERA_FOCO_S   = 60     # tramo continuo fuera de foco que dispara el aviso en vivo
+FOCO_CAUSA_FRACCION  = 0.50   # el tramo fuera de foco más largo cubre al menos esta
+                              # fracción del hueco sin input más largo → la causa es el foco
+
+
+def diagnostico_foco(foco, longest_idle_seconds):
+    """
+    True si el rechazo por inactividad se explica por el título fuera de primer
+    plano. `foco` es lo que dejó el vigía del logger (dict con "max_tramo_ms").
+    """
+    if not foco or not longest_idle_seconds:
+        return False
+    max_tramo = foco.get("max_tramo_ms") or 0
+    return max_tramo >= FOCO_CAUSA_FRACCION * longest_idle_seconds * 1000
+
+
 # ── Lectura de boxes MP4 (solo headers, sin decodificar) ─────────────────────
 
 def _next_box(f, pos, limite):
