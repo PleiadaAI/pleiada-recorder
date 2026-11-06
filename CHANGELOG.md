@@ -1,5 +1,13 @@
 # Changelog — Pleiada Recorder
 
+## V10.4 — 06/11/2026 — feedback del QA de la V10.3 (MANDATORIA si pasa el QA externo)
+
+- **Botones del mouse como íconos:** cada campo tiene la flecha ▾ que abre la lista, y además
+  se puede hacer clic en el campo ("Presioná el botón…") y apretar el botón o girar la rueda
+  sobre él. Los botones laterales se detectan solo en algunos mouse; si no, quedan en la lista.
+- **Capturas que rebotaban con "ya fue enviada antes"** al volver atrás desde "Completá los
+  botones del mouse": se corrige en el backend (`pleiada-api` 2026-11-06.2), sin cambios en la app.
+
 ## V10.3 — 06/11/2026 — fixes del QA de la V10.2 (MANDATORIA si pasa el QA externo)
 
 - **PLE-258 / PLE-259:** OBS ya no graba en la carpeta del perfil del usuario (que puede no

@@ -22455,6 +22455,20 @@
   "default_key_mapping": null
  },
  {
+  "game": "Trine 4: The Nightmare Prince",
+  "perspective": "Side View",
+  "genre": "Platform, Puzzle, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "110846",
+  "default_key_mapping": null
+ },
+ {
   "game": "Trine Enchanted Edition",
   "perspective": "Side View",
   "genre": "Platform, Puzzle, Role-playing (RPG), Adventure, Indie",
@@ -22633,6 +22647,20 @@
   ],
   "developer": "Ballistic Moon",
   "igdb_id": "284721",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Untitled Goose Game",
+  "perspective": "Isometric",
+  "genre": "Puzzle, Simulator, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "72813",
   "default_key_mapping": null
  },
  {
@@ -22934,6 +22962,34 @@
   ],
   "developer": "SadSquare Studio",
   "igdb_id": "18020",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Vlad Circus: Curse of Asmodeus",
+  "perspective": "Side View",
+  "genre": "Point-and-click, Puzzle, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "337993",
+  "default_key_mapping": null
+ },
+ {
+  "game": "Vlad Circus: Descend Into Madness",
+  "perspective": "Isometric",
+  "genre": "Puzzle, Adventure, Indie",
+  "mode": "Singleplayer",
+  "process_name": null,
+  "process_source": "deteccion_automatica",
+  "engine": null,
+  "themes": [],
+  "languages": [],
+  "developer": null,
+  "igdb_id": "219779",
   "default_key_mapping": null
  },
  {

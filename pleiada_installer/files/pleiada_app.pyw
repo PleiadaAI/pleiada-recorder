@@ -17,7 +17,7 @@ import sync_markers        # v0.9.18: anclas medidas input<->video (T0 capture.s
 import input_devices       # v0.9.18: calibración de mouse/teclado (T0 input.device_metadata)
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.10.3"
+VERSION = "v0.10.4"
 
 # El objeto de marcadores de la grabación en curso. Vive a nivel módulo porque
 # build_session_metadata() es una función suelta y necesita el resumen al cerrar.
@@ -9410,6 +9410,82 @@ class PleiadaApp:
         ("Botón lateral 2", "MouseX2"),
     ]
 
+    # Tk en Windows: 1 izquierdo, 2 central, 3 derecho; los laterales llegan como
+    # 4/5 solo en algunos mouse/drivers (si no llegan, queda la lista de ▾).
+    _BONO_NUM_BOTON = {1: "Clic izquierdo", 2: "Clic central", 3: "Clic derecho",
+                       4: "Botón lateral 1", 5: "Botón lateral 2"}
+
+    def _bono_campo_boton(self, parent, var, etiquetas):
+        """Campo de un botón del mouse (QA v0.10.3, Yai): clic en el campo y se
+        toma el próximo botón o giro de rueda que presiones ahí; ▾ abre la lista.
+        tk.Menu y no ttk.Combobox: el tema de ttk es global y se llevaría la
+        barra de subida."""
+        caja = tk.Frame(parent, bg=CARD2, highlightthickness=1, highlightbackground=BORDER,
+                        cursor="hand2")
+        campo = tk.Label(caja, text=var.get(), fg=TEXT, bg=CARD2, font=("Segoe UI", 10),
+                         anchor="w", width=16, padx=10, pady=4, cursor="hand2")
+        campo.pack(side="left")
+        flecha = tk.Label(caja, text="▾", fg=TEXT, bg=CARD2, font=("Segoe UI", 11),
+                          padx=8, cursor="hand2")
+        flecha.pack(side="right", fill="y")
+        menu = tk.Menu(caja, tearoff=0, bg=CARD, fg=TEXT, activebackground=ACCENT,
+                       activeforeground="#ffffff", font=("Segoe UI", 10), bd=0)
+        for e in etiquetas:
+            menu.add_command(label=e, command=lambda e=e: _poner(e))
+        # escuchando: el próximo botón/rueda sobre el campo es la respuesta.
+        # tomado: ese botón ya se tomó; su "soltar" no vuelve a activar la escucha.
+        estado = {"escuchando": False, "tomado": False}
+
+        def _mostrar():
+            campo.config(text=("Presioná el botón…" if estado["escuchando"] else var.get()),
+                         fg=(ACCENT if estado["escuchando"] else TEXT))
+            caja.config(highlightbackground=(ACCENT if estado["escuchando"] else BORDER))
+
+        def _poner(e):
+            estado["escuchando"] = False
+            var.set(e)
+            _mostrar()
+
+        def _apretar(ev):
+            # El clic que activa no cuenta (se activa al soltarlo); con la escucha
+            # activa, el primer botón conocido es la respuesta.
+            if estado["escuchando"] and ev.num in self._BONO_NUM_BOTON:
+                _poner(self._BONO_NUM_BOTON[ev.num])
+                estado["tomado"] = True
+            return "break"
+
+        def _soltar(_ev):
+            if estado["tomado"]:
+                estado["tomado"] = False
+            elif not estado["escuchando"]:
+                estado["escuchando"] = True
+                _mostrar()
+            return "break"
+
+        def _rueda(ev):
+            if estado["escuchando"]:
+                _poner("Rueda arriba" if ev.delta > 0 else "Rueda abajo")
+                return "break"
+
+        def _salir(_ev):
+            estado["tomado"] = False
+            if estado["escuchando"]:
+                estado["escuchando"] = False
+                _mostrar()
+
+        def _lista(ev):
+            estado["escuchando"] = False
+            _mostrar()
+            menu.tk_popup(caja.winfo_rootx(), caja.winfo_rooty() + caja.winfo_height())
+            return "break"
+
+        campo.bind("<ButtonPress>", _apretar)
+        campo.bind("<ButtonRelease>", _soltar)
+        campo.bind("<MouseWheel>", _rueda)
+        campo.bind("<Leave>", _salir)
+        flecha.bind("<Button-1>", _lista)
+        return caja
+
     def _bono_completar_mouse(self, pendientes):
         b = self._bono
         # Copy aprobado por Martín (06-11-2026).
@@ -9436,16 +9512,7 @@ class PleiadaApp:
                      anchor="w", justify="left", wraplength=WIN_W - 260).pack(
                 side="left", fill="x", expand=True)
             var = tk.StringVar(value="—")
-            # tk.OptionMenu y no ttk.Combobox: misma razón que en la perspectiva
-            # (el tema de ttk es global y se llevaría la barra de subida).
-            om = tk.OptionMenu(fila, var, *etiquetas)
-            om.config(bg=CARD2, fg=TEXT, activebackground=CARD2, activeforeground=TEXT,
-                      relief="flat", bd=0, highlightthickness=0, cursor="hand2",
-                      font=("Segoe UI", 10), anchor="w", padx=10, width=14,
-                      indicatoron=0)
-            om["menu"].config(bg=CARD, fg=TEXT, activebackground=ACCENT,
-                              activeforeground="#ffffff", font=("Segoe UI", 10), bd=0)
-            om.pack(side="right", ipady=3)
+            self._bono_campo_boton(fila, var, etiquetas).pack(side="right")
             elegidos[p["id"]] = var
             var.trace_add("write", lambda *_: _refrescar())
 
