@@ -1,5 +1,25 @@
 # Changelog — Pleiada Recorder
 
+## V10.3 — 06/11/2026 — fixes del QA de la V10.2 (MANDATORIA si pasa el QA externo)
+
+- **PLE-258 / PLE-259:** OBS ya no graba en la carpeta del perfil del usuario (que puede no
+  existir) sino en `Documentos\Pleiada Recordings\_obs`, que la app crea. El cambio al perfil
+  "Pleiada" se hace antes de la cuenta regresiva, así el control de espacio mide esa carpeta, y
+  al detener, cancelar, fallar o volver al inicio OBS vuelve al perfil que tenía el usuario.
+  - Arranque: si OBS no confirma que está grabando en ~5 s, la sesión se corta con "OBS no pudo
+    empezar a grabar" (antes la app seguía en "grabando" con OBS parado).
+  - Vigía: durante la grabación se consulta el estado de OBS cada 5 s; dos respuestas seguidas
+    "no graba" cortan la sesión con "OBS dejó de grabar".
+  - Los errores de OBS tienen pantalla propia: antes iban a widgets que ya no existían desde
+    la V9 y el usuario no veía nada.
+  - "Mis grabaciones" ignora las carpetas que empiezan con "_".
+- **PLE-260:** la oferta del bono se repite si cambia la orden. Una oferta hecha sin orden ya no
+  bloquea la que corresponde al elegir una orden al subir.
+- **Botones del mouse como íconos:** en lugar de rechazar el aporte, la app muestra
+  "Completá los botones del mouse" con un desplegable por cada acción que no se pudo leer, y
+  manda la elección (`complete_key_mapping`). Requiere `pleiada-api` 2026-11-06.1; con la
+  Lambda anterior la app se comporta como antes.
+
 ## V10.2 — 05/11/2026 — fixes del QA de la V10.1 (MANDATORIA si pasa el QA externo)
 
 - **PLE-257:** una sesión rechazada por "AFK" tenía al jugador jugando: el título perdió el

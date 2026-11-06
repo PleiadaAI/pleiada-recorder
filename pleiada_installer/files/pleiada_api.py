@@ -258,6 +258,19 @@ def analyze_key_mapping(token, aporte_id, timeout=240):
                  timeout=timeout)
 
 
+def complete_key_mapping(token, aporte_id, respuestas, timeout=120):
+    """
+    v0.10.3: cuando el análisis devuelve {"estado": "completar", "pendientes":
+    [{"id", "seccion", "accion"}]} —botones del mouse dibujados como íconos que
+    la visión no lee—, el usuario elige cada uno y esto lo manda. `respuestas`
+    = {id: "MouseLeft" | "MouseRight" | "MouseMiddle" | "MouseWheelUp" |
+    "MouseWheelDown" | "MouseX1" | "MouseX2"}. Devuelve lo mismo que
+    analyze_key_mapping.
+    """
+    return _call("complete_key_mapping", {"token": token, "aporte_id": aporte_id,
+                                          "respuestas": respuestas}, timeout=timeout)
+
+
 def finalize_upload(token, dataset_hash, session_name, call_id="", game_name="",
                     duration_seconds=0, session_id="", files=None, bytes_total=0):
     """

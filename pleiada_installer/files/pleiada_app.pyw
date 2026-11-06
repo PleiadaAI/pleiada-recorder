@@ -17,7 +17,7 @@ import sync_markers        # v0.9.18: anclas medidas input<->video (T0 capture.s
 import input_devices       # v0.9.18: calibración de mouse/teclado (T0 input.device_metadata)
 
 # ─── Versión ──────────────────────────────────────────────────────────────────
-VERSION = "v0.10.2"
+VERSION = "v0.10.3"
 
 # El objeto de marcadores de la grabación en curso. Vive a nivel módulo porque
 # build_session_metadata() es una función suelta y necesita el resumen al cerrar.
@@ -266,7 +266,8 @@ def list_local_sessions():
     """Devuelve [(Path, {status, size_label})] de sesiones locales, más nuevas primero."""
     out = []
     try:
-        dirs = [d for d in BASE_DIR.iterdir() if d.is_dir()]
+        # `_obs` es la carpeta de grabación de OBS (v0.10.3), no una sesión.
+        dirs = [d for d in BASE_DIR.iterdir() if d.is_dir() and not d.name.startswith("_")]
     except Exception:
         return out
     for d in sorted(dirs, key=lambda d: d.stat().st_mtime, reverse=True):
@@ -1136,6 +1137,92 @@ def _obs_setup_game_audio(ws, inputs=None):
         _obs_dbg(f"audio del juego: error {e}")
         return {"capture": "none", "reason": f"{type(e).__name__}: {e}"}
 
+# ── Perfil y carpeta de grabación de OBS (v0.10.3, PLE-258/259) ──────────────
+# El perfil "Pleiada" grababa en `~\Videos`, la ruta que fija configure_obs al
+# instalar. Si esa carpeta no existe —el usuario usa otra, como F:\Vídeos— OBS
+# no puede grabar, muestra un popup y el Recorder seguía "grabando" una hora de
+# nada (PLE-258). Además, al cambiar al perfil Pleiada nunca se volvía al del
+# usuario, que encontraba "otra ruta" en sus Ajustes (PLE-259).
+#
+# Ahora: OBS graba en una carpeta nuestra que la app crea (`_obs` dentro de
+# Pleiada Recordings, mismo disco que las sesiones: el MP4 se mueve sin copiar),
+# el cambio de perfil pasa ANTES del countdown —así el control de espacio mide
+# la carpeta real— y al terminar se devuelve OBS al perfil que el usuario tenía.
+# Nunca se escribe sobre los perfiles del usuario.
+OBS_REC_DIR = BASE_DIR / "_obs"
+_OBS_PERFIL_USUARIO = {"nombre": ""}   # perfil activo antes de cambiar a Pleiada
+
+
+def _obs_activar_perfil(ws):
+    """Activa el perfil Pleiada (recordando el del usuario), fuerza la config de
+    grabación y la carpeta de grabación. Idempotente."""
+    try:
+        _plist    = obs_send(ws, "GetProfileList").get("d", {}).get("responseData", {})
+        _cur      = _plist.get("currentProfileName", "")
+        _profiles = _plist.get("profiles", [])
+        if _cur != OBS_PROFILE_NAME:
+            if OBS_PROFILE_NAME in _profiles:
+                obs_send(ws, "SetCurrentProfile", {"profileName": OBS_PROFILE_NAME})
+                _OBS_PERFIL_USUARIO["nombre"] = _cur
+                _obs_dbg(f"Perfil activo era '{_cur}' — cambiado a {OBS_PROFILE_NAME}")
+            else:
+                # El usuario lo borró: se recrea vacío y se puebla abajo, en vez
+                # de escribir sobre el perfil propio del usuario.
+                _r = obs_send(ws, "CreateProfile", {"profileName": OBS_PROFILE_NAME})
+                _ok = _r.get("d", {}).get("requestStatus", {}).get("result", False)
+                _obs_dbg(f"Perfil {OBS_PROFILE_NAME} no existía (activo: '{_cur}') — "
+                         f"CreateProfile result={_ok}")
+                if _ok:
+                    _OBS_PERFIL_USUARIO["nombre"] = _cur
+                else:
+                    # No se pudo crear: se fuerza sobre el activo. La integridad
+                    # del dataset gana; queda logueado.
+                    _obs_dbg("No se pudo crear el perfil — se fuerza sobre el activo")
+
+        _objetivo = obs_target_profile()
+        for _cat, _key, _val in _objetivo:
+            obs_send(ws, "SetProfileParameter", {
+                "parameterCategory": _cat,
+                "parameterName":     _key,
+                "parameterValue":    _val,
+            })
+        _obs_dbg(f"Config de grabación forzada: "
+                 + ", ".join(f"{k}={v}" for _c, k, v in _objetivo))
+
+        # Carpeta de grabación: la nuestra, creada si no existe. OBS lee la ruta
+        # al arrancar cada grabación, así que no hace falta reiniciarlo.
+        OBS_REC_DIR.mkdir(parents=True, exist_ok=True)
+        for _cat, _key in (("AdvOut", "RecFilePath"), ("SimpleOutput", "FilePath")):
+            obs_send(ws, "SetProfileParameter", {
+                "parameterCategory": _cat, "parameterName": _key,
+                "parameterValue": str(OBS_REC_DIR)})
+    except Exception as e:
+        _obs_dbg(f"Forzado de perfil/config error (continuando): {e}")
+
+
+def _obs_restaurar_perfil():
+    """Devuelve OBS al perfil que tenía el usuario antes de grabar. Best-effort:
+    corre en un thread y nunca bloquea ni rompe el flujo."""
+    nombre = _OBS_PERFIL_USUARIO.get("nombre")
+    if not nombre:
+        return
+    def _w():
+        try:
+            if not obs_is_running():
+                return
+            ws = obs_connect()
+            st = obs_send(ws, "GetRecordStatus")
+            if st.get("d", {}).get("responseData", {}).get("outputActive", False):
+                ws.close(); return   # OBS grabando: no se cambia nada
+            obs_send(ws, "SetCurrentProfile", {"profileName": nombre})
+            ws.close()
+            _OBS_PERFIL_USUARIO["nombre"] = ""
+            _obs_dbg(f"Perfil de OBS restaurado a '{nombre}'")
+        except Exception as e:
+            _obs_dbg(f"restaurar perfil: {e}")
+    threading.Thread(target=_w, daemon=True).start()
+
+
 def _obs_do_start():
     """Asume OBS ya está corriendo. Conecta, configura audio, envía StartRecord.
     Retorna True si la grabación arrancó, False si falló.
@@ -1189,37 +1276,9 @@ def _obs_do_start():
         # RecFormat2, así que bitrate, calidad, resolución y FPS quedaban a
         # merced de lo que el usuario hubiera tocado en OBS. Es silencioso a
         # propósito: no hay modal ni aviso, se corrige y se graba.
-        try:
-            _plist    = obs_send(ws, "GetProfileList").get("d", {}).get("responseData", {})
-            _cur      = _plist.get("currentProfileName", "")
-            _profiles = _plist.get("profiles", [])
-            if _cur != OBS_PROFILE_NAME:
-                if OBS_PROFILE_NAME in _profiles:
-                    obs_send(ws, "SetCurrentProfile", {"profileName": OBS_PROFILE_NAME})
-                    _obs_dbg(f"Perfil activo era '{_cur}' — cambiado a {OBS_PROFILE_NAME}")
-                else:
-                    # El usuario lo borró: se recrea vacío y se puebla abajo, en vez
-                    # de escribir sobre el perfil propio del usuario.
-                    _r = obs_send(ws, "CreateProfile", {"profileName": OBS_PROFILE_NAME})
-                    _ok = _r.get("d", {}).get("requestStatus", {}).get("result", False)
-                    _obs_dbg(f"Perfil {OBS_PROFILE_NAME} no existía (activo: '{_cur}') — "
-                             f"CreateProfile result={_ok}")
-                    if not _ok:
-                        # No se pudo crear: se fuerza sobre el activo. La integridad
-                        # del dataset gana; queda logueado.
-                        _obs_dbg("No se pudo crear el perfil — se fuerza sobre el activo")
-
-            _objetivo = obs_target_profile()
-            for _cat, _key, _val in _objetivo:
-                obs_send(ws, "SetProfileParameter", {
-                    "parameterCategory": _cat,
-                    "parameterName":     _key,
-                    "parameterValue":    _val,
-                })
-            _obs_dbg(f"Config de grabación forzada: "
-                     + ", ".join(f"{k}={v}" for _c, k, v in _objetivo))
-        except Exception as e:
-            _obs_dbg(f"Forzado de perfil/config error (continuando): {e}")
+        # v0.10.3 (PLE-258/259): vive en _obs_activar_perfil, que ya corrió antes
+        # del countdown; acá se repite por si el usuario tocó OBS mientras tanto.
+        _obs_activar_perfil(ws)
 
         # Resolución y FPS. Van por SetVideoSettings y no por SetProfileParameter
         # porque OBS aplica esto en caliente; escribir [Video] en el .ini recién
@@ -1278,7 +1337,21 @@ def _obs_do_start():
         except Exception:
             pass
 
-        ws.close(); return True   # optimistic
+        # v0.10.3 (PLE-258): antes acá se daba por iniciada "optimista". Pero si
+        # OBS acepta el StartRecord y no puede abrir el archivo (carpeta que no
+        # existe, disco sin permisos), muestra un popup y no graba: el Recorder
+        # seguía una hora con el contador corriendo. Sin el evento, se pregunta
+        # el estado real unos segundos antes de darla por buena.
+        for _ in range(6):
+            try:
+                _st = obs_send(ws, "GetRecordStatus")
+                if _st.get("d", {}).get("responseData", {}).get("outputActive", False):
+                    ws.close(); return True
+            except Exception as e:
+                _obs_dbg(f"GetRecordStatus tras StartRecord: {e}")
+            time.sleep(1)
+        _obs_dbg("StartRecord aceptado pero OBS no está grabando — se aborta")
+        ws.close(); return False
     except OBSAuthError:
         raise   # dejar que llegue a _launch_at_zero para mostrar mensaje específico
     except Exception as e:
@@ -1527,7 +1600,8 @@ def obs_stop_recording(session_dir=None):
         if obs_vivo:
             time.sleep(2)
         vdir = Path.home() / "Videos"
-        candidates = list(vdir.glob("*.mp4")) + list(vdir.glob("**/*.mp4"))
+        candidates = (list(OBS_REC_DIR.glob("*.mp4")) +
+                      list(vdir.glob("*.mp4")) + list(vdir.glob("**/*.mp4")))
         recent = [f for f in candidates if f.stat().st_mtime >= session_start]
         if recent:
             output_path = str(max(recent, key=lambda f: f.stat().st_mtime))
@@ -5524,6 +5598,10 @@ class PleiadaApp:
         (respuesta del backend, exe, título de ventana) del título que el
         usuario acaba de declarar. Se dibuja tal cual, sin volver a preguntar.
         """
+        # PLE-259: cualquier vuelta a la pantalla principal sin grabar deja OBS en
+        # el perfil del usuario (no-op si no lo cambiamos nosotros).
+        if not getattr(self, "recording", False):
+            _obs_restaurar_perfil()
         self._clear_content()
         self.selected_game = None
         self._obs_status   = "idle"
@@ -7095,9 +7173,20 @@ class PleiadaApp:
                 except Exception:
                     pass   # si falla la verificación, continuamos igualmente
 
+                # PLE-258/259: perfil Pleiada y carpeta nuestra ANTES del countdown,
+                # para que la carpeta y el espacio que se miden abajo sean los
+                # que OBS va a usar de verdad.
+                _obs_activar_perfil(ws)
                 r = obs_send(ws, "GetRecordDirectory")
                 ws.close()
                 rec_dir_str = r.get("d", {}).get("responseData", {}).get("recordDirectory", "")
+                _obs_dbg(f"carpeta de grabación de OBS: {rec_dir_str!r}")
+                if rec_dir_str and not os.path.isdir(rec_dir_str):
+                    try:
+                        os.makedirs(rec_dir_str, exist_ok=True)
+                        _obs_dbg(f"carpeta de grabación creada: {rec_dir_str}")
+                    except Exception as e:
+                        _obs_dbg(f"no se pudo crear la carpeta de grabación: {e}")
                 if rec_dir_str and os.path.isdir(rec_dir_str):
                     existing_vids = set(glob.glob(os.path.join(rec_dir_str, "*.mp4")))
                     # PLE-254: sin espacio, OBS corta la grabación a mitad de
@@ -7149,17 +7238,31 @@ class PleiadaApp:
               highlightbackground=BORDER).pack(fill="x", ipady=10)
 
     def _recording_start_error(self, msg="Error: no se pudo iniciar OBS."):
-        self._show_idle()
-        # Mostrar mensaje de error en el panel de OBS (pantalla idle)
-        if hasattr(self, "_obs_lbl"):
-            self._obs_lbl.config(text=msg, fg=RED)
-        if hasattr(self, "_warn_txt") and "\n" in msg:
-            # Mensaje largo (ej: auth error) → también en el panel de advertencia
-            try:
-                self._warn_txt.config(text=msg)
-                self._warn_frame.pack(fill="x", pady=(8, 0))
-            except Exception:
-                pass
+        # v0.10.3: antes se escribía en `_obs_lbl`/`_warn_txt` de la pantalla
+        # principal, widgets que ya no existen desde la v0.9: el usuario solo
+        # veía volver la pantalla de inicio, sin ningún mensaje. Ahora es una
+        # pantalla propia: la primera línea es el título y el resto el texto.
+        _obs_restaurar_perfil()
+        titulo, _, texto = (msg or "").partition("\n")
+        self._show_obs_problema(titulo.strip(), texto.strip())
+
+    def _show_obs_problema(self, titulo, texto):
+        """Pantalla de error de OBS (no arrancó, se cortó, auth). Mismo formato
+        que la de disco lleno de PLE-254."""
+        self._clear_content()
+        self._set_back(None)
+        frame = tk.Frame(self.content, bg=BG)
+        frame.pack(fill="both", expand=True, padx=22, pady=20)
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        tk.Label(frame, text=titulo, fg=TEXT, bg=BG, font=("Segoe UI", 13, "bold"),
+                 justify="center", wraplength=WIN_W - 60).pack()
+        if texto:
+            tk.Label(frame, text=texto, fg=DIM, bg=BG, font=("Segoe UI", 10),
+                     justify="center", wraplength=WIN_W - 60).pack(pady=(6, 0))
+        tk.Frame(frame, bg=BG).pack(fill="both", expand=True)
+        Boton(frame, text="Volver", fg=TEXT, bg=CARD, command=self._show_idle,
+              font=("Segoe UI", 11), highlightthickness=1,
+              highlightbackground=BORDER).pack(fill="x", ipady=10)
 
     def _cancel_recording(self, preguntar=True):
         """Descarta la sesion en curso: ni dataset ni analisis.
@@ -7268,6 +7371,7 @@ class PleiadaApp:
                 # esta grabando: no hay video, y el StopRecord solo generaria un
                 # error del lado de OBS.
                 _obs_dbg("cancel: durante el countdown, no habia nada que detener")
+            _obs_restaurar_perfil()   # PLE-259: el perfil ya se cambió antes del countdown
             if sdir:
                 try:
                     _unprotect_session_files(sdir)
@@ -7376,6 +7480,7 @@ class PleiadaApp:
 
             # 2. Detener OBS y mover video
             video_movido = obs_stop_recording(sdir)
+            _obs_restaurar_perfil()   # PLE-259: OBS vuelve al perfil del usuario
 
             # 4. Esperar a que el video aparezca en sdir. Si obs_stop_recording no
             #    encontró ningún archivo (OBS muerto sin dejar MP4), no hay nada que
@@ -7651,8 +7756,19 @@ class PleiadaApp:
                 _ws.close()
             except Exception as e:
                 _obs_dbg(f"launch: no se pudo verificar/detener OBS tras fallo: {e}")
+            # La carpeta de sesión se creó antes del countdown y quedó vacía: si
+            # se deja, aparece como sesión incompleta en "Mis grabaciones".
+            try:
+                _sd = self.session_dir
+                if _sd and _sd.exists() and not any(_sd.iterdir()):
+                    _sd.rmdir()
+                self.session_dir = None
+            except Exception:
+                pass
             self.recording = False
-            self.root.after(0, self._recording_start_error)
+            self.root.after(0, lambda: self._recording_start_error(
+                "OBS no pudo empezar a grabar\nRevisá en OBS si muestra algún error, "
+                "cerralo y volvé a intentar."))
             return
         self._rec_started = True   # PLE-157: desde aca si hay algo que detener
 
@@ -7765,6 +7881,7 @@ class PleiadaApp:
         # f. Listeners de OBS
         self._start_obs_stop_listener()
         self._start_obs_source_monitor()
+        self._start_obs_record_watchdog()
 
         # f. Mostrar pantalla de grabación activa
         self.root.after(0, lambda: self._show_recording_active(anchor_ts))
@@ -7810,6 +7927,35 @@ class PleiadaApp:
                     except: pass
 
         threading.Thread(target=_listener, daemon=True).start()
+
+    def _start_obs_record_watchdog(self):
+        """v0.10.3 (PLE-258): pregunta cada 5 s si OBS sigue grabando. El listener
+        de arriba depende del evento OUTPUT_STOPPED, y cuando OBS no llega a abrir
+        el archivo ese evento no siempre sale. Dos respuestas seguidas de "no está
+        grabando" cortan la sesión (una sola puede ser un instante de transición).
+        Si OBS no responde, no se concluye nada: puede estar ocupado."""
+        def _w():
+            negativos = 0
+            while self.recording and not self._we_stopped:
+                time.sleep(5)
+                if not self.recording or self._we_stopped:
+                    return
+                try:
+                    ws = obs_connect()
+                    st = obs_send(ws, "GetRecordStatus")
+                    ws.close()
+                    activo = st.get("d", {}).get("responseData", {}).get("outputActive")
+                except Exception:
+                    continue
+                if activo is False:
+                    negativos += 1
+                    if negativos >= 2:
+                        _obs_dbg("watchdog: OBS no está grabando — se corta la sesión")
+                        self.root.after(0, self._obs_external_stop)
+                        return
+                else:
+                    negativos = 0
+        threading.Thread(target=_w, daemon=True).start()
 
     def _obs_external_stop(self):
         """Llamado en el main thread cuando OBS detuvo la grabación externamente.
@@ -7859,24 +8005,13 @@ class PleiadaApp:
             self._show_sin_espacio(rec_dir, True)
             return
 
-        # Volver al idle y mostrar advertencia
-        self._show_idle()
-        if hasattr(self, "_obs_lbl"):
-            try:
-                self._obs_lbl.config(
-                    text="OBS detuvo la grabación.", fg=RED)
-            except Exception:
-                pass
-        if hasattr(self, "_warn_txt"):
-            try:
-                self._warn_txt.config(
-                    text="OBS detuvo la grabación antes de que el Recorder terminara.\n\n"
-                         "La sesión fue cancelada. Siempre usá el botón 'Detener' del Recorder "
-                         "para finalizar correctamente."
-                )
-                self._warn_frame.pack(fill="x", pady=(8, 0))
-            except Exception:
-                pass
+        # v0.10.3 (PLE-258): antes el aviso iba a widgets de la pantalla principal
+        # que ya no existen; el usuario no veía nada. Copy aprobado por Martín (06-11).
+        _obs_restaurar_perfil()
+        self._show_obs_problema(
+            "OBS dejó de grabar",
+            "OBS dejó de grabar antes de que detuvieras la sesión, así que la sesión "
+            "se descartó. Revisá en OBS si muestra algún error y volvé a grabar.")
 
     # ── Eliminación segura del MP4 descartado ─────────────────────────────────
 
@@ -7889,9 +8024,9 @@ class PleiadaApp:
         """
         rec_dir_str, existing_vids = obs_prep
         if not rec_dir_str or not os.path.isdir(rec_dir_str):
-            _obs_dbg("_delete_obs_video: rec_dir desconocido, buscando en carpeta Videos")
-            # Fallback: buscar en ~/Videos el MP4 más reciente (últimos 5 min)
-            rec_dir_str = str(Path.home() / "Videos")
+            _obs_dbg("_delete_obs_video: rec_dir desconocido, buscando en la carpeta de OBS")
+            # Fallback: la carpeta de grabación propia (v0.10.3)
+            rec_dir_str = str(OBS_REC_DIR)
             existing_vids = set()
 
         # Esperar hasta 15 s a que aparezca el archivo nuevo
@@ -9247,15 +9382,115 @@ class PleiadaApp:
             finally:
                 estado["vivo"] = False
             _etapa(3)
-            if out.get("estado") == "ok":
-                self.root.after(0, lambda: self._bono_ok(out))
-            else:
-                self.root.after(0, lambda: self._bono_error(
-                    out.get("codigo", ""), out.get("message", ""),
-                    detalle_piso=out.get("detalle", "")))
+            self.root.after(0, lambda: self._bono_resultado(out))
 
         import urllib.request as urllib_request
         threading.Thread(target=_worker, daemon=True).start()
+
+    def _bono_resultado(self, out):
+        """Respuesta del análisis (o de completar los botones del mouse)."""
+        estado = out.get("estado")
+        if estado == "ok":
+            self._bono_ok(out)
+        elif estado == "completar" and out.get("pendientes"):
+            self._bono_completar_mouse(out["pendientes"])
+        else:
+            self._bono_error(out.get("codigo", ""), out.get("message", ""),
+                             detalle_piso=out.get("detalle", ""))
+
+    # v0.10.3: botones del mouse dibujados como íconos. La visión lee la acción
+    # ("Atacar") pero no el botón; antes eso rechazaba el aporte entero (decisión
+    # del 09-09). Ahora el backend devuelve esas acciones y el usuario elige el
+    # botón de un conjunto cerrado; el resto del mapa sigue saliendo de la
+    # captura. El aporte queda marcado y lo valida un segundo usuario igual.
+    BONO_BOTONES_MOUSE = [
+        ("Clic izquierdo", "MouseLeft"), ("Clic derecho", "MouseRight"),
+        ("Clic central", "MouseMiddle"), ("Rueda arriba", "MouseWheelUp"),
+        ("Rueda abajo", "MouseWheelDown"), ("Botón lateral 1", "MouseX1"),
+        ("Botón lateral 2", "MouseX2"),
+    ]
+
+    def _bono_completar_mouse(self, pendientes):
+        b = self._bono
+        # Copy aprobado por Martín (06-11-2026).
+        frame = self._ident_frame(
+            "Completá los botones del mouse",
+            "En tus capturas algunos botones del mouse aparecen como íconos. "
+            "Elegí cuál es en cada acción.",
+            volver_a=self._bono_paso2)
+        enviar = self._bono_botones(frame, "Subir sin metadata", self._bono_continuar,
+                                    "Enviar", lambda: _enviar())
+        etiquetas = [t for t, _ in self.BONO_BOTONES_MOUSE]
+        codigo_de = dict(self.BONO_BOTONES_MOUSE)
+        elegidos = {}
+
+        lista = Caja(frame, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+        lista.pack(fill="x", pady=(14, 0))
+        for p in pendientes:
+            fila = tk.Frame(lista, bg=CARD)
+            fila.pack(fill="x", padx=12, pady=5)
+            nombre = p.get("accion") or "—"
+            if p.get("seccion"):
+                nombre = f"{nombre}  ·  {p['seccion']}"
+            tk.Label(fila, text=nombre, fg=TEXT, bg=CARD, font=("Segoe UI", 10),
+                     anchor="w", justify="left", wraplength=WIN_W - 260).pack(
+                side="left", fill="x", expand=True)
+            var = tk.StringVar(value="—")
+            # tk.OptionMenu y no ttk.Combobox: misma razón que en la perspectiva
+            # (el tema de ttk es global y se llevaría la barra de subida).
+            om = tk.OptionMenu(fila, var, *etiquetas)
+            om.config(bg=CARD2, fg=TEXT, activebackground=CARD2, activeforeground=TEXT,
+                      relief="flat", bd=0, highlightthickness=0, cursor="hand2",
+                      font=("Segoe UI", 10), anchor="w", padx=10, width=14,
+                      indicatoron=0)
+            om["menu"].config(bg=CARD, fg=TEXT, activebackground=ACCENT,
+                              activeforeground="#ffffff", font=("Segoe UI", 10), bd=0)
+            om.pack(side="right", ipady=3)
+            elegidos[p["id"]] = var
+            var.trace_add("write", lambda *_: _refrescar())
+
+        error_lbl = tk.Label(frame, text="", fg="#f0c0c0", bg=BG, font=("Segoe UI", 10),
+                             anchor="w", justify="left", wraplength=WIN_W - 60)
+        error_lbl.pack(fill="x", pady=(10, 0))
+
+        def _completo():
+            return all(v.get() in codigo_de for v in elegidos.values())
+
+        def _refrescar():
+            try:
+                enviar.config(state="normal" if _completo() else "disabled")
+            except Exception:
+                pass
+        _refrescar()
+
+        def _enviar():
+            if not _completo():
+                return
+            respuestas = {i: codigo_de[v.get()] for i, v in elegidos.items()}
+            enviar.config(state="disabled")
+
+            def _w(token=self.auth_token):
+                try:
+                    out = pleiada_api.complete_key_mapping(token, b["aporte_id"], respuestas)
+                except pleiada_api.ApiError as e:
+                    if _es_error_de_sesion(e):
+                        self.root.after(0, lambda: self._on_auth_expired(
+                            "Volvé a iniciar sesión para poder enviar la metadata."))
+                        return
+                    code, msg = getattr(e, "code", "") or "", str(e)
+                    if code in ("titulo_ya_confirmado", "tope_titulo", "ya_aportaste"):
+                        self.root.after(0, lambda: self._bono_cerrado(msg))
+                    else:
+                        self.root.after(0, lambda: self._bono_error("", msg, tecnico=True))
+                    return
+                except Exception as e:
+                    _obs_dbg(f"bono completar mouse: {e}")
+                    self.root.after(0, lambda: self._bono_error(
+                        "", "No pudimos subir las capturas. Revisá tu conexión e intentá de nuevo.",
+                        tecnico=True))
+                    return
+                self.root.after(0, lambda: self._bono_resultado(out))
+            threading.Thread(target=_w, daemon=True).start()
 
     def _bono_error(self, codigo, mensaje, tecnico=False, detalle_piso=""):
         """F2: no se leyó lo mínimo (o falló la subida). Nada quedó registrado.
@@ -9612,14 +9847,21 @@ class PleiadaApp:
         pregunta acá, con la orden ya elegida, y recién después se sube.
         Sin oferta, sin red o sin login: sube directo, como antes."""
         b = getattr(self, "_bono", None) or {}
-        if b.get("sdir") == session_dir and b.get("volver") and b.get("oferta") == "bono"                 and not b.get("aportado"):
+        # PLE-260: la oferta depende de la orden (con orden: bono; sin orden:
+        # sorteo). Post-sesión en modo libre se ofreció el sorteo, y al elegir acá
+        # una orden la app creía que "ya se ofreció" y subía directo, sin el bono.
+        # Una oferta previa solo cuenta si fue para ESTA misma orden.
+        misma_orden = (b.get("call_id") or "") == (call_id or "")
+        if b.get("sdir") == session_dir and b.get("volver") and b.get("oferta") == "bono" \
+                and not b.get("aportado") and misma_orden:
             # Volvió atrás desde la oferta de esta misma sesión: se muestra de nuevo.
             b["continuar"] = lambda: self._upload_progress_view(session_dir, return_to, call_id)
             self._bono_pantalla_oferta_guardada(session_dir, return_to)
             return
-        if b.get("sdir") == session_dir and (b.get("aportado") or b.get("oferta") is not None
-                                             or b.get("volver")):
-            # Ya se ofreció (post-sesión o en esta misma pantalla): no se repite.
+        if b.get("sdir") == session_dir and (
+                b.get("aportado")
+                or (misma_orden and (b.get("oferta") is not None or b.get("volver")))):
+            # Ya se ofreció para esta orden (o ya aportó): no se repite.
             self._upload_progress_view(session_dir, return_to, call_id)
             return
         if not call_id or not self._bono_cargar(session_dir, call_id):
