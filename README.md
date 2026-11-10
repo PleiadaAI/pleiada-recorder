@@ -1,423 +1,201 @@
-﻿# Pleiada Recorder
+﻿# Gameplay Recorder
 
-**Pleiada Recorder** es una herramienta gratuita desarrollada por [Pleiada](https://pleiada.ai) para el programa **Gameplay Alliance**. Graba tu pantalla con OBS y registra tus movimientos de teclado y mouse — todo sincronizado — para que tu forma de jugar sirva para entrenar agentes de Inteligencia Artificial.
+**Gameplay Recorder** es la herramienta oficial del programa **[Gameplay Alliance](https://gameplayalliance.gg)**, desarrollada por [Pleiada](https://pleiada.ai). Graba tu partida con OBS y registra tu teclado y tu mouse, todo sincronizado, para que tu forma de jugar sirva como dato para entrenar agentes de Inteligencia Artificial.
+
+> Versión vigente: **v0.10.4**. La guía completa, con capturas de cada pantalla, está en **[recorder.gameplayalliance.gg](https://recorder.gameplayalliance.gg/)**. El historial de versiones está en [`CHANGELOG.md`](CHANGELOG.md).
+
+**[⬇ Descargar el instalador para Windows](https://github.com/PleiadaAI/pleiada-recorder/releases/latest/download/PleiadaRecorder_Setup.exe)** · Windows 10 / 11 · Gratuito
+
+---
+
+## Qué hace
+
+- **Graba en un clic.** Iniciás y detenés la grabación desde una ventana flotante (o con **F9** / **F10** sin salir del juego), sin tocar OBS.
+- **Reconoce el título solo.** Mira qué ventana está capturando OBS y averigua qué estás jugando. Si no puede, te pregunta.
+- **Verifica cada sesión.** Al terminar comprueba que video y logs estén sincronizados, y revisa pantallas negras, FPS, inactividad (AFK) y otros aspectos técnicos. Lo que no pasa, no sale de tu PC.
+- **Te avisa mientras grabás.** Si OBS deja de grabar, si el título pierde el primer plano o si queda poco espacio en el disco, lo ves en el momento.
+- **Sube la sesión** a la orden en la que estás inscripto, desde la misma ventana o más tarde desde **Mis grabaciones**.
+- **No pisa tu OBS.** Mientras graba usa su propio perfil de OBS y, al terminar, vuelve al que tenías.
+- **Se mantiene al día.** Al arrancar se fija si hay una versión nueva y te la ofrece desde la misma ventana.
 
 ---
 
 ## Primeros pasos
 
-### Paso 1 — Configuración inicial con OBS
+### 1. Instalá
 
-Antes de tu primera grabación tenés que configurar OBS una sola vez (si ya lo tenías instalado, igualmente tenés que realizar estos ajustes).
+Descargá [`PleiadaRecorder_Setup.exe`](https://github.com/PleiadaAI/pleiada-recorder/releases/latest/download/PleiadaRecorder_Setup.exe) y ejecutalo. El instalador está **firmado digitalmente** e instala, si no los tenés:
 
-1. Iniciá el juego que quieras grabar y dejalo en pausa donde quieras iniciar la grabación.
+- [OBS Studio](https://obsproject.com/) — graba el video.
+- [AutoHotkey v2](https://www.autohotkey.com/) — registra teclado y mouse.
+- Python 3.12 y sus dependencias.
 
-2. Si lo acabás de instalar por primera vez, abrí OBS y seleccioná **"Optimizar solo para grabación..."** y dale Siguiente. Luego asegurate que la resolución sea al menos 1080 y los FPS sean **"60 o 30 pero en alta resolución"**.
+Los dos primeros son aplicaciones de código abierto, usadas por millones de personas. Al terminar se abre la guía en tu navegador.
 
-3. Sin importar si lo tenías instalado o no, en la sección **Fuentes** (abajo a la izquierda) hacé clic en el **+**, seleccioná **"Captura de Juego"** y dejá el nombre que aparece. Luego en **Modo** seleccioná **"Capturar Ventana específica"** y en **Ventana** seleccioná la que esté mostrando tu juego ya iniciado.
+### 2. Configurá OBS (una sola vez)
 
-4. En la sección **Mezclador de audio** (abajo al centro), si aparece una sección llamada **"Mic/Aux"**, silenciala haciendo clic en el 🔊 hasta que quede rojo (muteado).
+1. Abrí el título que vas a grabar.
+2. Si es la primera vez que abrís OBS y aparece el asistente de configuración automática, podés cancelarlo: **la resolución (1080p), los FPS (60) y la calidad los ajusta el Recorder solo**, antes de cada grabación. También silencia el micrófono.
+3. En **Fuentes** (abajo a la izquierda) hacé clic en **+** y elegí **Captura de Videojuego** (o *Captura de juego* / *Game Capture*, según la versión).
+4. En sus propiedades, en **Modo** elegí **Capturar ventana específica** y en **Ventana**, la de tu título.
 
-✔ Solo tenés que hacer esto una vez.
+> ⚠ **"Capturar ventana específica" es obligatorio.** Es el único modo en el que OBS informa qué ventana y qué ejecutable está capturando, que es lo que el Recorder usa para reconocer el título.
 
----
+### 3. Inscribite en una orden
 
-### Paso 2 — Prueba inicial
+Las órdenes abiertas están en **[gameplayalliance.gg/dashboard](https://gameplayalliance.gg/dashboard/)**. Sin inscripción podés grabar igual, pero la sesión no se puede subir hasta que te inscribas en una orden que acepte ese título.
 
-Ahora vamos a hacer una grabación corta para verificar que todo funciona bien.
+### 4. Grabá
 
-1. Si no iniciaste el juego en los pasos anteriores, hacelo ahora y dejalo en pausa.
+1. Abrí **Gameplay Recorder** desde el escritorio e iniciá sesión con el email con el que te registraste (te llega un código; si no lo ves, revisá Spam).
+2. Con el título identificado, tocá **Iniciar grabación** o apretá **F9**. El botón te dice antes de grabar si la sesión va a una orden o si es una *grabación libre*.
+3. Jugá con la ventana del título **en primer plano**: si cambiás de ventana, no se registran tus teclas ni tu mouse, y el Recorder te avisa.
+4. Para terminar, tocá **Detener grabación** o apretá **F10**. **Nunca la detengas desde OBS.**
 
-2. Hacé doble clic en el ícono **Pleiada Recorder** del escritorio. Aparece una pequeña ventana flotante — podés moverla arrastrando el encabezado.
+Cada sesión tiene que durar **al menos 5 minutos**. La duración máxima es de 60 minutos (se puede bajar en Ajustes); al llegar, la grabación se detiene sola y, si lo activás, arranca una nueva.
 
-3. En el Recorder, seleccioná de la lista el juego que vas a grabar (tiene que coincidir con el que capturaste en OBS). Luego hacé clic en **Iniciar grabación**. El botón cambia a **Detener grabación** y el contador empieza a correr.
+### 5. Revisá y subí
 
-4. Jugá unos 60 segundos y luego hacé clic en **Detener grabación** desde el Recorder (nunca desde OBS, para que los archivos queden sincronizados).
+El Recorder verifica la sesión automáticamente. Si está **lista para enviar**, revisá que no haya nada personal en los archivos y tocá **Subir Data Set**. Si **no es apta**, te dice el motivo y no se envía.
 
-5. Los archivos quedan guardados automáticamente en:
-   `Documentos › Pleiada Recordings`
-
-6. Aprovechá para verificar en los archivos que no se haya grabado en la pantalla ni en el registro del teclado nada privado ni personal. De ser así, ese contenido será eliminado permanentemente. ⚠ Si modificás algún archivo, la sesión será rechazada.
-
----
-
-### Paso 3 — Verificación automática
-
-Después de cada sesión, el Recorder verifica **automáticamente** que el video y los logs quedaron bien sincronizados. No tenés que hacer nada.
-
-**Resultados posibles:**
-- ✅ **SINCRONIZADOS** → la sesión quedó lista, podés entregarla.
-- ⚠ **OFFSET / ✗ ERROR** → la sesión se descarta automáticamente; iniciá una nueva grabación.
-
-Los archivos válidos quedan en la carpeta de la sesión, listos para revisar y subir.
-
-¿Dudas? Visitá [gameplayalliance.gg](https://gameplayalliance.gg)
+> ⚠ No modifiques los archivos de la sesión: si cambiás alguno, se rechaza.
 
 ---
 
-## Uso cotidiano
+## Ajustes (⚙)
 
-Una vez configurado OBS, el flujo de cada sesión es:
+| Opción | Qué hace |
+|---|---|
+| Atajos de teclado | Cambiar **F9** (iniciar) y **F10** (detener). Funcionan aunque el Recorder no esté en primer plano, incluso en pantalla completa, y no se registran en los logs. |
+| Duración máxima de sesión | Hasta 60 minutos. |
+| Reiniciar grabación automáticamente | Al llegar a la duración máxima, arranca una sesión nueva. |
+| DPI de tu mouse (opcional) | Ayuda a interpretar los movimientos del mouse en el dataset. |
 
-1. Iniciá el juego.
-2. Abrí **Pleiada Recorder** desde el escritorio.
-3. Seleccioná el juego de la lista y presioná **Iniciar grabación**.
-4. Jugá tu sesión. La grabación se detiene automáticamente al llegar a **1 hora 5 minutos**, para evitar subidas de archivos muy pesados.
-5. Cuando termines (o cuando se detenga sola), presioná **Detener grabación** desde el Recorder.
-6. El Recorder verifica la sesión automáticamente y deja los archivos listos en la carpeta de la sesión.
-
-> Si necesitás grabar más de 1h 5min, podés iniciar una nueva grabación — quedará guardada en una carpeta separada como una sesión nueva.
+También muestra la versión instalada y permite cerrar sesión.
 
 ---
 
-## Atajos de teclado y Ajustes
+## Metadata de controles
 
-Pleiada Recorder tiene un panel de **Ajustes** (ícono ⚙ en la barra superior) y **atajos de teclado** para iniciar/detener la grabación sin tener que volver a la ventana del Recorder — muy útil cuando jugás en pantalla completa.
-
-### Atajos por defecto
-
-| Atajo | Acción |
-|-------|--------|
-| **F9** | Iniciar grabación |
-| **F10** | Detener grabación |
-
-Los atajos funcionan **aunque el Recorder no esté en primer plano** (incluso con el juego en pantalla completa). Para iniciar con F9 necesitás tener un juego seleccionado y OBS configurado, igual que con el botón.
-
-### Cambiar los atajos
-
-1. Hacé clic en el ícono **⚙** (arriba a la derecha).
-2. En **Atajos de teclado**, hacé clic sobre el atajo que querés cambiar.
-3. Presioná la nueva tecla. Queda guardada automáticamente.
-
-> Las teclas que uses como atajos del Recorder **no se registran** en los logs de la sesión (no contaminan el dataset de gameplay).
-
-### Panel de Ajustes (⚙)
-
-Desde el panel de Ajustes también podés:
-- Ver la **versión** instalada del Recorder.
-- **Cerrar sesión** de tu cuenta.
+Si grabás un título que todavía no tiene su mapa de controles, el Recorder te propone compartir una captura de la pantalla de controles (con los controles por defecto). El aporte se valida cuando otro usuario manda los mismos controles. Las condiciones vigentes del programa están en la [guía](https://recorder.gameplayalliance.gg/#metadata).
 
 ---
 
 ## ¿Dónde se guardan los archivos?
 
-Cada sesión genera una carpeta en:
-
 ```
 Documentos\Pleiada Recordings\
-  └── FarCry6_26_04_26__15_13_40 recording\
-        ├── FarCry6_26_04_26__15_13_42.mp4  ← video
-        ├── mouse_log.csv                   ← movimientos del mouse
-        ├── mouse_delta_log.csv             ← deltas de hardware del mouse
-        ├── key_log.csv                     ← teclas presionadas
-        ├── video_timeline.csv              ← línea de tiempo
-        └── session_metadata.json           ← metadata de la sesión
+  └── <Título>_<fecha>__<hora> recording\
+        ├── <video>.mp4             ← video (MP4 fragmentado)
+        ├── mouse_log.csv           ← posición y botones del mouse
+        ├── mouse_delta_log.csv     ← movimiento del mouse por hardware (Raw Input)
+        ├── key_log.csv             ← teclas presionadas y soltadas
+        ├── video_timeline.csv      ← línea de tiempo del video
+        └── session_metadata.json   ← metadata de la sesión
 ```
 
-El archivo **`session_metadata.json`** acompaña a cada grabación con información no personal que enriquece el dataset: timing y sincronización, datos del juego (título, motor, perspectiva, género, idiomas, desarrollador), calidad de video (resolución, FPS, codec, bitrate), key mapping real del juego y specs de hardware/OS. Todo se genera automáticamente.
+Los registros de diagnóstico quedan en `Documentos\Pleiada Logs`.
+
+> Las carpetas siguen diciendo "Pleiada" a propósito: ahí están las sesiones ya grabadas.
 
 ---
 
 ## Privacidad
 
-Lo que graba Pleiada Recorder es **información anónima**: no captura tu nombre, cuenta, datos personales ni nada que te identifique. Sin embargo, **es responsabilidad del usuario** asegurarse de:
+Lo que se graba es **información anónima**. Aun así, **es tu responsabilidad** no mostrar en pantalla ni escribir con el teclado nada privado (contraseñas, chats, datos bancarios, etc.). Si algo así llega a nuestros servidores, se elimina de forma permanente y ese dataset queda fuera de cualquier uso comercial.
 
-- No grabar pantallas que contengan información privada o personal (contraseñas, chats, datos bancarios, etc.).
-- No utilizar el teclado durante la grabación para escribir contenido que pertenezca al ámbito privado.
+| Qué se registra | Cómo |
+|---|---|
+| Video | La ventana del título que capturás en OBS. Queda en tu PC hasta que lo subís vos. |
+| Audio | Solo el del juego (captura por proceso). El micrófono y el audio del escritorio se silencian, para que no entren voces ni chats de voz. |
+| Teclado | Nombres de teclas (`W`, `Space`, `LShift`), **solo mientras el título está en primer plano**. Nunca texto. |
+| Mouse | Posición, movimiento por hardware, botones y rueda. |
+| Equipo | Specs de hardware y sistema operativo, velocidad del puntero, distribución del teclado y modelo de mouse y teclado. Sin datos que te identifiquen. |
 
-En caso de que cualquier información privada llegue a nuestros servidores — ya sea a través de la captura de video o del registro del teclado — procederemos a eliminarla de forma permanente. Dicho contenido quedará automáticamente fuera de cualquier oportunidad comercial futura.
-
-**Qué se registra:**
-
-| Qué | Cómo |
-|-----|------|
-| Video de pantalla | Archivo local; se sube manualmente |
-| Nombres de teclas | Ej: `a`, `Space`, `LShift` — sin texto ni contenido |
-| Posición del mouse | Coordenadas en píxeles |
-| Clics y scroll | Solo identificador del botón y delta de scroll |
-
-No se accede al micrófono, cámara, portapapeles, historial de navegación ni ningún otro dato personal. Todo queda en tu computadora hasta que lo subís vos.
+No se accede a la cámara, el portapapeles, el historial de navegación ni a ningún otro dato personal.
 
 ---
 
-## Preguntas frecuentes (FAQs)
+## Preguntas frecuentes
+
+**El Recorder se queda en "Esperando el título".**
+La fuente de OBS no está en **Capturar ventana específica**, o no apunta a la ventana del título. Revisá el paso 2.
+
+**La sesión se rechazó por "Sin teclado ni mouse".**
+Pasa si el título corre como administrador o su anticheat bloquea la captura: probá abrir el Recorder como administrador. El joystick todavía no se registra.
+
+**La sesión se rechazó por "Título fuera de primer plano".**
+Otra ventana (un overlay, el navegador, el propio Recorder) tuvo el foco gran parte de la sesión. Hacé clic en la ventana del título antes de jugar y no cambies de ventana mientras grabás.
+
+**OBS dejó de grabar en medio de la sesión.**
+El Recorder corta la sesión y te avisa. Revisá en OBS si muestra algún error (por ejemplo, falta de espacio en el disco) y volvé a grabar.
 
 ---
 
-**¿Por qué el Synch Checker muestra "Archivo incompleto" en el video y no puede leer la duración?**
+## Contacto
 
-Significa que OBS no terminó de escribir el archivo de video correctamente. En el formato MP4 estándar, OBS escribe todos los datos de video primero y al final agrega el índice del archivo (el box `moov`). Si OBS se cierra de forma abrupta durante la grabación —por un crash, cierre forzado, corte de luz o reinicio del equipo— ese índice nunca se escribe. El archivo queda truncado: los datos de video están ahí, pero sin el índice ningún reproductor ni herramienta de IA puede leerlos.
-
-**¿Este dataset es válido para el programa?**
-
-No. Para que una sesión sea válida necesitás el par completo: video reproducible + logs sincronizados. Si el video está truncado, la sesión no es utilizable para entrenamiento de IA, aunque los CSV (mouse, teclado, timeline) estén perfectamente sincronizados. Descartá la sesión e iniciá una nueva grabación.
-
-**¿Puede volver a pasar con la versión actual de Pleiada Recorder?**
-
-Es muy poco probable. Pleiada Recorder configura OBS para grabar en **formato MP4 fragmentado**, donde el índice se escribe al comienzo del archivo y cada fragmento de video queda indexado a medida que se graba. Si OBS se cierra de forma inesperada, el video grabado hasta ese momento sigue siendo reproducible. El caso de video truncado afecta principalmente a grabaciones hechas con versiones anteriores o con una configuración manual de OBS diferente a la recomendada.
-
-**¿Qué hago si me pasa?**
-
-1. Verificá en el Synch Checker — si muestra "Archivo incompleto", la sesión no es válida.
-2. Descartá la sesión e iniciá una nueva grabación.
-3. Si el problema se repite, asegurate de usar siempre el botón **"Detener grabación"** de Pleiada Recorder para cerrar la sesión de forma limpia.
-
----
-
-## Contacto y soporte
-
-- Información del programa: [pleiada.ai](https://pleiada.ai)
-- Preguntas frecuentes: [pleiada.ai/faqs](https://pleiada.ai/faqs)
-- Términos: [pleiada.ai/terms](https://pleiada.ai/terms)
-
----
-
-## Changelog
-
-### V25.5 — 16/05/2026
-- **Mejora — nombre de sesión con juego:** la carpeta de cada grabación ahora incluye el nombre del juego: `NombreJuego_dd_mm_aa__hh_mm_ss recording`. El nombre se extrae automáticamente de la fuente "Captura de Juego" de OBS. Si no hay ventana específica configurada, se usa solo fecha y hora.
-- **Fix — Synch Checker detecta video truncado:** si OBS se cerró abruptamente y el MP4 quedó incompleto, ahora se muestra un mensaje claro en lugar de duración N/A sin explicación.
-
-### V25.4 — 16/05/2026
-- **Mejora — botón "?" en el Recorder:** reabre el wizard de configuración desde la title bar.
-- **Fix — tutorial paso 1:** punto 3 ahora incluye la instrucción de "Capturar Ventana específica".
-- **Fix — app sigue abierta al desinstalar:** el desinstalador cierra Pleiada Recorder automáticamente.
-- **Fix — textos recortados en Recorder:** "Pleiada Recorder" y "Listo para grabar" ya no se recortan con DPI alto.
-- **Fix — scrollbar recortada en Synch Checker:** barra de scroll completamente visible en todos los tamaños de ventana.
-- **Mejora — Examinar abre Pleiada Recordings:** el diálogo de selección de carpeta se abre directamente en la carpeta de grabaciones.
-
-### V25.3 — 16/05/2026
-- **Fix overlay invasivo:** el floater ya no es siempre visible sobre el juego. Aparece en la barra de tareas de Windows y se puede traer al frente con Alt+Tab. El video de OBS ya no captura el overlay.
-
-### V25.2 — 16/05/2026
-- **Fix Synch Checker — 5 archivos:** `mouse_delta_log.csv` ahora se verifica junto a los otros 4 archivos.
-- **Fix Synch Checker — GOP parcial final:** el rango "normal" se amplió a `[-4500ms, +10000ms]`. El GOP parcial al detener OBS ya no genera falso "OFFSET".
-- **Fix Synch Checker — mensaje de resumen:** actualizado a "5 archivos"; distingue flush del encoder vs GOP parcial final.
-
-### V25.1 — 15/05/2026
-- **Fix ortografía — popup de instalación:** corregidas 10 tildes faltantes en el texto de consentimiento.
-- **Fix ortografía — popup de error:** "leido los terminos" → "leído los términos".
-- **Mejora — botón Volver en el wizard:** el tutorial post-instalación ahora tiene un botón "← Volver" en los pasos 2 y 3.
-- **Fix — tutorial paso 2/3:** el texto ahora menciona los textos reales de los botones ("Iniciar grabación" / "Detener grabación") en lugar de íconos ⏺/⏹ que no existen en la UI.
-- **Fix — tutorial paso 3/3:** resultados del Synch Checker actualizados (eliminados "OFFSET LEVE" / "OFFSET CRÍTICO", reemplazados por "OFFSET").
-
-### V25 — 15/05/2026
-- **Raw Input — mouse_delta_log.csv (nuevo archivo):** registra los deltas de hardware (dx/dy) del mouse por evento, vía Windows Raw Input (WM_INPUT). Funciona aunque el juego tenga el cursor capturado (modos FPS/TPS con aim-lock). Complementa al `mouse_log.csv` que sigue registrando posición absoluta del cursor y botones.
-- **Raw Input — KEY_UP:** el `key_log.csv` ahora incluye eventos `KEY_UP` además de `KEY_DOWN`. Permite reconstruir exactamente cuándo se presionó y soltó cada tecla.
-- **Raw Input — cobertura total de teclas:** se eliminó el whitelist de ~60 hotkeys de AutoHotkey. Ahora se capturan absolutamente todas las teclas (letras, números, modificadores, F-keys, teclas de media, Windows key, etc.) sin auto-repeat falso.
-- **Raw Input — botones de mouse mejorados:** `mouse_log.csv` reemplaza `CLICK` por `BUTTON_DOWN`/`BUTTON_UP`. Agrega botones X1/X2 (laterales) y eventos `SCROLL` con delta de rueda.
-- **ANCHOR en 4 archivos:** `ANCHOR_START` y `ANCHOR_END` ahora se escriben en los 4 CSVs.
-
-### V24.1 — 14/05/2026
-- **Fix Synch Checker — umbral de extensión de video:** ampliado de 3 s a 10 s. Con keyframe intervals grandes (4–8 s), OBS puede tardar hasta la duración de un GOP en hacer flush al detener — eso es normal y no indica desfase.
-- **Fix Synch Checker — mensaje de cierre:** al finalizar la verificación se muestra explícitamente si los 4 archivos están sincronizados y cuántos ms extiende el video post-sesión.
-- **Fix Synch Checker — ms redondeados:** corregido un valor flotante en el mensaje de cierre.
-
-### V24 — 13/05/2026
-- **Fix sincronización por hardware (segundo moof):** eliminado el offset de ~1.7 s que existía en todas las PCs. `obs_control.py` ya no usa el evento `OBS_WEBSOCKET_OUTPUT_STARTED` como referencia de inicio. En su lugar, espera a que aparezca el segundo box `moof` en el archivo MP4 (= primer GOP completo en disco), calcula la duración exacta del primer GOP en ticks del encoder, y resta ese valor al timestamp de detección para obtener el instante real del primer frame. La corrección es completamente independiente del hardware: funciona igual en cualquier GPU, encoder o configuración de sistema.
-- **Synch Checker:** umbral de extensión del video ampliado a 10 s (antes 3 s). Con keyframe intervals grandes (4–8 s), OBS puede tardar hasta la duración de un GOP en hacer flush al detener la grabación — eso es normal y no indica desfase.
-- **Synch Checker:** mensaje de cierre explícito — al finalizar la verificación se muestra si los 4 archivos están sincronizados y cuántos ms extiende el video post-sesión.
-
-### V23 — 13/05/2026
-- **Fix duración de video (MP4 fragmentado):** el Synch Checker ahora parsea directamente los boxes `moof/tfdt/trun` del MP4 para obtener la duración real. El método anterior (`CAP_PROP_FRAME_COUNT` de OpenCV) subestimaba la duración ~1.7 s en grabaciones OBS.
-
-### V22 — 13/05/2026
-- **Fix sincronización:** el offset entre el video y los logs pasó de ~1.4 s a menos de 500 ms.
-- **Fix Synch Checker:** corregido el cálculo de duración del video que generaba falsos "OFFSET CRÍTICO".
-
-### V21.1 — 03/05/2026
-- **Fix íconos:** los íconos de escritorio ahora se ven en alta definición (16, 32, 48 y 256 px).
-
-### V20 — 03/05/2026
-- **OBS inteligente:** si OBS ya está instalado en la versión requerida (32.1.2) o superior, la instalación lo saltea.
-- **OBS visible:** el instalador de OBS se muestra en primer plano.
-
-### V19 — 03/05/2026
-- **Nuevos íconos:** íconos oficiales de Pleiada Recorder y Synch Checker en alta definición.
-- **UI floater rediseñada:** tipografía unificada, timer más grande, botón redondeado, esquinas redondeadas.
-- **UI Synch Checker rediseñada:** logo oficial, botón redondeado, tipografía unificada.
-- **Nombre de sesión dinámico:** muestra el nombre de carpeta durante la grabación; se convierte en hipervínculo al finalizar.
-- **Fix shortcut Synch Checker:** corregida la ruta con espacios en el acceso directo del escritorio.
-
-### V18 — 01/05/2026
-- **Auto-stop de sesión:** la grabación se detiene automáticamente al llegar a 1 hora 5 minutos.
-
-### V17.2 — 27/04/2026
-- **Fix descarga de AutoHotkey:** resuelto un bloqueo de Cloudflare durante la instalación.
-
-### V17 — 27/04/2026
-- Versión inicial de Pleiada Recorder.
-- Instalación automática de Python 3.12, AutoHotkey v2, OBS Studio 32.1.2 y dependencias.
-- Floater de grabación con timer, control de sesión y límite configurable.
-- Synch Checker para verificar sincronización entre video y logs.
-- Configuración automática de OBS WebSocket al instalar.
+- Soporte: [gg_support@gameplayalliance.gg](mailto:gg_support@gameplayalliance.gg)
+- Programa: [gameplayalliance.gg](https://gameplayalliance.gg)
+- Términos y condiciones: [gameplayalliance.gg/terminos-condiciones](https://gameplayalliance.gg/terminos-condiciones)
 
 ---
 
 ## Para devs
 
-### Arquitectura
-
-```
-┌─────────────────────────────────────────────┐
-│            gameplay_logger.ahk              │
-│  (AutoHotkey v2 — floating GUI + input log) │
-└────────────────────┬────────────────────────┘
-                     │ subprocess calls
-          ┌──────────┴──────────┐
-          │                     │
-          ▼                     ▼
-  obs_control.py start    obs_control.py stop
-  (Python — OBS WebSocket v5 client)
-          │
-          │ ws://localhost:4455
-          ▼
-  ┌───────────────┐
-  │  OBS Studio   │  ← configurado por configure_obs.py al instalar
-  │  (recording)  │
-  └───────────────┘
-```
+El código se publica para que cualquiera pueda **leerlo y auditarlo**. No es open source: ver [Licencia](#licencia).
 
 ### Componentes
 
-#### `gameplay_logger.ahk`
-**Runtime:** AutoHotkey v2.0+
+Todo lo que se instala está en `pleiada_installer/files/`:
 
-GUI frameless (`-Caption +ToolWindow +AlwaysOnTop`), posicionada en el centro inferior del área de trabajo del monitor primario. Draggable via `WM_NCHITTEST` en el header (primeros 28 px). Al iniciar una sesión crea una carpeta con timestamp, lanza `obs_control.py start` (bloqueante), y activa timers de tracking (mouse: 8 ms, timeline: 50 ms, UI clock: 1 s). La grabación se detiene automáticamente a los **3900 segundos (1h 5min)**. Al detener, escribe el anchor final en los CSVs y lanza `obs_control.py stop` en background.
-
-#### `obs_control.py`
-**Runtime:** Python 3.12+ / **Deps:** `websocket-client`
-
-CLI wrapper del OBS WebSocket v5 API.
-
-```
-python obs_control.py start
-python obs_control.py stop [session_folder]
-```
-
-**Start:** detecta `obs64.exe` via tasklist → busca el ejecutable (paths conocidos → registro → glob) → conecta WS con auth SHA-256 → si falla, mata y relanza OBS (1 reintento) → desmutea `wasapi_output_capture`, mutea todos los `wasapi_input_capture` → captura `GetRecordDirectory` y lista los MP4 existentes → llama `StartRecord` → espera el evento `RecordStateChanged → STARTED` → cierra el WS → monitorea el nuevo MP4: lee el `timescale` del `mdhd` y espera a que aparezca el **segundo `moof`** (= primer GOP completo en disco) → calcula `anchor_ts = T_detección − duración_primer_GOP_ms` → escribe el anchor en `%TEMP%\pleiada_anchor_ts.txt` para que AHK lo use como `ANCHOR_START`. Esta técnica es independiente del hardware: el offset se mide directamente del archivo generado por el encoder.
-
-**Stop:** llama `StopRecord` → lee `outputPath` de la respuesta → fallback a escaneo de `~/Videos` si el path está vacío → mueve el video a `session_folder` con hasta 20 reintentos.
-
-**Debug log:** `%TEMP%\pleiada_obs_debug.txt`
-
-#### `configure_obs.py`
-**Runtime:** Python 3.12+
-
-Corre una sola vez durante la instalación (vía Inno Setup, hidden). Configura:
-
-| Target | Archivo | Acción |
-|--------|---------|--------|
-| WebSocket plugin | `%APPDATA%\obs-studio\plugin_config\obs-websocket\config.json` | Puerto 4455, sin auth, suprime first-run alert |
-| Perfil de grabación | `%APPDATA%\obs-studio\basic\profiles\Pleiada\basic.ini` | MP4, 1920×1080, 60 fps, 2500 kbps video, 160 kbps audio |
-| Scene collection | `%APPDATA%\obs-studio\basic\scenes\Pleiada.json` | Escena con `monitor_capture` + `wasapi_output_capture`, sin micrófono |
-| Perfil/escena activa | `%APPDATA%\obs-studio\global.ini` | Apunta a perfil `Pleiada` y escena `Pleiada`; `FirstRun=false` |
-
-#### `pleiada_setup_wizard.pyw`
-**Runtime:** Python 3.12+ (Tkinter)
-
-Wizard de 3 pasos post-instalación. Ventana 580×560 px centrada en pantalla. El footer se packea antes que el contenido para garantizar visibilidad de los botones independientemente de la altura del contenido.
-
-#### `pleiada_check.pyw`
-**Runtime:** Python 3.12+ (Tkinter + OpenCV + Pillow)
-
-Herramienta standalone de verificación de sync entre el video y los logs de una sesión.
-
-#### `pleiada_api.py`
-**Runtime:** Python 3.12+ (solo stdlib)
-
-Cliente HTTP del backend (Lambda Function URL): login OTP, Open Calls y emisión de URLs
-presignadas de subida. Lo comparten la app y el uploader.
-
-#### `session_uploader.py`
-**Runtime:** Python 3.12+ (solo stdlib)
-
-Sube los archivos de una sesión a S3 con URLs presignadas que emite el backend. La carpeta
-de destino se deriva del token en el servidor, así que un usuario solo puede escribir en la
-suya. Los archivos de más de 64 MB van por multipart.
-
-**Tres decisiones que definen la velocidad de subida** (medidas el 05/08/2026; el detalle
-está en el CHANGELOG de v0.8.11):
-
-| Decisión | Por qué |
+| Archivo | Qué es |
 |---|---|
-| `blocksize` de 256 KiB | `http.client` entrega el body de a 8192 bytes por default. Con bloques tan chicos el socket nunca tiene datos suficientes en vuelo y la conexión queda limitada por la aplicación: el techo pasa a ser `SO_SNDBUF / RTT`, que con el buffer de 64 KB de Windows da 1,4 MB/s a 44 ms de latencia y 0,4 MB/s a 160 ms — sin importar el ancho de banda del usuario. Medido contra producción: **1,33 → 20,3 MB/s**. |
-| 4 partes en paralelo | Aporta poco en conexiones buenas (a partir de 2–4 streams la línea ya está llena) pero ayuda donde una sola no alcanza, y evita que una parte trabada frene al resto. Ajustable con `upload_concurrency` en `settings.json` (1 a 16). |
-| URLs presignadas por lotes | Antes se pedían todas al iniciar y vencían a las 6 h; con datasets de 11–20 GB por hora de juego, una sesión larga se quedaba sin permisos y **fallaba entera cerca del final**. Ahora se piden a medida que se usan. |
+| `pleiada_app.pyw` | **La app** (Tkinter, un solo archivo): login por código, identificación del título, grabación, verificación, metadata y subida. Incluye el cliente de OBS WebSocket v5 (puerto 4455). `VERSION` vive acá y es la única fuente de verdad de la versión. |
+| `input_logger.ahk` | Logger headless (AutoHotkey v2): hooks low-level + Raw Input, para capturar en fullscreen exclusivo. Filtra el input al ejecutable del título y deja el estado del foco para el aviso en vivo. |
+| `pleiada_sync_limits.py` | Fuente de verdad única de los umbrales y gates que deciden si una sesión es válida, y lector de MP4. La comparten la app y el checker. |
+| `obs_encoding.py` | Fuente de verdad única de la configuración de grabación (encoder, calidad, resolución y FPS). |
+| `obs_control.py` | Wrapper CLI del OBS WebSocket (start/stop, mueve el MP4). |
+| `sync_markers.py` | Anclas medidas entre el reloj del input y el video (marcador visible en la escena). |
+| `input_devices.py` | Metadata de los dispositivos de entrada (velocidad del puntero, layout, VID/PID, tasa de sondeo). |
+| `pleiada_api.py` | Cliente HTTP del backend: login, órdenes, URLs presignadas. |
+| `session_uploader.py` | Subida a S3 con URLs presignadas (multipart en paralelo para archivos grandes). |
+| `configure_obs.py` | Configura OBS: WebSocket, perfil y escena "Pleiada". Corre desde el instalador completo y desde el de actualización. |
+| `pleiada_check.pyw` | Synch Checker: verificador standalone de una sesión (Tkinter + OpenCV). |
+| `games_list.json` | Lista de títulos bundleada (respaldo). |
 
-> **No setear `SO_SNDBUF` a mano** para esto: en Windows, fijarlo explícito apaga el
-> autotuning del buffer de envío, que es justo lo que hace funcionar el arreglo.
+El backend no está en este repositorio.
 
-El archivo se lee por rangos a medida que se envía, así que todas las partes en vuelo
-ocupan ~1 MB de RAM en vez de `part_size` cada una. Cada parte se reintenta por separado
-(3 intentos); un PUT interrumpido no deja nada en S3, y cancelar aborta el multipart y no
-registra la subida. `Documentos\Pleiada Logs\upload.log` guarda un resumen por archivo
-(MB, segundos, MB/s, partes, reintentos) además de los fallos.
+### Build
 
-Tests: `tests/test_uploader_paralelo.py` — integridad de los bytes por rango, última parte
-corta, lotes de URLs, reintentos y cancelación, contra un sink HTTP local.
-
----
-
-### Installer
-
-Construido con [Inno Setup 6](https://jrsoftware.org/isinfo.php) desde `pleiada_installer/setup.iss`.
-
-**Secuencia:**
-1. Página de consentimiento (checkbox requerido)
-2. Python 3.12.8 silencioso (user-scope) si no existe `HKCU\Software\Python\PythonCore\3.12`
-3. AutoHotkey v2.0.24
-4. OBS Studio 32.1.2 (cierra OBS si está corriendo antes y después)
-5. Paquetes pip: `websocket-client`, `Pillow`, `opencv-python`
-6. `configure_obs.py` (hidden)
-7. `pleiada_setup_wizard.pyw`
-
-**Shortcuts creados:**
-
-| Acceso directo | Target |
-|----------------|--------|
-| Pleiada Recorder | `gameplay_logger.ahk` |
-| Synch Checker | `pleiada_check.pyw` |
-
----
-
-### Building from Source
-
-**Requisitos:** Windows 10/11 x64, [Inno Setup 6](https://jrsoftware.org/isdl.php), PowerShell 5.1+, acceso a internet.
+Requisitos: Windows 10/11 x64, [Inno Setup 6](https://jrsoftware.org/isdl.php), PowerShell 5.1+.
 
 ```powershell
-git clone https://github.com/PleiadaAI/pleiada-recorder.git
-cd pleiada-recorder
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 cd pleiada_installer
-.\BuildPleiadaSetup.ps1
+python update_games_list.py        # obligatorio antes de cada build
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=X.Y.Z setup.iss           # instalador completo
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DLITE /DAppVersion=X.Y.Z setup.iss    # actualización (LITE)
 ```
 
-El instalador compilado queda en `pleiada_installer/Output/`.
+`/DAppVersion` tiene que coincidir con `VERSION` en `pleiada_app.pyw`. El completo necesita los instaladores de Python, AutoHotkey y OBS en `pleiada_installer/deps/` (`BuildPleiadaSetup.ps1` los descarga).
 
-**CI/CD (GitHub Actions):** un push de tag dispara el build en `windows-latest`, compila el `.exe` y publica un GitHub Release.
-
-```bash
-git tag v0.17.2
-git push origin v0.17.2
-```
-
----
+**CI/CD (GitHub Actions):** pushear un tag `vX.Y.Z` compila los dos instaladores, los **firma** y publica el Release con `PleiadaRecorder_Setup.exe`, `PleiadaRecorder_Update.exe` y `latest.json`, que es lo que lee la app para actualizarse. El build falla si el tag no coincide con `VERSION`.
 
 ### Dependencias
 
 | Paquete | Versión | Licencia | Uso |
-|---------|---------|----------|-----|
-| [AutoHotkey v2](https://www.autohotkey.com/) | 2.0.24 | GPL-2.0 | GUI, input hooks, orquestación |
-| [OBS Studio](https://obsproject.com/) | 32.1.2 | GPL-2.0 | Grabación de pantalla y audio |
-| [Python](https://www.python.org/) | 3.12.8 | PSF-2.0 | Runtime de scripts de control |
+|---|---|---|---|
+| [OBS Studio](https://obsproject.com/) | 32.1.2 | GPL-2.0 | Grabación de video y audio |
+| [AutoHotkey v2](https://www.autohotkey.com/) | 2.0.24 | GPL-2.0 | Hooks de teclado y mouse |
+| [Python](https://www.python.org/) | 3.12.8 | PSF-2.0 | Runtime de la app |
 | [websocket-client](https://github.com/websocket-client/websocket-client) | latest | Apache-2.0 | OBS WebSocket v5 |
-| [Pillow](https://python-pillow.org/) | latest | HPND | Procesamiento de imágenes (sync checker) |
-| [opencv-python](https://github.com/opencv/opencv-python) | latest | MIT | Análisis de frames (sync checker) |
+| [Pillow](https://python-pillow.org/) | latest | HPND | Imágenes |
+| [opencv-python](https://github.com/opencv/opencv-python) | latest | MIT | Análisis de frames (Synch Checker) |
 | [Inno Setup](https://jrsoftware.org/isinfo.php) | 6.x | ISL | Compilador del instalador (solo build) |
 
 ---
 
-### Licencia
+## Licencia
 
-MIT License — Copyright © 2026 Pleiada
+**Source-available**: se puede leer y auditar, no usar, copiar, modificar ni redistribuir. Ver [`LICENSE`](LICENSE). El uso del programa instalable se rige por los [términos y condiciones de Gameplay Alliance](https://gameplayalliance.gg/terminos-condiciones).
+
+Copyright © 2026 Pleiada. Todos los derechos reservados.
